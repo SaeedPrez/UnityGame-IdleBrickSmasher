@@ -2,8 +2,11 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
-  tags: []
+  serializedVersion: 3
+  tags:
+  - Brick
+  - Ball
+  - Wall
   layers:
   - Default
   - TransparentFX
@@ -15,10 +18,10 @@ TagManager:
   - 
   - 
   - 
-  - 
-  - 
-  - 
-  - 
+  - Balls
+  - Walls
+  - Bricks
+  - Player
   - 
   - 
   - 
@@ -41,3 +44,14 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Levels
+    uniqueID: 1920620437
+    locked: 0
+  - name: Balls
+    uniqueID: 956395311
+    locked: 0
+  - name: Player
+    uniqueID: 1368899033
+    locked: 0
+  m_RenderingLayers:
+  - Default

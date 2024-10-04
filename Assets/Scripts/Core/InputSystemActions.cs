@@ -39,7 +39,7 @@ namespace Prez.Core
                     ""initialStateCheck"": true
                 },
                 {
-                    ""name"": ""ReleaseBall"",
+                    ""name"": ""BallAction1"",
                     ""type"": ""Button"",
                     ""id"": ""f1ba0d36-48eb-4cd5-b651-1c94a6531f70"",
                     ""expectedControlType"": """",
@@ -188,7 +188,7 @@ namespace Prez.Core
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
-                    ""action"": ""ReleaseBall"",
+                    ""action"": ""BallAction1"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -199,7 +199,7 @@ namespace Prez.Core
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Gamepad"",
-                    ""action"": ""ReleaseBall"",
+                    ""action"": ""BallAction1"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -210,7 +210,7 @@ namespace Prez.Core
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""XR"",
-                    ""action"": ""ReleaseBall"",
+                    ""action"": ""BallAction1"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -799,7 +799,7 @@ namespace Prez.Core
             // Player
             m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
             m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
-            m_Player_ReleaseBall = m_Player.FindAction("ReleaseBall", throwIfNotFound: true);
+            m_Player_BallAction1 = m_Player.FindAction("BallAction1", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -880,13 +880,13 @@ namespace Prez.Core
         private readonly InputActionMap m_Player;
         private List<IPlayerActions> m_PlayerActionsCallbackInterfaces = new List<IPlayerActions>();
         private readonly InputAction m_Player_Move;
-        private readonly InputAction m_Player_ReleaseBall;
+        private readonly InputAction m_Player_BallAction1;
         public struct PlayerActions
         {
             private @InputSystemActions m_Wrapper;
             public PlayerActions(@InputSystemActions wrapper) { m_Wrapper = wrapper; }
             public InputAction @Move => m_Wrapper.m_Player_Move;
-            public InputAction @ReleaseBall => m_Wrapper.m_Player_ReleaseBall;
+            public InputAction @BallAction1 => m_Wrapper.m_Player_BallAction1;
             public InputActionMap Get() { return m_Wrapper.m_Player; }
             public void Enable() { Get().Enable(); }
             public void Disable() { Get().Disable(); }
@@ -899,9 +899,9 @@ namespace Prez.Core
                 @Move.started += instance.OnMove;
                 @Move.performed += instance.OnMove;
                 @Move.canceled += instance.OnMove;
-                @ReleaseBall.started += instance.OnReleaseBall;
-                @ReleaseBall.performed += instance.OnReleaseBall;
-                @ReleaseBall.canceled += instance.OnReleaseBall;
+                @BallAction1.started += instance.OnBallAction1;
+                @BallAction1.performed += instance.OnBallAction1;
+                @BallAction1.canceled += instance.OnBallAction1;
             }
 
             private void UnregisterCallbacks(IPlayerActions instance)
@@ -909,9 +909,9 @@ namespace Prez.Core
                 @Move.started -= instance.OnMove;
                 @Move.performed -= instance.OnMove;
                 @Move.canceled -= instance.OnMove;
-                @ReleaseBall.started -= instance.OnReleaseBall;
-                @ReleaseBall.performed -= instance.OnReleaseBall;
-                @ReleaseBall.canceled -= instance.OnReleaseBall;
+                @BallAction1.started -= instance.OnBallAction1;
+                @BallAction1.performed -= instance.OnBallAction1;
+                @BallAction1.canceled -= instance.OnBallAction1;
             }
 
             public void RemoveCallbacks(IPlayerActions instance)
@@ -1095,7 +1095,7 @@ namespace Prez.Core
         public interface IPlayerActions
         {
             void OnMove(InputAction.CallbackContext context);
-            void OnReleaseBall(InputAction.CallbackContext context);
+            void OnBallAction1(InputAction.CallbackContext context);
         }
         public interface IUIActions
         {

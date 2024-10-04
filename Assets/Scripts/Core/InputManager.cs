@@ -30,7 +30,7 @@ namespace Prez.Core
         
         private void OnPlayerMovePerformed(InputAction.CallbackContext context)
         {
-            EventManager.I.RaisePlayerInput(context.ReadValue<Vector2>());
+            EventManager.I.TriggerPlayerInput(context.ReadValue<Vector2>());
         }
         
         private void OnPlayerBallAction1Performed(InputAction.CallbackContext context)

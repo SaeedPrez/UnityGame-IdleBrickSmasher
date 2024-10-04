@@ -881,7 +881,7 @@ MonoBehaviour:
   _brickPool: {fileID: 2032522679}
   _brickDestroyEffectsPool: {fileID: 1684887869}
   _brickSize: {x: 0.5, y: 0.25}
-  _gridStart: {x: -2.5, y: 4}
+  _gridStart: {x: -2.5, y: 4.5}
   _gridEnd: {x: 2.5, y: -1}
   _noiseSeed: 1
   _noiseScale: 4

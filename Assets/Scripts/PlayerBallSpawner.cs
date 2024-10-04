@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using Prez.Core;
+using Prez.Data;
 using UnityEngine;
 
 namespace Prez
@@ -9,21 +10,23 @@ namespace Prez
         [SerializeField] private Ball _ballPrefab;
         [SerializeField] private Transform _ballSpawner;
         [SerializeField] private Transform _ballContainer;
-        [SerializeField] private float _ballSpeed;
         [SerializeField] private Transform _aimLine;
         [SerializeField] private float _aimMaxAngle;
         [SerializeField] private Transform _aimPoint;
+        [SerializeField] private float _aimSpeed;
 
         private Ball _ball;
         private Rigidbody2D _ballRigidBody;
         private Coroutine _ballAimCoroutine;
         private int _ballAimDirection = 1;
+        private GameData _data;
 
         private void OnEnable()
         {
             EventManager.I.OnPlayerInputBallAction1 += OnPlayerInputBallAction1;
             
             _aimLine.gameObject.SetActive(false);
+            _data = GameManager.I.Data;
         }
 
         private void OnDisable()
@@ -54,7 +57,7 @@ namespace Prez
             var direction = _aimPoint.position - transform.position;
             _ball.transform.parent = _ballContainer;
             _ballRigidBody.bodyType = RigidbodyType2D.Dynamic;
-            _ballRigidBody.linearVelocity = new Vector2(direction.x, direction.y).normalized * _ballSpeed;
+            _ballRigidBody.linearVelocity = new Vector2(direction.x, direction.y).normalized * _data.BallSpeedBase;
             _ballRigidBody = null;
             _ball = null;
         }
@@ -62,7 +65,7 @@ namespace Prez
         private IEnumerator AimBall()
         {
             _aimLine.gameObject.SetActive(true);
-            _aimLine.localRotation = Quaternion.identity;
+            // _aimLine.localRotation = Quaternion.identity;
             
             while (_ball)
             {
@@ -71,9 +74,9 @@ namespace Prez
                     : _aimLine.localEulerAngles.z;
 
                 if (angle >= _aimMaxAngle)
-                    _ballAimDirection = _ballAimDirection * -1;
+                    _ballAimDirection *= -1;
                 
-                _aimLine.Rotate(Vector3.forward, _ballAimDirection, Space.Self);
+                _aimLine.Rotate(Vector3.forward, _ballAimDirection * _aimSpeed, Space.Self);
                 
                 yield return null;
             }

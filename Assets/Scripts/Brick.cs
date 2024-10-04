@@ -6,11 +6,13 @@ using UnityEngine;
 
 namespace Prez
 {
+    [SelectionBase]
     public class Brick : MonoBehaviour
     {
         [SerializeField] private TMP_Text _healthUi;
         [SerializeField] private SpriteRenderer _image;
         
+        public bool IsActive { get; private set; }
         public Color Color { get; private set; }
         public Vector2Int GridPosition { get; private set; }
         
@@ -22,6 +24,12 @@ namespace Prez
             _currentHealth = _maxHealth;
             UpdateHealthUi();
             Color = _image.color;
+            IsActive = true;
+        }
+
+        private void OnDisable()
+        {
+            transform.DOKill();
         }
 
         public void SetMaxHealth(int health)
@@ -61,6 +69,7 @@ namespace Prez
 
         private void Destroyed()
         {
+            IsActive = false;
             EventManager.I.TriggerBrickDestroyed(this);
             gameObject.SetActive(false);
         }

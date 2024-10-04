@@ -144,11 +144,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82610a57f4144e0fb93bf702dcd14558, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _baseSpeed: 5
+  _baseSpeed: 2
   _movementLimitToX: -2.25
   _movementLimitFromX: 2.25
   _circle: {fileID: 0}
   _velocityMultiplierX: 10
+  _playerIdleTime: 2
+  _sprite: {fileID: 6751472464380582004}
+  _idleAlpha: 0.1
 --- !u!114 &2048125020030475237
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -164,10 +167,10 @@ MonoBehaviour:
   _ballPrefab: {fileID: 5486131030190960662, guid: 32f16fe82815df546abf45aecca9457e, type: 3}
   _ballSpawner: {fileID: 5305433183544898172}
   _ballContainer: {fileID: 0}
-  _ballSpeed: 5
   _aimLine: {fileID: 8544307192910202268}
   _aimMaxAngle: 75
   _aimPoint: {fileID: 6437509984481823530}
+  _aimSpeed: 0.75
 --- !u!1 &1815808713361660623
 GameObject:
   m_ObjectHideFlags: 0

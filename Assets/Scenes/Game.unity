@@ -878,12 +878,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 554769b9374144aeb8391979d53a13e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _pool: {fileID: 2032522679}
-  _brickDestroyEffects: {fileID: 1684887869}
+  _brickPool: {fileID: 2032522679}
+  _brickDestroyEffectsPool: {fileID: 1684887869}
   _brickSize: {x: 0.5, y: 0.25}
-  _brickStart: {x: -2.5, y: 4}
-  _brickEnd: {x: 2.5, y: -1}
-  _randomSeed: 0
+  _gridStart: {x: -2.5, y: 4}
+  _gridEnd: {x: 2.5, y: -1}
+  _noiseSeed: 1
+  _noiseScale: 4
+  _noiseThreshold: 0.45
 --- !u!1 &706482968
 GameObject:
   m_ObjectHideFlags: 0

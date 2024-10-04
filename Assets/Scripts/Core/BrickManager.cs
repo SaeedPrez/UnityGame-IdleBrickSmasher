@@ -1,22 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Prez.Utilities;
 using UnityEngine;
+using VInspector;
 
 namespace Prez.Core
 {
     public class BrickManager : MonoBehaviour
     {
+        [Tab("Pools")]
         [SerializeField] private ObjectPool _brickPool;
         [SerializeField] private ObjectPool _brickDestroyEffectsPool;
+        
+        [Tab("Grid")]
         [SerializeField] private Vector2 _brickSize;
         [SerializeField] private Vector2 _gridStart;
         [SerializeField] private Vector2 _gridEnd;
-        [SerializeField] private float _randomSeed;
+
+        [Tab("Noise")]
+        [SerializeField] private int _noiseSeed;
+        [SerializeField] private float _noiseScale;
+        [SerializeField, Range(0.1f, 0.9f)] private float _noiseThreshold;
 
         private List<Brick> _bricks = new();
         private Vector2Int _gridSize;
+        private int _rowsSpawned;
 
         private void OnEnable()
         {
@@ -40,6 +48,12 @@ namespace Prez.Core
             FillGrid();
         }
 
+        private void OnBrickDestroyed(Brick brick)
+        {
+            SpawnBrickDestroyedEffect(brick);
+            DespawnBrick(brick);
+        }
+        
         private void CalculateGridSize()
         {
             _gridSize.x = (int)((_gridEnd.x - _gridStart.x) / _brickSize.x);
@@ -48,17 +62,34 @@ namespace Prez.Core
 
         private void FillGrid()
         {
+            for (var y = 0; y <= _gridSize.y; y++)
+            {
+                SpawnBrickRow(y);
+            }
+        }
+
+        private void SpawnBrickRow(int y)
+        {
             for (var x = 0; x <= _gridSize.x; x++)
             {
-                for (var y = 0; y <= _gridSize.y; y++)
-                {
-                    var brick = _brickPool.GetPooledObject().GetComponent<Brick>();
-                    var gridPosition = new Vector2Int(x, y);
-                    brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
-                    brick.gameObject.SetActive(true);
-                    _bricks.Add(brick);
-                }
+                var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * _noiseScale, _noiseSeed / (float)_gridSize.y + y * _noiseScale);
+
+                if (noise < _noiseThreshold)
+                    continue;
+                
+                SpawnBrick(x, y);
             }
+
+            _rowsSpawned++;
+        }
+
+        private void SpawnBrick(int gridX, int gridY)
+        {
+            var brick = _brickPool.GetPooledObject().GetComponent<Brick>();
+            var gridPosition = new Vector2Int(gridX, gridY);
+            brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
+            brick.gameObject.SetActive(true);
+            _bricks.Add(brick);
         }
 
         private void MoveBricksDown()
@@ -80,13 +111,17 @@ namespace Prez.Core
             }
         }
 
-        private void OnBrickDestroyed(Brick brick)
+        private void SpawnBrickDestroyedEffect(Brick brick)
         {
             var effect = _brickDestroyEffectsPool.GetPooledObject().GetComponent<ParticleSystem>();
             effect.transform.position = brick.transform.position;
             var main = effect.main;
             main.startColor = brick.Color;
             effect.gameObject.SetActive(true);
+        }
+
+        private void DespawnBrick(Brick brick)
+        {
             _brickPool.ReleasePooledObject(brick.gameObject);
             _bricks.Remove(brick);
         }

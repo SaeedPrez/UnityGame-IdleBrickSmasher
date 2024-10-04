@@ -21,7 +21,7 @@ namespace Prez.Utilities
                 OnGetEffect, 
                 OnReturnEffect, 
                 OnDestroyEffect, 
-                true, 
+                false, 
                 _startQuantity, 
                 _maxQuantity);
         }

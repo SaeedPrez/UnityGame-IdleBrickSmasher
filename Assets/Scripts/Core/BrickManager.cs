@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Prez.Data;
+using Prez.Enums;
 using Prez.Utilities;
 using UnityEngine;
+using UnityEngine.UI;
 using VInspector;
 
 namespace Prez.Core
@@ -19,10 +21,14 @@ namespace Prez.Core
         [SerializeField] private Vector2 _gridStart;
         [SerializeField] private Vector2 _gridEnd;
 
+        [Tab("Other")] [SerializeField]
+        private Image _cooldownIndicatorImage;
+        
         private GameData _data;
         private EventManager _event;
         private List<Brick> _bricks = new();
         private Vector2Int _gridSize;
+        private float _autoSpawnBricksCooldown;
 
         private void Awake()
         {
@@ -32,9 +38,8 @@ namespace Prez.Core
 
         private void OnEnable()
         {
+            _event.OnGameStateChanged += OnGameStateChanged;
             _event.OnBrickDestroyed += OnBrickDestroyed;
-            CalculateGridSize();
-            SetRandomNoiseSeed();
         }
 
         private void OnDisable()
@@ -51,16 +56,32 @@ namespace Prez.Core
             }
         }
 
-        private void Start()
+        private void OnGameStateChanged(EGameState state)
         {
-            StartCoroutine(FillGrid());
+            if (state is EGameState.NewGame)
+                SetupNewGame();
         }
-
+        
         private void OnBrickDestroyed(Brick brick)
         {
             DestroyBrick(brick);
         }
 
+        /// <summary>
+        /// Sets up a new game.
+        /// </summary>
+        private void SetupNewGame()
+        {
+            CalculateGridSize();
+            SetRandomNoiseSeed();
+            StartCoroutine(FillGrid());
+            StartCoroutine(AutoSpawnBricks());
+        }
+
+        /// <summary>
+        /// Sets a random noise seed
+        /// if there is not a seed available.
+        /// </summary>
         private void SetRandomNoiseSeed()
         {
             if (_data.BrickNoiseSeed != 0)
@@ -89,6 +110,33 @@ namespace Prez.Core
                 MoveBricksDown();
                 yield return new WaitForSeconds(0.1f);
                 SpawnBrickRow(0);
+            }
+        }
+
+        /// <summary>
+        /// Automatically spawns new bricks after some time.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator AutoSpawnBricks()
+        {
+            _autoSpawnBricksCooldown = _data.BrickRowSpawnCooldown;
+            
+            while (true)
+            {
+                _cooldownIndicatorImage.fillAmount = _autoSpawnBricksCooldown / _data.BrickRowSpawnCooldown;
+                
+                if (_autoSpawnBricksCooldown > 0f)
+                {
+                    yield return new WaitForSeconds(0.25f);
+                    _autoSpawnBricksCooldown -= 0.25f;
+                    
+                    continue;
+                }
+                
+                MoveBricksDown();
+                SpawnBrickRow(0);
+
+                _autoSpawnBricksCooldown = _data.BrickRowSpawnCooldown;
             }
         }
 

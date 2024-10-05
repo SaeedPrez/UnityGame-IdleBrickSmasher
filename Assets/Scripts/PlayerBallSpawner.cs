@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using Prez.Core;
 using Prez.Data;
 using UnityEngine;
@@ -15,15 +16,21 @@ namespace Prez
         [SerializeField] private Transform _aimPoint;
         [SerializeField] private float _aimSpeed;
 
+        private EventManager _event;
         private Ball _ball;
         private Rigidbody2D _ballRigidBody;
         private Coroutine _ballAimCoroutine;
         private int _ballAimDirection = 1;
         private GameData _data;
 
+        private void Awake()
+        {
+            _event = EventManager.I;
+        }
+
         private void OnEnable()
         {
-            EventManager.I.OnPlayerInputBallAction1 += OnPlayerInputBallAction1;
+            _event.OnPlayerInputBallAction1 += OnPlayerInputBallAction1;
             
             _aimLine.gameObject.SetActive(false);
             _data = GameManager.I.Data;
@@ -31,7 +38,7 @@ namespace Prez
 
         private void OnDisable()
         {
-            EventManager.I.OnPlayerInputBallAction1 -= OnPlayerInputBallAction1;
+            _event.OnPlayerInputBallAction1 -= OnPlayerInputBallAction1;
         }
 
         private void OnPlayerInputBallAction1()
@@ -42,6 +49,9 @@ namespace Prez
                 SpawnBall();
         }
 
+        /// <summary>
+        /// Spawn a new ball.
+        /// </summary>
         private void SpawnBall()
         {
             _ball = Instantiate(_ballPrefab, _ballSpawner, false);
@@ -49,9 +59,12 @@ namespace Prez
             _ballRigidBody = _ball.GetComponent<Rigidbody2D>();
             _ballRigidBody.bodyType = RigidbodyType2D.Kinematic;
             
-            StartCoroutine(AimBall());
+            StartCoroutine(AnimateAimBall());
         }
 
+        /// <summary>
+        /// Fires ball at aimed direction.
+        /// </summary>
         private void FireBall()
         {
             var direction = _aimPoint.position - transform.position;
@@ -62,7 +75,11 @@ namespace Prez
             _ball = null;
         }
 
-        private IEnumerator AimBall()
+        /// <summary>
+        /// Animates the ball aim between angles.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator AnimateAimBall()
         {
             _aimLine.gameObject.SetActive(true);
             // _aimLine.localRotation = Quaternion.identity;

@@ -198,6 +198,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 114f2ac7d15832c479c812780afab75a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _trail: {fileID: 1300260575047406869}
 --- !u!1 &5255897471003247706
 GameObject:
   m_ObjectHideFlags: 0
@@ -214,7 +215,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &6663680686637027971
 Transform:
   m_ObjectHideFlags: 0
@@ -279,7 +280,7 @@ TrailRenderer:
   m_PreviewTimeScale: 1
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 0.25
+    widthMultiplier: 0.12
     widthCurve:
       serializedVersion: 2
       m_Curve:

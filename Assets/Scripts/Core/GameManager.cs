@@ -2,7 +2,6 @@
 using Prez.Data;
 using Prez.Enums;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace Prez.Core
 {
@@ -12,15 +11,20 @@ namespace Prez.Core
         public GameData Data { get; private set; } = new();
         public EGameState State { get; private set; }
 
+        private EventManager _event;
+        
         private void Awake()
         {
             SetupSingleton();
+
+            _event = EventManager.I;
             DOTween.SetTweensCapacity(500, 50);
         }
         
         private void Start()
         {
-            SceneManager.LoadSceneAsync(1, LoadSceneMode.Additive);
+            SetState(EGameState.NewGame);
+            SetState(EGameState.Playing);
         }
         
         /// <summary>
@@ -37,12 +41,17 @@ namespace Prez.Core
             I = this;
         }
 
+        /// <summary>
+        /// Sets the game state.
+        /// </summary>
+        /// <param name="state"></param>
         private void SetState(EGameState state)
         {
             if (State == state)
                 return;
 
             State = state;
+            _event.TriggerGameStateChanged(State);
         }
     }
 }

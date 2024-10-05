@@ -1,5 +1,4 @@
-﻿using System;
-using DG.Tweening;
+﻿using DG.Tweening;
 using Prez.Core;
 using Prez.Utilities;
 using TMPro;

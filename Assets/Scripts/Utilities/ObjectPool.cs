@@ -39,7 +39,8 @@ namespace Prez.Utilities
 
         private void OnReturnEffect(GameObject obj)
         {
-            obj.SetActive(false);
+            if (obj.activeInHierarchy)
+                obj.SetActive(false);
         }
         
         private void OnDestroyEffect(GameObject obj)

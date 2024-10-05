@@ -10,14 +10,15 @@ namespace Prez
     {
         [SerializeField] private TrailRenderer _trail;
         
-        private GameData _date;
+        private GameData _data;
         private Rigidbody2D _rigidbody;
         private bool _isPlayerBoostActive;
+        private int _activePlayBoostHits;
 
         private void Awake()
         {
             _rigidbody = GetComponent<Rigidbody2D>();
-            _date = GameManager.I.Data;
+            _data = GameManager.I.Data;
             _trail.emitting = false;
         }
 
@@ -39,7 +40,7 @@ namespace Prez
                 return;
 
             var brick = other.gameObject.GetComponent<Brick>();
-            brick.TakeDamage(_date.BallDamageBase * (_isPlayerBoostActive ? 2 : 1));
+            ApplyDamageToBrick(brick);
         }
 
         /// <summary>
@@ -62,19 +63,57 @@ namespace Prez
             yield return new WaitForSeconds(delay);
 
             // var speed = _rigidbody.linearVelocity.magnitude;
-            _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * 5f;
+            _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * _data.BallSpeedBase;
         }
 
+        /// <summary>
+        /// Activates the active play boost.
+        /// </summary>
         public void EnableActivePlayBoost()
         {
             _isPlayerBoostActive = true;
             _trail.emitting = true;
+            _activePlayBoostHits = _data.BrickActiveBoostHitsBase;
         }
 
+        /// <summary>
+        /// Disables the active player boost.
+        /// </summary>
         public void DisableActivePlayBoost()
         {
             _isPlayerBoostActive = false;
             _trail.emitting = false;
+            _activePlayBoostHits = 0;
+        }
+
+        /// <summary>
+        /// Applies damage to brick.
+        /// </summary>
+        /// <param name="brick"></param>
+        private void ApplyDamageToBrick(Brick brick)
+        {
+            var damage = new NumberData(_data.BallDamageBase.AsLong);
+
+            if (_isPlayerBoostActive)
+                damage.Add(damage);
+
+            brick.TakeDamage(damage);
+
+            DecreaseActivePlayBoostHits();
+        }
+
+        /// <summary>
+        /// Decreases active play boost hits.
+        /// </summary>
+        private void DecreaseActivePlayBoostHits()
+        {
+            if (_activePlayBoostHits <= 0)
+                return;
+            
+            _activePlayBoostHits--;
+                
+            if (_activePlayBoostHits == 0)
+                DisableActivePlayBoost();
         }
     }
 }

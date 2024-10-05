@@ -1,5 +1,6 @@
 ﻿using DG.Tweening;
 using Prez.Core;
+using Prez.Data;
 using Prez.Utilities;
 using TMPro;
 using UnityEngine;
@@ -18,8 +19,8 @@ namespace Prez
 
         private EventManager _event;
         private BoxCollider2D _collider;
-        private int _maxHealth = 1;
-        private int _currentHealth;
+        private NumberData _maxHealth = new(1);
+        private NumberData _currentHealth = new();
 
         private void Awake()
         {
@@ -40,10 +41,10 @@ namespace Prez
         /// Sets max health.
         /// </summary>
         /// <param name="health"></param>
-        public void SetMaxHealth(int health)
+        public void SetMaxHealth(NumberData health)
         {
-            _maxHealth = health;
-            _currentHealth = _maxHealth;
+            _maxHealth.Set(health);
+            _currentHealth.Set(_maxHealth);
         }
 
         /// <summary>
@@ -78,16 +79,16 @@ namespace Prez
             
             GridPosition += Vector2Int.up;
         }
-        
+
         /// <summary>
         /// Takes damage.
         /// </summary>
         /// <param name="damage"></param>
-        public void TakeDamage(int damage)
+        public void TakeDamage(NumberData damage)
         {
-            _currentHealth -= damage;
-
-            if (_currentHealth <= 0)
+            _currentHealth.Subtract(damage);
+            
+            if (_currentHealth.AsLong <= 0)
                 Destroyed();
             
             UpdateHealthUi();
@@ -98,7 +99,7 @@ namespace Prez
         /// </summary>
         private void UpdateHealthUi()
         {
-            _healthUi.SetText(Helper.GetFormattedNumber(_currentHealth));
+            _healthUi.SetText(_currentHealth.AsString);
         }
 
         /// <summary>

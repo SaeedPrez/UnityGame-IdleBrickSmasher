@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DG.Tweening;
 using Prez.Data;
 using Prez.Enums;
 using Prez.Utilities;
@@ -119,11 +120,13 @@ namespace Prez.Core
         /// <returns></returns>
         private IEnumerator AutoSpawnBricks()
         {
-            _autoSpawnBricksCooldown = _data.BrickRowSpawnCooldown;
+            _autoSpawnBricksCooldown = _data.BrickRowSpawnCooldownBase;
             
             while (true)
             {
-                _cooldownIndicatorImage.fillAmount = _autoSpawnBricksCooldown / _data.BrickRowSpawnCooldown;
+                _cooldownIndicatorImage.DOKill();
+                _cooldownIndicatorImage.DOFillAmount(_autoSpawnBricksCooldown / _data.BrickRowSpawnCooldownBase, 0.1f)
+                    .SetEase(Ease.InOutQuad);
                 
                 if (_autoSpawnBricksCooldown > 0f)
                 {
@@ -136,7 +139,7 @@ namespace Prez.Core
                 MoveBricksDown();
                 SpawnBrickRow(0);
 
-                _autoSpawnBricksCooldown = _data.BrickRowSpawnCooldown;
+                _autoSpawnBricksCooldown = _data.BrickRowSpawnCooldownBase;
             }
         }
 
@@ -151,7 +154,7 @@ namespace Prez.Core
                 var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * _data.BrickNoiseScale, 
                     _data.BrickNoiseSeed / (float)_gridSize.y + _data.BrickRowsSpawned * _data.BrickNoiseScale);
 
-                if (noise < _data.BrickNoiseThreshold)
+                if (noise >= _data.BrickNoiseThresholdBase)
                     continue;
                 
                 SpawnBrick(x, y);
@@ -173,7 +176,7 @@ namespace Prez.Core
             var brick = _brickPool.GetPooledObject().GetComponent<Brick>();
             var gridPosition = new Vector2Int(gridX, gridY);
             brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
-            brick.SetMaxHealth((int)Mathf.Max(1f, _data.BrickRowsSpawned / _data.BrickHealthIncreaseRate));
+            brick.SetMaxHealth(new NumberData((long)Mathf.Max(1f, _data.BrickRowsSpawned / _data.BrickHealthIncreaseRate)));
             _bricks.Add(brick);
             brick.gameObject.SetActive(true);
         }

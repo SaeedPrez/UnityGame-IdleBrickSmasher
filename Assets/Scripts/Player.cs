@@ -2,7 +2,6 @@
 using DG.Tweening;
 using Prez.Core;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace Prez
 {
@@ -115,10 +114,12 @@ namespace Prez
 
                 _playerIdleCooldown -= 0.25f;
                 var percent = _playerIdleCooldown / _playerIdleTime;
-                _borderImage.DOFade(percent, 0.1f);
 
                 _cooldownIndicator.DOKill();
                 _cooldownIndicator.DOScaleX(percent, 0.1f);
+
+                _bgImage.DOKill();
+                _borderImage.DOFade(percent, 0.1f);
                 
                 if (_playerIdleCooldown > 0f)
                     continue;

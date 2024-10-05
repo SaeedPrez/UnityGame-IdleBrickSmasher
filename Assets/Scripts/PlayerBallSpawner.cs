@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using Prez.Core;
 using Prez.Data;
 using UnityEngine;

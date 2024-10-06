@@ -29,7 +29,6 @@ namespace Prez
 
         private void OnEnable()
         {
-            _currentHealth = _maxHealth;
             Color = _image.color;
             IsActive = true;
             _collider.enabled = true;
@@ -112,7 +111,7 @@ namespace Prez
             IsActive = false;
             _collider.enabled = false;
             transform.DOKill();
-            _event.TriggerBrickDestroyed(this);
+            _event.TriggerBrickDestroyed(this, _maxHealth.AsLong);
         }
     }
 }

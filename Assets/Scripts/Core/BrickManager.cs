@@ -29,7 +29,6 @@ namespace Prez.Core
         private EventManager _event;
         private List<Brick> _bricks = new();
         private Vector2Int _gridSize;
-        private float _autoSpawnBricksCooldown;
 
         private void Awake()
         {
@@ -63,7 +62,7 @@ namespace Prez.Core
                 SetupNewGame();
         }
         
-        private void OnBrickDestroyed(Brick brick)
+        private void OnBrickDestroyed(Brick brick, long maxHealth)
         {
             DestroyBrick(brick);
         }
@@ -120,26 +119,17 @@ namespace Prez.Core
         /// <returns></returns>
         private IEnumerator AutoSpawnBricks()
         {
-            _autoSpawnBricksCooldown = _data.BrickRowSpawnCooldownBase;
-            
             while (true)
             {
                 _cooldownIndicatorImage.DOKill();
-                _cooldownIndicatorImage.DOFillAmount(_autoSpawnBricksCooldown / _data.BrickRowSpawnCooldownBase, 0.1f)
-                    .SetEase(Ease.InOutQuad);
-                
-                if (_autoSpawnBricksCooldown > 0f)
-                {
-                    yield return new WaitForSeconds(0.25f);
-                    _autoSpawnBricksCooldown -= 0.25f;
-                    
-                    continue;
-                }
+                _cooldownIndicatorImage.fillAmount = 1f;
+                _cooldownIndicatorImage.DOFillAmount(0, _data.BrickRowSpawnCooldownBase)
+                    .SetEase(Ease.Linear);
+
+                yield return new WaitForSeconds(_data.BrickRowSpawnCooldownBase);
                 
                 MoveBricksDown();
                 SpawnBrickRow(0);
-
-                _autoSpawnBricksCooldown = _data.BrickRowSpawnCooldownBase;
             }
         }
 

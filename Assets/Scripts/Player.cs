@@ -105,21 +105,24 @@ namespace Prez
         /// <returns></returns>
         private IEnumerator SetPlayerIdle()
         {
+            var checkDelay = 0.2f;
+            
             while (true)
             {
-                yield return new WaitForSeconds(0.25f);
+                yield return new WaitForSeconds(checkDelay);
 
                 if (!_isPlayerActive)
                     continue;
 
-                _playerIdleCooldown -= 0.25f;
+                _playerIdleCooldown -= checkDelay;
                 var percent = _playerIdleCooldown / _playerIdleTime;
 
                 _cooldownIndicator.DOKill();
-                _cooldownIndicator.DOScaleX(percent, 0.1f);
+                _cooldownIndicator.DOScaleX(percent, checkDelay)
+                    .SetEase(Ease.Linear);
 
                 _bgImage.DOKill();
-                _borderImage.DOFade(percent, 0.1f);
+                _borderImage.DOFade(percent, checkDelay);
                 
                 if (_playerIdleCooldown > 0f)
                     continue;
@@ -127,7 +130,7 @@ namespace Prez
                 _isPlayerActive = false;
                 _collider.enabled = false;
                 _bgImage.DOKill();
-                _bgImage.DOFade(_idleAlpha, 0.25f);
+                _bgImage.DOFade(_idleAlpha, checkDelay);
             }
         }
     }

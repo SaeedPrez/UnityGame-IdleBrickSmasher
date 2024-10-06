@@ -21,8 +21,14 @@ namespace Prez.Core
 
         // Bricks
         
-        public event Action<Brick> OnBrickDestroyed = delegate { };
-        public void TriggerBrickDestroyed(Brick brick) => OnBrickDestroyed?.Invoke(brick);
+        public event Action<Brick, long> OnBrickDestroyed = delegate { };
+        public void TriggerBrickDestroyed(Brick brick, long maxHealth) => OnBrickDestroyed?.Invoke(brick, maxHealth);
+        
+        // Experience & Level
+
+        public event Action<uint> OnLeveledUp = delegate { };
+        public void TriggerLeveledUp(uint level) => OnLeveledUp?.Invoke(level);
+        
         
         public static EventManager I { get; private set; }
 

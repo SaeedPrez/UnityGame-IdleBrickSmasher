@@ -1,4 +1,5 @@
 ﻿using System;
+using Prez.Data;
 using Prez.Enums;
 using UnityEngine;
 
@@ -29,6 +30,14 @@ namespace Prez.Core
         public event Action<uint> OnLeveledUp = delegate { };
         public void TriggerLeveledUp(uint level) => OnLeveledUp?.Invoke(level);
         
+        // Coins
+
+        public event Action<long> OnCoinsGained = delegate { };
+        public void TriggerCoinsGained(long amount) => OnCoinsGained?.Invoke(amount);
+
+        public event Action<long> OnCoinsUsed = delegate { };
+        public void TriggerCoinsUsed(long amount) => OnCoinsUsed?.Invoke(amount);
+
         
         public static EventManager I { get; private set; }
 

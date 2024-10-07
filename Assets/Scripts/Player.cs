@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using DG.Tweening;
 using Prez.Core;
+using Prez.Data;
 using UnityEngine;
 
 namespace Prez
@@ -17,6 +18,8 @@ namespace Prez
         [SerializeField] private SpriteRenderer _borderImage;
         [SerializeField] private Transform _cooldownIndicator;
         [SerializeField, Range(0f, 1f)] private float _idleAlpha;
+        [SerializeField] private Color _borderHitColor;
+        
 
         private EventManager _event;
         private Rigidbody2D _rigidbody;
@@ -24,12 +27,14 @@ namespace Prez
         private Vector2 _playerInput;
         private bool _isPlayerActive;
         private float _playerIdleCooldown;
+        private Color _borderStartColor;
 
         private void Awake()
         {
             _event = EventManager.I;
             _rigidbody = GetComponent<Rigidbody2D>();
             _collider = GetComponent<CapsuleCollider2D>();
+            _borderStartColor = _borderImage.color;
         }
 
         private void OnEnable()
@@ -56,12 +61,14 @@ namespace Prez
         
         private void OnCollisionEnter2D(Collision2D other)
         {
-            if (!other.gameObject.CompareTag("Ball"))
+            if (!other.gameObject.CompareTag(Constants.Ball))
                 return;
 
             var collisionPoint = transform.InverseTransformPoint(other.GetContact(0).point);
             var ball = other.gameObject.GetComponent<Ball>();
             ball.ChangeVelocityX(collisionPoint.x * _velocityMultiplierX);
+            _borderImage.DOColor(_borderHitColor, 0.05f);
+            _borderImage.DOColor(_borderStartColor, 0.05f).SetDelay(0.051f);
         }
 
         /// <summary>
@@ -93,9 +100,9 @@ namespace Prez
             _collider.enabled = true;
 
             _bgImage.DOKill();
-            _borderImage.DOKill();
-            
             _bgImage.DOFade(1, 0.1f);
+          
+            _borderImage.DOKill();
             _borderImage.DOFade(1, 0.1f);
         }
 
@@ -120,17 +127,19 @@ namespace Prez
                 _cooldownIndicator.DOKill();
                 _cooldownIndicator.DOScaleX(percent, checkDelay)
                     .SetEase(Ease.Linear);
-
-                _bgImage.DOKill();
-                _borderImage.DOFade(percent, checkDelay);
                 
                 if (_playerIdleCooldown > 0f)
                     continue;
 
                 _isPlayerActive = false;
                 _collider.enabled = false;
+
                 _bgImage.DOKill();
                 _bgImage.DOFade(_idleAlpha, checkDelay);
+                
+                _borderImage.DOKill();
+                _borderImage.DOFade(_idleAlpha / 2f, checkDelay);
+
             }
         }
     }

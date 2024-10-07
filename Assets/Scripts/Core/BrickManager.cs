@@ -22,10 +22,15 @@ namespace Prez.Core
         [SerializeField] private Vector2 _gridStart;
         [SerializeField] private Vector2 _gridEnd;
 
-        [Tab("Other")] [SerializeField]
-        private Image _cooldownIndicatorImage;
+        [Tab("Other")] 
+        [SerializeField] private Image _cooldownIndicatorImage;
         
-        private GameData _data;
+        [Tab("Debug")]
+        [SerializeField] private bool _debug;
+        [SerializeField] private Image _debugImage;
+        
+        
+        private GameData _gameData;
         private EventManager _event;
         private List<Brick> _bricks = new();
         private Vector2Int _gridSize;
@@ -33,7 +38,7 @@ namespace Prez.Core
         private void Awake()
         {
             _event = EventManager.I;
-            _data = GameManager.I.Data;
+            _gameData = GameManager.I.Data;
         }
 
         private void OnEnable()
@@ -52,7 +57,7 @@ namespace Prez.Core
             if (Input.GetKeyDown(KeyCode.Q))
             {
                 MoveBricksDown();
-                SpawnBrickRow(0);
+                SpawnBrickRow();
             }
         }
 
@@ -76,6 +81,8 @@ namespace Prez.Core
             SetRandomNoiseSeed();
             StartCoroutine(FillGrid());
             StartCoroutine(AutoSpawnBricks());
+            
+            DebugNoise();
         }
 
         /// <summary>
@@ -84,10 +91,10 @@ namespace Prez.Core
         /// </summary>
         private void SetRandomNoiseSeed()
         {
-            if (_data.BrickNoiseSeed != 0)
+            if (_gameData.BrickNoiseSeed != 0)
                 return;
 
-            _data.BrickNoiseSeed = Random.Range(1000, 999999);
+            _gameData.BrickNoiseSeed = Random.Range(1000, 999999);
         }
         
         /// <summary>
@@ -109,7 +116,7 @@ namespace Prez.Core
             {
                 MoveBricksDown();
                 yield return new WaitForSeconds(0.1f);
-                SpawnBrickRow(0);
+                SpawnBrickRow();
             }
         }
 
@@ -123,13 +130,13 @@ namespace Prez.Core
             {
                 _cooldownIndicatorImage.DOKill();
                 _cooldownIndicatorImage.fillAmount = 1f;
-                _cooldownIndicatorImage.DOFillAmount(0, _data.BrickRowSpawnCooldownBase)
+                _cooldownIndicatorImage.DOFillAmount(0, _gameData.BrickRowSpawnCooldownBase)
                     .SetEase(Ease.Linear);
 
-                yield return new WaitForSeconds(_data.BrickRowSpawnCooldownBase);
+                yield return new WaitForSeconds(_gameData.BrickRowSpawnCooldownBase);
                 
                 MoveBricksDown();
-                SpawnBrickRow(0);
+                SpawnBrickRow();
             }
         }
 
@@ -137,20 +144,20 @@ namespace Prez.Core
         /// Spawns a row of bricks at given grid row.
         /// </summary>
         /// <param name="y"></param>
-        private void SpawnBrickRow(int y)
+        private void SpawnBrickRow()
         {
+            if (_bricks.Any(b => b.GridPosition.y == 0))
+                return;
+            
+            var y = (int)_gameData.BrickRowsSpawned;
+            
             for (var x = 0; x <= _gridSize.x; x++)
             {
-                var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * _data.BrickNoiseScale, 
-                    _data.BrickNoiseSeed / (float)_gridSize.y + _data.BrickRowsSpawned * _data.BrickNoiseScale);
-
-                if (noise >= _data.BrickNoiseThresholdBase)
-                    continue;
-                
-                SpawnBrick(x, y);
+                if (ShouldSpawnBrick(x, y))
+                    SpawnBrick(x);
             }
             
-            _data.BrickRowsSpawned++;
+            _gameData.BrickRowsSpawned++;
         }
 
         /// <summary>
@@ -158,17 +165,32 @@ namespace Prez.Core
         /// </summary>
         /// <param name="gridX"></param>
         /// <param name="gridY"></param>
-        private void SpawnBrick(int gridX, int gridY)
+        private void SpawnBrick(int gridX)
         {
+            var gridY = 0;
+            
             if (_bricks.Any(b => b.GridPosition == new Vector2Int(gridX, gridY)))
                 return;
             
             var brick = _brickPool.GetPooledObject().GetComponent<Brick>();
             var gridPosition = new Vector2Int(gridX, gridY);
             brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
-            brick.SetMaxHealth(new NumberData((long)Mathf.Max(1f, _data.BrickRowsSpawned / _data.BrickHealthIncreaseRate)));
+            brick.SetMaxHealth(new NumberData((long)Mathf.Max(1f, _gameData.BrickRowsSpawned / _gameData.BrickHealthIncreaseRate)));
             _bricks.Add(brick);
             brick.gameObject.SetActive(true);
+        }
+
+        private bool ShouldSpawnBrick(int x, int y)
+        {
+            var xCoords = x / (float)_gridSize.x * _gameData.BrickNoiseScale + _gameData.BrickNoiseSeed;
+            var yCoords = y / (float)_gridSize.y * _gameData.BrickNoiseScale + _gameData.BrickNoiseSeed;
+
+            var noise = Mathf.PerlinNoise(xCoords, yCoords);
+            
+            // var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * _gameData.BrickNoiseScale, 
+            //     y / _gameData.BrickRowsSpawned * _gameData.BrickNoiseScale);
+
+            return !(noise >= _gameData.BrickNoiseThresholdBase);
         }
 
         /// <summary>
@@ -233,6 +255,37 @@ namespace Prez.Core
         {
             return new Vector2(_gridStart.x + gridPosition.x * _brickSize.x,
                 _gridStart.y - gridPosition.y * _brickSize.y);
+        }
+
+        /// <summary>
+        /// Debug mode
+        /// </summary>
+        private void DebugNoise()
+        {
+#if UNITY_EDITOR
+            if (!_debug)
+            {
+                _debugImage.gameObject.SetActive(false);
+                return;
+            }
+            
+            _debugImage.gameObject.SetActive(true);
+            
+            var texture = new Texture2D(_gridSize.x, _gridSize.y);
+
+            for (var y = 0; y < _gridSize.y; y++)
+            {
+                for (var x = 0; x < _gridSize.x; x++)
+                    texture.SetPixel(x, y, ShouldSpawnBrick(x, y) ? Color.white : Color.black);
+            }
+
+            texture.filterMode = FilterMode.Point;
+            texture.Apply();
+
+            _debugImage.material.mainTexture = texture;
+#else
+            _debugImage.gameObject.SetActive(false);
+#endif            
         }
     }
 }

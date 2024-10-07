@@ -12,7 +12,7 @@ GameObject:
   m_Layer: 13
   m_Name: Aim Point
   m_TagString: Untagged
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 6519382022992737161, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -155,6 +155,7 @@ MonoBehaviour:
   _borderImage: {fileID: 3809903173375794958}
   _cooldownIndicator: {fileID: 2227386635221529960}
   _idleAlpha: 0.3
+  _borderHitColor: {r: 0, g: 0.49019608, b: 0.8509804, a: 1}
 --- !u!114 &2048125020030475237
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -251,7 +252,7 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 1
   m_Sprite: {fileID: 21300000, guid: 29ef6eb745ef9334da3d1b2f9214d1e2, type: 3}
-  m_Color: {r: 0, g: 0.49019608, b: 0.8509804, a: 1}
+  m_Color: {r: 0, g: 0.2941177, b: 0.5, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 1
@@ -375,7 +376,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.15, y: 0.005, z: 0.005}
+  m_LocalScale: {x: 0.15, y: 0.0025, z: 0.005}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2227386635221529960}
@@ -425,7 +426,7 @@ SpriteRenderer:
   m_SortingLayer: 2
   m_SortingOrder: 1
   m_Sprite: {fileID: 21300000, guid: 33345165ea7978048ab2fafad5cd895a, type: 3}
-  m_Color: {r: 0, g: 0.117073156, b: 0.2, a: 1}
+  m_Color: {r: 0, g: 0.2941177, b: 0.5, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -582,19 +583,19 @@ LineRenderer:
   - {x: 0, y: 1, z: 0}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 1
+    widthMultiplier: 0.05
     widthCurve:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.1
+        value: 1
         inSlope: 0
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
+        inWeight: 0
+        outWeight: 0
       - serializedVersion: 3
         time: 1
         value: 0
@@ -609,15 +610,15 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0, g: 0.49019608, b: 0.8509804, a: 1}
-      key1: {r: 0, g: 0.49019608, b: 0.8509804, a: 1}
+      key0: {r: 0, g: 0.23529412, b: 0.4, a: 1}
+      key1: {r: 0, g: 0.117073156, b: 0.2, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
       key5: {r: 0, g: 0, b: 0, a: 0}
       key6: {r: 0, g: 0, b: 0, a: 0}
       key7: {r: 0, g: 0, b: 0, a: 0}
-      ctime0: 0
+      ctime0: 65
       ctime1: 65535
       ctime2: 0
       ctime3: 0

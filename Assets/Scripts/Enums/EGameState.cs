@@ -4,6 +4,7 @@
     {
         Intro,
         StartMenu,
+        ContinueGame,
         NewGame,
         Playing,
         Paused,

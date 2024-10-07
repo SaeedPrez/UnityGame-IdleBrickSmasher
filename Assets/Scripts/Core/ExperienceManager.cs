@@ -1,5 +1,7 @@
-﻿using DG.Tweening;
+﻿using System.Collections;
+using DG.Tweening;
 using Prez.Data;
+using Prez.Enums;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,55 +14,87 @@ namespace Prez.Core
         [SerializeField] private Image _levelIndicator;
         
         private EventManager _event;
-        private GameData _data;
+        private GameManager _game;
+        private GameData _gameData;
 
         private void Awake()
         {
             _event = EventManager.I;
-            _data = GameManager.I.Data;
+            _game = GameManager.I;
+            _gameData = _game.Data;
         }
 
         private void OnEnable()
         {
+            _event.OnGameStateChanged += OnGameStateChanged;
             _event.OnBrickDestroyed += OnBrickDestroyed;
         }
         
         private void OnDisable()
         {
+            _event.OnGameStateChanged -= OnGameStateChanged;
             _event.OnBrickDestroyed -= OnBrickDestroyed;
         }
         
+        private void OnGameStateChanged(EGameState state)
+        {
+            if (state is EGameState.NewGame or EGameState.ContinueGame)
+            {
+                StartCoroutine(IncrementTime());
+                SetLevelExperience();
+                UpdateExperienceIndicatorUi();
+            }
+        }
+
         private void OnBrickDestroyed(Brick brick, long maxHealth)
         {
             AddExperience(maxHealth);
             UpdateExperienceIndicatorUi();
         }
 
-        private void AddExperience(long maxHealth)
+        private IEnumerator IncrementTime()
         {
-            _data.ExperienceCurrent.Add(maxHealth * _data.ExperiencePerHealthBase);
-
-            if (_data.ExperienceCurrent.AsLong < _data.ExperienceRequiredToLevel.AsLong)
-                return;
-            
-            _data.ExperienceCurrent.Set(_data.ExperienceCurrent.AsLong - _data.ExperienceRequiredToLevel.AsLong);
-            _data.Level++;
-
-            _data.ExperienceRequiredToLevel.Set((long)GetExperienceNeededToLevel(_data.Level));
-            UpdateLevelValueUi();
-            
-            _event.TriggerLeveledUp(_data.Level);
+            while (true)
+            {
+                yield return new WaitForSeconds(1f);
+                
+                if (_game.State is EGameState.Playing)                
+                    _gameData.TimeThisLevel++;
+            }
         }
 
-        private float GetExperienceNeededToLevel(uint level)
+        private void AddExperience(long maxHealth)
         {
-            // TODO: Handle bigger numbers than float.
-            return _data.ExperienceLevelBase + Mathf.Pow(_data.ExperienceLevelGrowth, level);
+            _gameData.ExperienceCurrent.Add(_gameData.GetExperience(maxHealth));
+
+            if (_gameData.ExperienceCurrent.AsLong < _gameData.ExperienceRequiredToLevel.AsLong)
+                return;
+
+            LevelUp();
+        }
+
+        private void LevelUp()
+        {
+            _gameData.Level++;
+            SetLevelExperience();
+            
+            _gameData.TimeTotal.Add(_gameData.TimeThisLevel);
+            _gameData.TimeThisLevel = 0;
+            
+            _event.TriggerLeveledUp(_gameData.Level);
+        }
+
+        private void SetLevelExperience()
+        {
+            _gameData.ExperienceCurrent.Set(_gameData.ExperienceCurrent.AsLong - _gameData.ExperienceRequiredToLevel.AsLong);
+            _gameData.ExperienceRequiredToLevel.Set(_gameData.GetExperienceNeededToLevel(_gameData.Level));
+            
+            UpdateLevelValueUi();
         }
 
         private void UpdateExperienceIndicatorUi()
         {
-            var percent = _data.ExperienceCurrent.AsLong / (float)_data.ExperienceRequiredToLevel.AsLong;
+            var percent = _gameData.ExperienceCurrent.AsLong / (float)_gameData.ExperienceRequiredToLevel.AsLong;
 
             _levelIndicator.DOKill();
             _levelIndicator.DOFillAmount(percent, 0.1f);
@@ -68,7 +102,7 @@ namespace Prez.Core
 
         private void UpdateLevelValueUi()
         {
-            _levelValueUi.text = $"Level {_data.Level}";
+            _levelValueUi.text = $"Level {_gameData.Level}";
         }
     }
 }

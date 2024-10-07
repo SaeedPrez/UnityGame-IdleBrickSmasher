@@ -10,7 +10,7 @@ namespace Prez
     {
         [SerializeField] private TrailRenderer _trail;
         
-        private GameData _data;
+        private GameData _gameData;
         private Rigidbody2D _rigidbody;
         private bool _isPlayerBoostActive;
         private int _activePlayBoostHits;
@@ -18,25 +18,25 @@ namespace Prez
         private void Awake()
         {
             _rigidbody = GetComponent<Rigidbody2D>();
-            _data = GameManager.I.Data;
+            _gameData = GameManager.I.Data;
             _trail.emitting = false;
         }
 
         private void OnCollisionEnter2D(Collision2D other)
         {
-            if (other.gameObject.CompareTag("Player"))
+            if (other.gameObject.CompareTag(Constants.Player))
             {
                 EnableActivePlayBoost();
                 return;
             }
 
-            if (other.gameObject.CompareTag("WallBottom"))
+            if (other.gameObject.CompareTag(Constants.WallBottom))
             {
                 DisableActivePlayBoost();
                 return;
             }
 
-            if (!other.gameObject.CompareTag("Brick"))
+            if (!other.gameObject.CompareTag(Constants.Brick))
                 return;
 
             var brick = other.gameObject.GetComponent<Brick>();
@@ -63,7 +63,7 @@ namespace Prez
             yield return new WaitForSeconds(delay);
 
             // var speed = _rigidbody.linearVelocity.magnitude;
-            _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * _data.BallSpeedBase;
+            _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * _gameData.BallSpeedBase;
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace Prez
         {
             _isPlayerBoostActive = true;
             _trail.emitting = true;
-            _activePlayBoostHits = _data.BrickActiveBoostHitsBase;
+            _activePlayBoostHits = _gameData.BrickActiveBoostHitsBase;
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Prez
         /// <param name="brick"></param>
         private void ApplyDamageToBrick(Brick brick)
         {
-            var damage = new NumberData(_data.BallDamageBase.AsLong);
+            var damage = new NumberData(_gameData.BallDamageBase.AsLong);
 
             if (_isPlayerBoostActive)
                 damage.Add(damage);

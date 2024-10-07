@@ -16,11 +16,11 @@ namespace Prez
         [SerializeField] private float _aimSpeed;
 
         private EventManager _event;
+        private GameData _gameData;
         private Ball _ball;
         private Rigidbody2D _ballRigidBody;
         private Coroutine _ballAimCoroutine;
         private int _ballAimDirection = 1;
-        private GameData _data;
 
         private void Awake()
         {
@@ -32,7 +32,7 @@ namespace Prez
             _event.OnPlayerInputBallAction1 += OnPlayerInputBallAction1;
             
             _aimLine.gameObject.SetActive(false);
-            _data = GameManager.I.Data;
+            _gameData = GameManager.I.Data;
         }
 
         private void OnDisable()
@@ -69,7 +69,7 @@ namespace Prez
             var direction = _aimPoint.position - transform.position;
             _ball.transform.parent = _ballContainer;
             _ballRigidBody.bodyType = RigidbodyType2D.Dynamic;
-            _ballRigidBody.linearVelocity = new Vector2(direction.x, direction.y).normalized * _data.BallSpeedBase;
+            _ballRigidBody.linearVelocity = new Vector2(direction.x, direction.y).normalized * _gameData.BallSpeedBase;
             _ballRigidBody = null;
             _ball = null;
         }

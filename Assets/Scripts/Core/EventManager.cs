@@ -1,5 +1,4 @@
 ﻿using System;
-using Prez.Data;
 using Prez.Enums;
 using UnityEngine;
 
@@ -22,22 +21,30 @@ namespace Prez.Core
 
         // Bricks
         
-        public event Action<Brick, long> OnBrickDestroyed = delegate { };
-        public void TriggerBrickDestroyed(Brick brick, long maxHealth) => OnBrickDestroyed?.Invoke(brick, maxHealth);
+        public event Action<Brick, double> OnBrickDestroyed = delegate { };
+        public void TriggerBrickDestroyed(Brick brick, double maxHealth) => OnBrickDestroyed?.Invoke(brick, maxHealth);
         
         // Experience & Level
 
-        public event Action<uint> OnLeveledUp = delegate { };
-        public void TriggerLeveledUp(uint level) => OnLeveledUp?.Invoke(level);
+        public event Action<double> OnLeveledUp = delegate { };
+        public void TriggerLeveledUp(double level) => OnLeveledUp?.Invoke(level);
         
         // Coins
 
-        public event Action<long> OnCoinsGained = delegate { };
-        public void TriggerCoinsGained(long amount) => OnCoinsGained?.Invoke(amount);
+        public event Action<double> OnCoinsGained = delegate { };
+        public void TriggerCoinsGained(double amount) => OnCoinsGained?.Invoke(amount);
 
-        public event Action<long> OnCoinsUsed = delegate { };
-        public void TriggerCoinsUsed(long amount) => OnCoinsUsed?.Invoke(amount);
+        public event Action<double> OnCoinsUsed = delegate { };
+        public void TriggerCoinsUsed(double amount) => OnCoinsUsed?.Invoke(amount);
 
+        // Diamonds
+        
+        public event Action<double> OnDiamondsGained = delegate { };
+        public void TriggerDiamondsGained(double amount) => OnDiamondsGained?.Invoke(amount);
+
+        public event Action<double> OnDiamondsUsed = delegate { };
+        public void TriggerDiamondsUsed(double amount) => OnDiamondsUsed?.Invoke(amount);
+        
         
         public static EventManager I { get; private set; }
 

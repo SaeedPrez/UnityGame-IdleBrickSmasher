@@ -2,10 +2,10 @@
 {
     public class BallData
     {
-        public uint BallSpeedLevel = 1;
-        public uint BallDamageLevel = 1;
-        public uint BallCriticalChanceLevel = 1;
-        public uint BallCriticalDamageLevel = 1;
-        public readonly NumberData BallTotalDamage = new();
+        public int BallSpeedLevel = 1;
+        public int BallDamageLevel = 1;
+        public int BallCriticalChanceLevel = 1;
+        public int BallCriticalDamageLevel = 1;
+        public double BallTotalDamage = new();
     }
 }

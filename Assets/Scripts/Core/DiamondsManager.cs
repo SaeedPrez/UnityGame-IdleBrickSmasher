@@ -5,13 +5,13 @@ using UnityEngine;
 
 namespace Prez.Core
 {
-    public class CoinsManager : MonoBehaviour
+    public class DiamondsManager : MonoBehaviour
     {
-        [SerializeField] private TMP_Text _coinsValueUi;
+        [SerializeField] private TMP_Text _diamondsValueUi;
         
         private EventManager _event;
         private GameData _gameData;
-
+        
         private void Awake()
         {
             _event = EventManager.I;
@@ -32,54 +32,54 @@ namespace Prez.Core
         
         private void OnBrickDestroyed(Brick brick, double maxHealth)
         {
-            AddCoins(_gameData.GetCoinsGainedPerHealth(maxHealth));
+            // TODO: Chance to get diamonds?
         }
 
         private void OnLeveledUp(double level)
         {
-            AddCoins(_gameData.GetCoinsGainedPerLevel(level - 1));
+            AddDiamonds(_gameData.GetDiamondsGainedPerLevel(level - 1));
         }
         
         /// <summary>
-        /// Adds coins.
+        /// Adds diamonds.
         /// </summary>
         /// <param name="amount"></param>
-        private void AddCoins(double amount)
+        private void AddDiamonds(double amount)
         {
-            _gameData.Coins += amount;
-            UpdateCoinsValueUi();
+            _gameData.Diamonds += amount;
+            UpdateDiamondsValueUi();
             
-            _event.TriggerCoinsGained(amount);
+            _event.TriggerDiamondsGained(amount);
         }
-
+        
         /// <summary>
-        /// Subtract coins.
+        /// Subtract diamonds.
         /// </summary>
         /// <param name="amount"></param>
-        private void SubtractCoins(double amount)
+        private void SubtractDiamonds(double amount)
         {
-            _gameData.Coins -= amount;
-            UpdateCoinsValueUi();
+            _gameData.Diamonds -= amount;
+            UpdateDiamondsValueUi();
             
-            _event.TriggerCoinsUsed(amount);
+            _event.TriggerDiamondsUsed(amount);
         }
-
+        
         /// <summary>
-        /// Returns if there is enough coins.
+        /// Returns if there is enough diamonds.
         /// </summary>
         /// <param name="amount"></param>
         /// <returns></returns>
         public bool CanAfford(double amount)
         {
-            return _gameData.Coins >= amount;
+            return _gameData.Diamonds >= amount;
         }
         
         /// <summary>
-        /// Updates coins value Ui.
+        /// Updates diamonds value Ui.
         /// </summary>
-        private void UpdateCoinsValueUi()
+        private void UpdateDiamondsValueUi()
         {
-            _coinsValueUi.SetText(Helper.GetNumberAsString(_gameData.Coins));
+            _diamondsValueUi.SetText(Helper.GetNumberAsString(_gameData.Diamonds));
         }
     }
 }

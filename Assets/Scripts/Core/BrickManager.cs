@@ -67,7 +67,7 @@ namespace Prez.Core
                 SetupNewGame();
         }
         
-        private void OnBrickDestroyed(Brick brick, long maxHealth)
+        private void OnBrickDestroyed(Brick brick, double maxHealth)
         {
             DestroyBrick(brick);
         }
@@ -143,7 +143,6 @@ namespace Prez.Core
         /// <summary>
         /// Spawns a row of bricks at given grid row.
         /// </summary>
-        /// <param name="y"></param>
         private void SpawnBrickRow()
         {
             if (_bricks.Any(b => b.GridPosition.y == 0))
@@ -164,7 +163,6 @@ namespace Prez.Core
         /// Spawns a brick at given grid position.
         /// </summary>
         /// <param name="gridX"></param>
-        /// <param name="gridY"></param>
         private void SpawnBrick(int gridX)
         {
             var gridY = 0;
@@ -175,7 +173,7 @@ namespace Prez.Core
             var brick = _brickPool.GetPooledObject().GetComponent<Brick>();
             var gridPosition = new Vector2Int(gridX, gridY);
             brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
-            brick.SetMaxHealth(new NumberData((long)Mathf.Max(1f, _gameData.BrickRowsSpawned / _gameData.BrickHealthIncreaseRate)));
+            brick.SetMaxHealth(Mathf.Max(1f, (float)(_gameData.BrickRowsSpawned / _gameData.BrickHealthIncreaseRate)));
             _bricks.Add(brick);
             brick.gameObject.SetActive(true);
         }

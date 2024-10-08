@@ -2,7 +2,9 @@
 using DG.Tweening;
 using Prez.Data;
 using Prez.Enums;
+using Prez.Utilities;
 using TMPro;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +13,7 @@ namespace Prez.Core
     public class ExperienceManager : MonoBehaviour
     {
         [SerializeField] private TMP_Text _levelValueUi;
+        [SerializeField] private TMP_Text _levelExperienceValueUi;
         [SerializeField] private Image _levelIndicator;
         
         private EventManager _event;
@@ -46,7 +49,7 @@ namespace Prez.Core
             }
         }
 
-        private void OnBrickDestroyed(Brick brick, long maxHealth)
+        private void OnBrickDestroyed(Brick brick, double maxHealth)
         {
             AddExperience(maxHealth);
             UpdateExperienceIndicatorUi();
@@ -63,11 +66,11 @@ namespace Prez.Core
             }
         }
 
-        private void AddExperience(long maxHealth)
+        private void AddExperience(double maxHealth)
         {
-            _gameData.ExperienceCurrent.Add(_gameData.GetExperience(maxHealth));
+            _gameData.ExperienceCurrent += _gameData.GetExperienceGainedPerHealth(maxHealth);
 
-            if (_gameData.ExperienceCurrent.AsLong < _gameData.ExperienceRequiredToLevel.AsLong)
+            if (_gameData.ExperienceCurrent < _gameData.ExperienceRequiredToLevel)
                 return;
 
             LevelUp();
@@ -78,31 +81,32 @@ namespace Prez.Core
             _gameData.Level++;
             SetLevelExperience();
             
-            _gameData.TimeTotal.Add(_gameData.TimeThisLevel);
-            _gameData.TimeThisLevel = 0;
+            _gameData.TimeTotal += _gameData.TimeThisLevel;
+            _gameData.TimeThisLevel = 0d;
             
             _event.TriggerLeveledUp(_gameData.Level);
         }
 
         private void SetLevelExperience()
         {
-            _gameData.ExperienceCurrent.Set(_gameData.ExperienceCurrent.AsLong - _gameData.ExperienceRequiredToLevel.AsLong);
-            _gameData.ExperienceRequiredToLevel.Set(_gameData.GetExperienceNeededToLevel(_gameData.Level));
+            _gameData.ExperienceCurrent -= _gameData.ExperienceRequiredToLevel;
+            _gameData.ExperienceRequiredToLevel = _gameData.GetExperienceNeededToLevel(_gameData.Level);
             
             UpdateLevelValueUi();
         }
 
         private void UpdateExperienceIndicatorUi()
         {
-            var percent = _gameData.ExperienceCurrent.AsLong / (float)_gameData.ExperienceRequiredToLevel.AsLong;
+            var percent = _gameData.ExperienceCurrent / _gameData.ExperienceRequiredToLevel;
 
-            _levelIndicator.DOKill();
-            _levelIndicator.DOFillAmount(percent, 0.1f);
+            _levelIndicator.DOKill(true);
+            _levelIndicator.DOFillAmount((float)percent, 0.1f);
+            _levelExperienceValueUi.SetText($"{Helper.GetNumberAsString(_gameData.ExperienceCurrent)}\n{Helper.GetNumberAsString(_gameData.ExperienceRequiredToLevel)}");
         }
 
         private void UpdateLevelValueUi()
         {
-            _levelValueUi.text = $"Level {_gameData.Level}";
+            _levelValueUi.SetText($"Level {_gameData.Level:0}");
         }
     }
 }

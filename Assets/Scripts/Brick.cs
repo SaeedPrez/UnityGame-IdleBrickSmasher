@@ -1,6 +1,6 @@
 ﻿using DG.Tweening;
 using Prez.Core;
-using Prez.Data;
+using Prez.Utilities;
 using TMPro;
 using UnityEngine;
 
@@ -18,12 +18,12 @@ namespace Prez
 
         private EventManager _event;
         private BoxCollider2D _collider;
-        private NumberData _maxHealth = new(1);
-        private NumberData _currentHealth = new();
+        private double _maxHealth;
+        private double _currentHealth;
 
         private void Awake()
         {
-            _event = EventManager.I;;
+            _event = EventManager.I;
             _collider = GetComponent<BoxCollider2D>();
         }
 
@@ -39,10 +39,10 @@ namespace Prez
         /// Sets max health.
         /// </summary>
         /// <param name="health"></param>
-        public void SetMaxHealth(NumberData health)
+        public void SetMaxHealth(double health)
         {
-            _maxHealth.Set(health);
-            _currentHealth.Set(_maxHealth);
+            _maxHealth = health;
+            _currentHealth = _maxHealth;
         }
 
         /// <summary>
@@ -72,6 +72,7 @@ namespace Prez
         /// <param name="position"></param>
         public void MoveDown(Vector2 position)
         {
+            transform.DOKill(true);
             transform.DOLocalMoveY(position.y, 0.2f)
                 .SetEase(Ease.OutCirc);
             
@@ -82,14 +83,20 @@ namespace Prez
         /// Takes damage.
         /// </summary>
         /// <param name="damage"></param>
-        public void TakeDamage(NumberData damage)
+        public void TakeDamage(double damage)
         {
-            _currentHealth.Subtract(damage);
-            
-            if (_currentHealth.AsLong <= 0)
-                Destroyed();
-            
+            _currentHealth -= damage;
             UpdateHealthUi();
+
+            if (_currentHealth <= 0)
+            {
+                Destroyed();
+                return;
+            }
+
+            _image.DOKill(true);
+            _image.DOFade(0.25f, 0.075f)
+                .OnComplete(() => _image.DOFade(1f, 0.075f));
         }
 
         /// <summary>
@@ -97,7 +104,7 @@ namespace Prez
         /// </summary>
         private void UpdateHealthUi()
         {
-            _healthUi.SetText(_currentHealth.AsString);
+            _healthUi.SetText(Helper.GetNumberAsString(_currentHealth));
         }
 
         /// <summary>
@@ -110,8 +117,9 @@ namespace Prez
             
             IsActive = false;
             _collider.enabled = false;
-            transform.DOKill();
-            _event.TriggerBrickDestroyed(this, _maxHealth.AsLong);
+            _image.transform.DOKill(true);
+            
+            _event.TriggerBrickDestroyed(this, _maxHealth);
         }
     }
 }

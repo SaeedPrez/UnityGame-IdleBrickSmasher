@@ -92,10 +92,10 @@ namespace Prez
         /// <param name="brick"></param>
         private void ApplyDamageToBrick(Brick brick)
         {
-            var damage = new NumberData(_gameData.BallDamageBase.AsLong);
+            var damage = _gameData.BallDamageBase;
 
             if (_isPlayerBoostActive)
-                damage.Add(damage);
+                damage *= 2;
 
             brick.TakeDamage(damage);
 

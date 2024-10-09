@@ -10,19 +10,26 @@ namespace Prez.Data
         public readonly float BrickNoiseScale = 4;
         public readonly float BrickHealthIncreaseRate = 10f;
 
-        public readonly float BrickNoiseThresholdBase = 0.35f;
+        public readonly float BrickNoiseThresholdBase = 0.25f;
+        public readonly int BrickThresholdSpawnRowBase = 30;
         public readonly float BrickRowSpawnCooldownBase = 10f;
         public readonly int BrickActiveBoostHitsBase = 1;
 
         public int BrickNoiseSeed = 0;
+        public double BrickNoiseOffsetY = 0;
         public double BrickRowsSpawned = 0d;
+
+        public int GetBricksThresholdSpawnRow()
+        {
+            return BrickThresholdSpawnRowBase;
+        }
 
         #endregion
         
         #region Balls
 
         public readonly List<BallData> Balls = new();
-        public readonly float BallSpeedBase = 3f;
+        public readonly float BallSpeedBase = 2.5f;
         public readonly float BallDamageBase = 1f;
         public readonly float BallCriticalChanceBase = 0f;
         public readonly float BallCriticalDamageBase = 1f;
@@ -50,7 +57,7 @@ namespace Prez.Data
         #region Diamonds
 
         public double Diamonds = 0d;
-        public readonly float DiamondsPerLevelBase = 0.5f;
+        public readonly float DiamondsPerLevelBase = 0.25f;
         
         public double GetDiamondsGainedPerLevel(double level)
         {

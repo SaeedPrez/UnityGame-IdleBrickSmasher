@@ -34,6 +34,7 @@ namespace Prez.Core
         private EventManager _event;
         private List<Brick> _bricks = new();
         private Vector2Int _gridSize;
+        private Coroutine _autoSpawnCoroutine;
 
         private void Awake()
         {
@@ -70,6 +71,7 @@ namespace Prez.Core
         private void OnBrickDestroyed(Brick brick, double maxHealth)
         {
             DestroyBrick(brick);
+            StartCoroutine(SpawnBricksAtThreshold());
         }
 
         /// <summary>
@@ -80,7 +82,7 @@ namespace Prez.Core
             CalculateGridSize();
             SetRandomNoiseSeed();
             StartCoroutine(FillGrid());
-            StartCoroutine(AutoSpawnBricks());
+            _autoSpawnCoroutine = StartCoroutine(AutoSpawnBricks());
             
             DebugNoise();
         }
@@ -141,22 +143,48 @@ namespace Prez.Core
         }
 
         /// <summary>
+        /// Spawn bricks if number of bricks
+        /// are lower than the threshold.
+        /// </summary>
+        private IEnumerator SpawnBricksAtThreshold()
+        {
+            while (_bricks.Count < _gameData.GetBricksThresholdSpawnRow())
+            {
+                if (_bricks.Any(b => b.GridPosition.y == 0))
+                    MoveBricksDown();
+    
+                SpawnBrickRow();
+
+                StopCoroutine(_autoSpawnCoroutine);
+                _autoSpawnCoroutine = StartCoroutine(AutoSpawnBricks());
+                
+                yield return new WaitForSeconds(0.1f);
+            }
+        }
+        
+        /// <summary>
         /// Spawns a row of bricks at given grid row.
         /// </summary>
         private void SpawnBrickRow()
         {
             if (_bricks.Any(b => b.GridPosition.y == 0))
                 return;
+
+            var bricksSpawned = false;
             
-            var y = (int)_gameData.BrickRowsSpawned;
+            var y = (int)_gameData.BrickNoiseOffsetY++;
             
             for (var x = 0; x <= _gridSize.x; x++)
             {
                 if (ShouldSpawnBrick(x, y))
+                {
                     SpawnBrick(x);
+                    bricksSpawned = true;
+                }
             }
             
-            _gameData.BrickRowsSpawned++;
+            if (bricksSpawned)
+                _gameData.BrickRowsSpawned++;
         }
 
         /// <summary>

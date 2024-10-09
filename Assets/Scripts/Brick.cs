@@ -117,6 +117,7 @@ namespace Prez
             
             IsActive = false;
             _collider.enabled = false;
+            transform.DOKill(true);
             _image.transform.DOKill(true);
             
             _event.TriggerBrickDestroyed(this, _maxHealth);

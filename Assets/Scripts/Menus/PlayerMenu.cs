@@ -2,7 +2,7 @@
 
 namespace Prez.Menus
 {
-    public class BallsMenu : MenuBase
+    public class PlayerMenu : MenuBase
     {
     }
 }

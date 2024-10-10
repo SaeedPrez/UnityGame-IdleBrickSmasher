@@ -9,7 +9,6 @@ namespace Prez
     [SelectionBase]
     public class Player : MonoBehaviour
     {
-        [SerializeField] private float _baseSpeed;
         [SerializeField] private float _movementLimitToX;
         [SerializeField] private float _movementLimitFromX;
         [SerializeField] private float _velocityMultiplierX;
@@ -20,8 +19,9 @@ namespace Prez
         [SerializeField, Range(0f, 1f)] private float _idleAlpha;
         [SerializeField] private Color _borderHitColor;
         
-
         private EventManager _event;
+        private GameManager _game;
+        private GameData _gameData;
         private Rigidbody2D _rigidbody;
         private CapsuleCollider2D _collider;
         private Vector2 _playerInput;
@@ -32,6 +32,8 @@ namespace Prez
         private void Awake()
         {
             _event = EventManager.I;
+            _game = GameManager.I;
+            _gameData = _game.Data;
             _rigidbody = GetComponent<Rigidbody2D>();
             _collider = GetComponent<CapsuleCollider2D>();
             _borderStartColor = _borderImage.color;
@@ -79,7 +81,7 @@ namespace Prez
             if (_playerInput.x == 0f)
                 return;
             
-            var x = _rigidbody.position.x + _playerInput.x * (_baseSpeed * Time.fixedDeltaTime);
+            var x = _rigidbody.position.x + _playerInput.x * (_gameData.GetPlayerSpeed() * Time.fixedDeltaTime);
             x = Mathf.Clamp(x, _movementLimitToX, _movementLimitFromX);
             
             _rigidbody.MovePosition(new Vector2(x, transform.position.y));

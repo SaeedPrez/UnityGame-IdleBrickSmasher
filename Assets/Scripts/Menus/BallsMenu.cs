@@ -1,6 +1,4 @@
-﻿using DG.Tweening;
-
-namespace Prez.Menus
+﻿namespace Prez.Menus
 {
     public class BallsMenu : MenuBase
     {

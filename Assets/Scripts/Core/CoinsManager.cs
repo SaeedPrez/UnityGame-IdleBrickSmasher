@@ -35,7 +35,7 @@ namespace Prez.Core
             AddCoins(_gameData.GetCoinsGainedPerHealth(maxHealth));
         }
 
-        private void OnLeveledUp(double level)
+        private void OnLeveledUp(int level)
         {
             AddCoins(_gameData.GetCoinsGainedPerLevel(level - 1));
         }

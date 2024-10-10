@@ -35,7 +35,7 @@ namespace Prez.Core
             // TODO: Chance to get diamonds?
         }
 
-        private void OnLeveledUp(double level)
+        private void OnLeveledUp(int level)
         {
             AddDiamonds(_gameData.GetDiamondsGainedPerLevel(level - 1));
         }

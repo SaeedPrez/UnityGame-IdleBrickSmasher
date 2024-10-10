@@ -146,7 +146,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82610a57f4144e0fb93bf702dcd14558, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _baseSpeed: 2
   _movementLimitToX: -2.25
   _movementLimitFromX: 2.25
   _velocityMultiplierX: 10
@@ -163,7 +162,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1164200170361835330}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed03c3e37f0d48c8b13f0b7a547e9943, type: 3}
   m_Name: 
@@ -516,7 +515,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8544307192910202268
 Transform:
   m_ObjectHideFlags: 0

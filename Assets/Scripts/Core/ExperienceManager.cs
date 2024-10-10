@@ -44,14 +44,14 @@ namespace Prez.Core
             {
                 StartCoroutine(IncrementTime());
                 SetLevelExperience();
-                UpdateExperienceIndicatorUi();
+                UpdateExperienceUi();
             }
         }
 
         private void OnBrickDestroyed(Brick brick, double maxHealth)
         {
             AddExperience(maxHealth);
-            UpdateExperienceIndicatorUi();
+            UpdateExperienceUi();
         }
 
         private IEnumerator IncrementTime()
@@ -65,9 +65,13 @@ namespace Prez.Core
             }
         }
 
+        /// <summary>
+        /// Adds experience.
+        /// </summary>
+        /// <param name="maxHealth"></param>
         private void AddExperience(double maxHealth)
         {
-            _gameData.ExperienceCurrent += _gameData.GetExperienceGainedPerHealth(maxHealth);
+            _gameData.ExperienceCurrent += _gameData.GetExperienceGainedForHealth(maxHealth);
 
             if (_gameData.ExperienceCurrent < _gameData.ExperienceRequiredToLevel)
                 return;
@@ -75,6 +79,9 @@ namespace Prez.Core
             LevelUp();
         }
 
+        /// <summary>
+        /// Level up.
+        /// </summary>
         private void LevelUp()
         {
             _gameData.Level++;
@@ -86,6 +93,9 @@ namespace Prez.Core
             _event.TriggerLeveledUp(_gameData.Level);
         }
 
+        /// <summary>
+        /// Sets the current level experience.
+        /// </summary>
         private void SetLevelExperience()
         {
             _gameData.ExperienceCurrent -= _gameData.ExperienceRequiredToLevel;
@@ -94,7 +104,10 @@ namespace Prez.Core
             UpdateLevelValueUi();
         }
 
-        private void UpdateExperienceIndicatorUi()
+        /// <summary>
+        /// Updates the experience indicator Ui.
+        /// </summary>
+        private void UpdateExperienceUi()
         {
             var percent = _gameData.ExperienceCurrent / _gameData.ExperienceRequiredToLevel;
 
@@ -103,6 +116,9 @@ namespace Prez.Core
             _levelExperienceValueUi.SetText($"{Helper.GetNumberAsString(_gameData.ExperienceCurrent)}\n{Helper.GetNumberAsString(_gameData.ExperienceRequiredToLevel)}");
         }
 
+        /// <summary>
+        /// Updates the level value Ui.
+        /// </summary>
         private void UpdateLevelValueUi()
         {
             _levelValueUi.SetText($"Level {_gameData.Level:0}");

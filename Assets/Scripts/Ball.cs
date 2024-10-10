@@ -9,14 +9,18 @@ namespace Prez
     public class Ball : MonoBehaviour
     {
         [SerializeField] private TrailRenderer _trail;
+
+        public bool IsPlayerBoostActive { get; private set; }
+        public BallData Data { get; private set; }
         
+        private EventManager _event;
         private GameData _gameData;
         private Rigidbody2D _rigidbody;
-        private bool _isPlayerBoostActive;
         private int _activePlayBoostHits;
 
         private void Awake()
         {
+            _event = EventManager.I;
             _rigidbody = GetComponent<Rigidbody2D>();
             _gameData = GameManager.I.Data;
             _trail.emitting = false;
@@ -25,24 +29,33 @@ namespace Prez
         private void OnCollisionEnter2D(Collision2D other)
         {
             if (other.gameObject.CompareTag(Constants.Player))
+                _event.TriggerBallCollidedWithPlayer(this);
+
+            else if (other.gameObject.CompareTag(Constants.WallBottom))
+                _event.TriggerBallCollidedWithBottomWall(this);
+            
+            else if (other.gameObject.CompareTag(Constants.Brick))
             {
-                EnableActivePlayBoost();
-                return;
+                var brick = other.gameObject.GetComponent<Brick>();
+                _event.TriggerBallCollidedWithBrick(this, brick);
             }
-
-            if (other.gameObject.CompareTag(Constants.WallBottom))
-            {
-                DisableActivePlayBoost();
-                return;
-            }
-
-            if (!other.gameObject.CompareTag(Constants.Brick))
-                return;
-
-            var brick = other.gameObject.GetComponent<Brick>();
-            ApplyDamageToBrick(brick);
         }
+        
+        public void SetData(BallData data)
+        {
+            Data = data;
+        }
+        
+        #region Velocity
 
+        /// <summary>
+        /// Sets a random direction velocity.
+        /// </summary>
+        public void SetRandomDirectionVelocity()
+        {
+            _rigidbody.linearVelocity = Random.insideUnitCircle.normalized * _gameData.GetBallSpeed(this);
+        }
+        
         /// <summary>
         /// Changes ball X velocity.
         /// </summary>
@@ -63,49 +76,27 @@ namespace Prez
             yield return new WaitForSeconds(delay);
 
             // var speed = _rigidbody.linearVelocity.magnitude;
-            _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * _gameData.BallSpeedBase;
+            _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * _gameData.GetBallSpeed(this);
         }
+        
+        #endregion
+
+        #region Active Player Boost
 
         /// <summary>
         /// Activates the active play boost.
         /// </summary>
         public void EnableActivePlayBoost()
         {
-            _isPlayerBoostActive = true;
+            IsPlayerBoostActive = true;
             _trail.emitting = true;
             _activePlayBoostHits = _gameData.BrickActiveBoostHitsBase;
         }
 
         /// <summary>
-        /// Disables the active player boost.
+        /// Reduces active play boost hits.
         /// </summary>
-        public void DisableActivePlayBoost()
-        {
-            _isPlayerBoostActive = false;
-            _trail.emitting = false;
-            _activePlayBoostHits = 0;
-        }
-
-        /// <summary>
-        /// Applies damage to brick.
-        /// </summary>
-        /// <param name="brick"></param>
-        private void ApplyDamageToBrick(Brick brick)
-        {
-            var damage = _gameData.BallDamageBase;
-
-            if (_isPlayerBoostActive)
-                damage *= 2;
-
-            brick.TakeDamage(damage);
-
-            DecreaseActivePlayBoostHits();
-        }
-
-        /// <summary>
-        /// Decreases active play boost hits.
-        /// </summary>
-        private void DecreaseActivePlayBoostHits()
+        public void ReduceActivePlayBoostHits()
         {
             if (_activePlayBoostHits <= 0)
                 return;
@@ -115,5 +106,17 @@ namespace Prez
             if (_activePlayBoostHits == 0)
                 DisableActivePlayBoost();
         }
+        
+        /// <summary>
+        /// Disables the active player boost.
+        /// </summary>
+        public void DisableActivePlayBoost()
+        {
+            IsPlayerBoostActive = false;
+            _trail.emitting = false;
+            _activePlayBoostHits = 0;
+        }
+
+        #endregion
     }
 }

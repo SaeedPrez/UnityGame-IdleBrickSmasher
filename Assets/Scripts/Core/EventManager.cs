@@ -1,5 +1,6 @@
 ﻿using System;
 using Prez.Enums;
+using Prez.Menus;
 using UnityEngine;
 
 namespace Prez.Core
@@ -26,8 +27,8 @@ namespace Prez.Core
         
         // Experience & Level
 
-        public event Action<double> OnLeveledUp = delegate { };
-        public void TriggerLeveledUp(double level) => OnLeveledUp?.Invoke(level);
+        public event Action<int> OnLeveledUp = delegate { };
+        public void TriggerLeveledUp(int level) => OnLeveledUp?.Invoke(level);
         
         // Coins
 
@@ -44,6 +45,21 @@ namespace Prez.Core
 
         public event Action<double> OnDiamondsUsed = delegate { };
         public void TriggerDiamondsUsed(double amount) => OnDiamondsUsed?.Invoke(amount);
+        
+        // Balls
+
+        public event Action<BallMenuRow> OnBallMenuRowUnlocked = delegate { };
+        public void TriggerBallMenuRowUnlocked(BallMenuRow ballMenuRow) => OnBallMenuRowUnlocked?.Invoke(ballMenuRow);
+        
+        public event Action<Ball> OnBallCollidedWithPlayer = delegate { };
+        public void TriggerBallCollidedWithPlayer(Ball ball) => OnBallCollidedWithPlayer?.Invoke(ball);
+        
+        public event Action<Ball, Brick> OnBallCollidedWithBrick = delegate { };
+        public void TriggerBallCollidedWithBrick(Ball ball, Brick brick) =>
+            OnBallCollidedWithBrick?.Invoke(ball, brick);
+        
+        public event Action<Ball> OnBallCollidedWithBottomWall = delegate { };
+        public void TriggerBallCollidedWithBottomWall(Ball ball) => OnBallCollidedWithBottomWall?.Invoke(ball);
         
         
         public static EventManager I { get; private set; }

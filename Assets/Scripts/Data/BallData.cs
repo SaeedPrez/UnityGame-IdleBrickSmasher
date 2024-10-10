@@ -2,10 +2,11 @@
 {
     public class BallData
     {
-        public int BallSpeedLevel = 1;
-        public int BallDamageLevel = 1;
-        public int BallCriticalChanceLevel = 1;
-        public int BallCriticalDamageLevel = 1;
-        public double BallTotalDamage = new();
+        public int UnlockLevel;
+        public int SpeedLevel = 1;
+        public int DamageLevel = 1;
+        public int CriticalChanceLevel = 1;
+        public int CriticalDamageLevel = 1;
+        public double TotalDamage = 0;
     }
 }

@@ -11,7 +11,7 @@ namespace Prez.Data
         public readonly float BrickHealthIncreaseRate = 10f;
 
         public readonly float BrickNoiseThresholdBase = 0.25f;
-        public readonly int BrickThresholdSpawnRowBase = 30;
+        public readonly int BrickThresholdSpawnRowBase = 3;
         public readonly float BrickRowSpawnCooldownBase = 10f;
         public readonly int BrickActiveBoostHitsBase = 1;
 

@@ -1,4 +1,4 @@
-﻿namespace Prez.Enums
+﻿namespace Enums
 {
     public enum EGameState
     {

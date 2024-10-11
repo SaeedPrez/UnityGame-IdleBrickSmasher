@@ -1,7 +1,7 @@
 ﻿using DG.Tweening;
 using UnityEngine;
 
-namespace Prez.Menus
+namespace Menus
 {
     public class MenuBase : MonoBehaviour
     {

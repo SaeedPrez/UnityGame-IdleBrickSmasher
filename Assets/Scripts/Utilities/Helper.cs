@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace Prez.Utilities
+namespace Utilities
 {
     public static class Helper
     {
@@ -8,11 +8,18 @@ namespace Prez.Utilities
         /// Formats a double number.
         /// </summary>
         /// <param name="number"></param>
-        /// <param name="decimalPoints"></param>
         /// <returns></returns>
         public static string GetNumberAsString(double number)
         {
-            return number switch
+            var numberString = string.Empty;
+
+            if (number < 0)
+            {
+                numberString = "-";
+                number *= -1;
+            }
+            
+            numberString += number switch
             {
                 >= 1000000000000 => (number * 0.000000001d).ToString("F2", CultureInfo.InvariantCulture) + "T",
                 >= 1000000000 => (number * 0.000000001d).ToString("F2", CultureInfo.InvariantCulture) + "B",
@@ -20,6 +27,8 @@ namespace Prez.Utilities
                 >= 1000 => (number * 0.001d).ToString("F2", CultureInfo.InvariantCulture) + "K",
                 _ => number.ToString("F2", CultureInfo.InvariantCulture),
             };
+            
+            return numberString;
         }
         
         /// <summary>

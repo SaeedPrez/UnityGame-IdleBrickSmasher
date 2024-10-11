@@ -1,12 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Prez.Data;
-using Prez.Enums;
-using Prez.Menus;
+using Data;
+using Enums;
+using Menus;
 using UnityEngine;
 
-namespace Prez.Core
+namespace Core
 {
     public class BallManager : MonoBehaviour
     {
@@ -14,6 +14,7 @@ namespace Prez.Core
         [SerializeField] private BallMenuRow _ballMenuRowPrefab;
         [SerializeField] private RectTransform _ballMenuRowContainer;
         [SerializeField] private Transform _ballContainer;
+        [SerializeField] private ParticleSystem _ballSpawnEffect;
         
         private EventManager _event;
         private GameManager _game;
@@ -90,14 +91,14 @@ namespace Prez.Core
                 ballMenuRow.SetData(ballData);
             }
 
-            yield return new WaitForSeconds(0.01f);
+            yield return new WaitForSeconds(0.2f);
             
             foreach (var ballMenuRow in _ballMenuRows)
             {
                 if (ballMenuRow.Data.UnlockLevel <= _gameData.Level)
                 {
                     ballMenuRow.gameObject.SetActive(true);
-                    yield return new WaitForSeconds(0.1f);
+                    yield return new WaitForSeconds(0.15f);
                     UnlockBallMenuRow(ballMenuRow);
                 }
                 else
@@ -122,6 +123,10 @@ namespace Prez.Core
         /// <param name="ballMenuRow"></param>
         private void UnlockBallMenuRow(BallMenuRow ballMenuRow)
         {
+            if (ballMenuRow.IsUnlocked)
+                return;
+            
+            _ballSpawnEffect.Play();
             ballMenuRow.Unlock();
             RandomizeBallVelocity(ballMenuRow.Ball);
             EnableNextBallMenuRow();
@@ -151,9 +156,9 @@ namespace Prez.Core
             var damage = _gameData.GetBallDamage(ball);
 
             if (ball.IsPlayerBoostActive)
-                damage *= _gameData.GetBallActivePlayBoostDamage(ball);
+                damage *= _gameData.GetActivePlayDamageMultiplier(ball);
 
-            brick.TakeDamage(damage);
+            brick.TakeDamage(ball, damage);
             ball.ReduceActivePlayBoostHits();
             ball.Data.TotalDamage += damage;
         }

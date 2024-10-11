@@ -1,4 +1,4 @@
-﻿namespace Prez.Data
+﻿namespace Data
 {
     public static class Constants
     {

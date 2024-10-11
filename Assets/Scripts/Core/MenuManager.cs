@@ -1,8 +1,8 @@
-﻿using Prez.Menus;
+﻿using Menus;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Prez.Core
+namespace Core
 {
     public class MenuManager : MonoBehaviour
     {

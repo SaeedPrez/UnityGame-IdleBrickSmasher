@@ -1,9 +1,9 @@
-﻿using Prez.Data;
-using Prez.Utilities;
+﻿using Data;
 using TMPro;
 using UnityEngine;
+using Utilities;
 
-namespace Prez.Core
+namespace Core
 {
     public class CoinsManager : MonoBehaviour
     {

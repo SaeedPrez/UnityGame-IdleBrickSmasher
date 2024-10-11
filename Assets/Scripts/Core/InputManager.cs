@@ -1,7 +1,8 @@
-﻿using UnityEngine;
+﻿using Prez.Core;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Prez.Core
+namespace Core
 {
     public class InputManager : MonoBehaviour
     {

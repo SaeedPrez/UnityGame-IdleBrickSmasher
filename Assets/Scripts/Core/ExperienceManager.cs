@@ -1,16 +1,19 @@
 ﻿using System.Collections;
+using Data;
 using DG.Tweening;
-using Prez.Data;
-using Prez.Enums;
-using Prez.Utilities;
+using Enums;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Utilities;
+using VInspector;
 
-namespace Prez.Core
+namespace Core
 {
     public class ExperienceManager : MonoBehaviour
     {
+        [Tab("General")]
+        
         [SerializeField] private TMP_Text _levelValueUi;
         [SerializeField] private TMP_Text _levelExperienceValueUi;
         [SerializeField] private Image _levelIndicator;
@@ -29,6 +32,7 @@ namespace Prez.Core
         private void OnEnable()
         {
             _event.OnGameStateChanged += OnGameStateChanged;
+            _event.OnBrickDamaged += OnBrickDamaged;
             _event.OnBrickDestroyed += OnBrickDestroyed;
         }
         
@@ -47,11 +51,15 @@ namespace Prez.Core
                 UpdateExperienceUi();
             }
         }
-
-        private void OnBrickDestroyed(Brick brick, double maxHealth)
+        
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage)
         {
-            AddExperience(maxHealth);
-            UpdateExperienceUi();
+            AddDamageExperience(ball, damage);
+        }
+
+        private void OnBrickDestroyed(Brick brick, double health)
+        {
+            AddDestroyExperience(health);
         }
 
         private IEnumerator IncrementTime()
@@ -66,17 +74,40 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Adds experience.
+        /// Adds damage experience.
         /// </summary>
-        /// <param name="maxHealth"></param>
-        private void AddExperience(double maxHealth)
+        /// <param name="ball"></param>
+        /// <param name="damage"></param>
+        private void AddDamageExperience(Ball ball, double damage)
         {
-            _gameData.ExperienceCurrent += _gameData.GetExperienceGainedForHealth(maxHealth);
+            var experience = _gameData.GetExpForDamage(damage);
 
-            if (_gameData.ExperienceCurrent < _gameData.ExperienceRequiredToLevel)
-                return;
+            if (ball.IsPlayerBoostActive)
+                experience *= _gameData.GetActivePlayExpMultiplier(ball);
+            
+            _gameData.ExperienceCurrent += experience;
+            UpdateExperienceUi();
+            CheckLeveledUp();
+        }
+        
+        /// <summary>
+        /// Adds brick destroyed experience.
+        /// </summary>
+        /// <param name="health"></param>
+        private void AddDestroyExperience(double health)
+        {
+            _gameData.ExperienceCurrent += _gameData.GetExpForDestroyed(health);
+            UpdateExperienceUi();
+            CheckLeveledUp();
+        }
 
-            LevelUp();
+        /// <summary>
+        /// Check if leveld up.
+        /// </summary>
+        private void CheckLeveledUp()
+        {
+            if (_gameData.ExperienceCurrent >= _gameData.ExperienceRequiredToLevel)
+                LevelUp();
         }
 
         /// <summary>
@@ -91,6 +122,7 @@ namespace Prez.Core
             _gameData.TimeThisLevel = 0d;
             
             _event.TriggerLeveledUp(_gameData.Level);
+            UpdateExperienceUi();
         }
 
         /// <summary>
@@ -99,7 +131,7 @@ namespace Prez.Core
         private void SetLevelExperience()
         {
             _gameData.ExperienceCurrent -= _gameData.ExperienceRequiredToLevel;
-            _gameData.ExperienceRequiredToLevel = _gameData.GetExperienceNeededToLevel(_gameData.Level);
+            _gameData.ExperienceRequiredToLevel = _gameData.GetExpNeededToLevel(_gameData.Level);
             
             UpdateLevelValueUi();
         }

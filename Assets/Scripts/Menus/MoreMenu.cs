@@ -1,4 +1,4 @@
-﻿namespace Prez.Menus
+﻿namespace Menus
 {
     public class MoreMenu : MenuBase
     {

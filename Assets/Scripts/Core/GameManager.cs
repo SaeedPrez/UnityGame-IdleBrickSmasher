@@ -1,9 +1,9 @@
-﻿using DG.Tweening;
-using Prez.Data;
-using Prez.Enums;
+﻿using Data;
+using DG.Tweening;
+using Enums;
 using UnityEngine;
 
-namespace Prez.Core
+namespace Core
 {
     public class GameManager : MonoBehaviour
     {

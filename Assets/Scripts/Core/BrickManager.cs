@@ -1,15 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Data;
 using DG.Tweening;
-using Prez.Data;
-using Prez.Enums;
-using Prez.Utilities;
+using Enums;
 using UnityEngine;
 using UnityEngine.UI;
+using Utilities;
 using VInspector;
 
-namespace Prez.Core
+namespace Core
 {
     public class BrickManager : MonoBehaviour
     {
@@ -26,13 +26,11 @@ namespace Prez.Core
         [SerializeField] private Image _cooldownIndicatorImage;
         
         [Tab("Debug")]
-        [SerializeField] private bool _debug;
         [SerializeField] private Image _debugImage;
-        
         
         private GameData _gameData;
         private EventManager _event;
-        private List<Brick> _bricks = new();
+        private readonly List<Brick> _bricks = new();
         private Vector2Int _gridSize;
         private Coroutine _autoSpawnCoroutine;
 
@@ -83,8 +81,6 @@ namespace Prez.Core
             SetRandomNoiseSeed();
             StartCoroutine(FillGrid());
             _autoSpawnCoroutine = StartCoroutine(AutoSpawnBricks());
-            
-            DebugNoise();
         }
 
         /// <summary>
@@ -130,12 +126,14 @@ namespace Prez.Core
         {
             while (true)
             {
+                var cooldown = _gameData.GetBrickSpawnCooldown();
+                
                 _cooldownIndicatorImage.DOKill();
                 _cooldownIndicatorImage.fillAmount = 1f;
-                _cooldownIndicatorImage.DOFillAmount(0, _gameData.BrickRowSpawnCooldownBase)
+                _cooldownIndicatorImage.DOFillAmount(0, cooldown)
                     .SetEase(Ease.Linear);
 
-                yield return new WaitForSeconds(_gameData.BrickRowSpawnCooldownBase);
+                yield return new WaitForSeconds(cooldown + 0.01f);
                 
                 MoveBricksDown();
                 SpawnBrickRow();
@@ -148,7 +146,7 @@ namespace Prez.Core
         /// </summary>
         private IEnumerator SpawnBricksAtThreshold()
         {
-            while (_bricks.Count < _gameData.GetBricksThresholdSpawnRow())
+            while (_bricks.Count < _gameData.GetBrickThresholdSpawnRow())
             {
                 if (_bricks.Any(b => b.GridPosition.y == 0))
                     MoveBricksDown();
@@ -206,6 +204,12 @@ namespace Prez.Core
             brick.gameObject.SetActive(true);
         }
 
+        /// <summary>
+        /// Checks if the noise value is over the threshold.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
         private bool ShouldSpawnBrick(int x, int y)
         {
             var xCoords = x / (float)_gridSize.x * _gameData.BrickNoiseScale + _gameData.BrickNoiseSeed;
@@ -216,7 +220,7 @@ namespace Prez.Core
             // var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * _gameData.BrickNoiseScale, 
             //     y / _gameData.BrickRowsSpawned * _gameData.BrickNoiseScale);
 
-            return !(noise >= _gameData.BrickNoiseThresholdBase);
+            return !(noise >= _gameData.GetBrickNoiseThreshold());
         }
 
         /// <summary>
@@ -286,29 +290,32 @@ namespace Prez.Core
         /// <summary>
         /// Debug mode
         /// </summary>
+        [Tab("Debug")]
+        [Button("Toggle noise image")]
         private void DebugNoise()
         {
 #if UNITY_EDITOR
-            if (!_debug)
+            if (_debugImage.gameObject.activeInHierarchy)
             {
                 _debugImage.gameObject.SetActive(false);
                 return;
             }
-            
-            _debugImage.gameObject.SetActive(true);
-            
-            var texture = new Texture2D(_gridSize.x, _gridSize.y);
-
-            for (var y = 0; y < _gridSize.y; y++)
+            else
             {
-                for (var x = 0; x < _gridSize.x; x++)
-                    texture.SetPixel(x, y, ShouldSpawnBrick(x, y) ? Color.white : Color.black);
+                _debugImage.gameObject.SetActive(true);
+            
+                var texture = new Texture2D(_gridSize.x, _gridSize.y);
+
+                for (var y = 0; y < _gridSize.y; y++)
+                {
+                    for (var x = 0; x < _gridSize.x; x++)
+                        texture.SetPixel(x, y, ShouldSpawnBrick(x, y) ? Color.white : Color.black);
+                }
+
+                texture.filterMode = FilterMode.Point;
+                texture.Apply();
+                _debugImage.material.mainTexture = texture;
             }
-
-            texture.filterMode = FilterMode.Point;
-            texture.Apply();
-
-            _debugImage.material.mainTexture = texture;
 #else
             _debugImage.gameObject.SetActive(false);
 #endif            

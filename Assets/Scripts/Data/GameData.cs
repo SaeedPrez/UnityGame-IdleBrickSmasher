@@ -1,17 +1,17 @@
 ﻿using System.Collections.Generic;
-using Prez.Utilities;
+using Utilities;
 
-namespace Prez.Data
+namespace Data
 {
     public class GameData
     {
         #region Player
 
-        public readonly float PlayerBaseSpeed = 2f;
+        private readonly float _playerSpeedBase = 2f;
 
         public float GetPlayerSpeed()
         {
-            return PlayerBaseSpeed;
+            return _playerSpeedBase;
         }
 
         #endregion
@@ -21,18 +21,27 @@ namespace Prez.Data
         public readonly float BrickNoiseScale = 4;
         public readonly float BrickHealthIncreaseRate = 10f;
 
-        public readonly float BrickNoiseThresholdBase = 0.25f;
-        public readonly int BrickThresholdSpawnRowBase = 3;
-        public readonly float BrickRowSpawnCooldownBase = 10f;
-        public readonly int BrickActiveBoostHitsBase = 1;
+        private readonly float _brickNoiseThresholdBase = 0.35f;
+        private readonly int _brickThresholdSpawnRowBase = 3;
+        private readonly float _brickRowSpawnCooldownBase = 10f;
 
         public int BrickNoiseSeed = 0;
         public double BrickNoiseOffsetY = 0;
         public double BrickRowsSpawned = 0d;
 
-        public int GetBricksThresholdSpawnRow()
+        public float GetBrickNoiseThreshold()
         {
-            return BrickThresholdSpawnRowBase;
+            return _brickNoiseThresholdBase;
+        }
+
+        public float GetBrickSpawnCooldown()
+        {
+            return _brickRowSpawnCooldownBase;
+        }
+        
+        public int GetBrickThresholdSpawnRow()
+        {
+            return _brickThresholdSpawnRowBase;
         }
 
         #endregion
@@ -60,7 +69,6 @@ namespace Prez.Data
         public readonly float BallDamageBase = 1f;
         public readonly float BallCriticalChanceBase = 0f;
         public readonly float BallCriticalDamageBase = 1f;
-        public readonly float BallActivePlayDamageMultiplierBase = 1.5f;
 
         public float GetBallSpeed(Ball ball)
         {
@@ -72,13 +80,31 @@ namespace Prez.Data
             return BallDamageBase;
         }
 
-        public float GetBallActivePlayBoostDamage(Ball ball)
+        #endregion
+
+        #region Active Play
+
+        private readonly int _activePlayHitsBase = 1;
+        private readonly float _activePlayDmgMultiplierBase = 1.5f;
+        private readonly float _activePlayExpMultiplierBase = 1.5f;
+
+        public int GetActivePlayHits(Ball ball)
         {
-            return BallActivePlayDamageMultiplierBase;
+            return _activePlayHitsBase;
+        }
+
+        public float GetActivePlayDamageMultiplier(Ball ball)
+        {
+            return _activePlayDmgMultiplierBase;
+        }
+        
+        public float GetActivePlayExpMultiplier(Ball ball)
+        {
+            return _activePlayExpMultiplierBase;
         }
         
         #endregion
-
+        
         #region Coins
 
         public double Coins = 0d;
@@ -116,18 +142,24 @@ namespace Prez.Data
         public double TimeTotal = 0d;
         public double ExperienceCurrent = 0d;
         public double ExperienceRequiredToLevel = 0d;
-        public readonly float ExperienceGainedPerHealthBase = 1.75f;
-        public readonly float ExperienceLevelBase = 20f;
-        public readonly float ExperienceLevelGrowth = 1.15f;
+        private readonly float _expPerDamageBase = 0.67f;
+        private readonly float _expPerHealthBase = 0.5f;
+        private readonly float _expLevelBase = 20f;
+        private readonly float _expLevelGrowth = 1.15f;
 
-        public double GetExperienceGainedForHealth(double health)
+        public double GetExpForDamage(double damage)
         {
-            return ExperienceGainedPerHealthBase * health;
+            return _expPerDamageBase * damage;
         }
 
-        public double GetExperienceNeededToLevel(double level)
+        public double GetExpForDestroyed(double health)
         {
-            return Helper.CalculateLevelCost(ExperienceLevelBase, ExperienceLevelGrowth, level);
+            return _expPerHealthBase * health;
+        }
+
+        public double GetExpNeededToLevel(double level)
+        {
+            return Helper.CalculateLevelCost(_expLevelBase, _expLevelGrowth, level);
         }
 
         #endregion

@@ -1,9 +1,9 @@
 ﻿using System;
-using Prez.Enums;
-using Prez.Menus;
+using Enums;
+using Menus;
 using UnityEngine;
 
-namespace Prez.Core
+namespace Core
 {
     public class EventManager : MonoBehaviour
     {
@@ -21,9 +21,12 @@ namespace Prez.Core
         public void TriggerPlayerBallAction1() => OnPlayerInputBallAction1?.Invoke();
 
         // Bricks
+
+        public event Action<Brick, Ball, double> OnBrickDamaged = delegate { };
+        public void TriggerBrickDamaged(Brick brick, Ball ball, double damage) => OnBrickDamaged?.Invoke(brick, ball, damage);
         
         public event Action<Brick, double> OnBrickDestroyed = delegate { };
-        public void TriggerBrickDestroyed(Brick brick, double maxHealth) => OnBrickDestroyed?.Invoke(brick, maxHealth);
+        public void TriggerBrickDestroyed(Brick brick, double health) => OnBrickDestroyed?.Invoke(brick, health);
         
         // Experience & Level
 

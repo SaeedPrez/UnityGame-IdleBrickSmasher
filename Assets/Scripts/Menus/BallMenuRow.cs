@@ -1,10 +1,10 @@
-﻿using Prez.Core;
-using Prez.Data;
+﻿using Core;
+using Data;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Prez.Menus
+namespace Menus
 {
     public class BallMenuRow : MonoBehaviour
     {
@@ -27,6 +27,7 @@ namespace Prez.Menus
             _gameData = _game.Data;
             
             _lockedUi.SetActive(true);
+            Ball.gameObject.SetActive(false);
         }
 
         public void SetBall(Ball ball)

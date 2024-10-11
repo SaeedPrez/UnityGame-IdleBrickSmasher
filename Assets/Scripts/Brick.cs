@@ -1,126 +1,126 @@
-﻿using DG.Tweening;
-using Prez.Core;
-using Prez.Utilities;
+﻿using Core;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using Utilities;
 
-namespace Prez
+[SelectionBase]
+public class Brick : MonoBehaviour
 {
-    [SelectionBase]
-    public class Brick : MonoBehaviour
+    [SerializeField] private TMP_Text _healthUi;
+    [SerializeField] private SpriteRenderer _image;
+        
+    public bool IsActive { get; private set; }
+    public Color Color { get; private set; }
+    public Vector2Int GridPosition { get; private set; }
+
+    private EventManager _event;
+    private BoxCollider2D _collider;
+    private double _maxHealth;
+    private double _currentHealth;
+
+    private void Awake()
     {
-        [SerializeField] private TMP_Text _healthUi;
-        [SerializeField] private SpriteRenderer _image;
+        _event = EventManager.I;
+        _collider = GetComponent<BoxCollider2D>();
+    }
+
+    private void OnEnable()
+    {
+        Color = _image.color;
+        IsActive = true;
+        _collider.enabled = true;
+        UpdateHealthUi();
+    }
         
-        public bool IsActive { get; private set; }
-        public Color Color { get; private set; }
-        public Vector2Int GridPosition { get; private set; }
+    /// <summary>
+    /// Sets max health.
+    /// </summary>
+    /// <param name="health"></param>
+    public void SetMaxHealth(double health)
+    {
+        _maxHealth = health;
+        _currentHealth = _maxHealth;
+    }
 
-        private EventManager _event;
-        private BoxCollider2D _collider;
-        private double _maxHealth;
-        private double _currentHealth;
+    /// <summary>
+    /// Sets positions.
+    /// </summary>
+    /// <param name="gridPosition"></param>
+    /// <param name="position"></param>
+    public void SetPosition(Vector2Int gridPosition, Vector2 position)
+    {
+        GridPosition = gridPosition;
+        transform.localPosition = position;
+    }
 
-        private void Awake()
-        {
-            _event = EventManager.I;
-            _collider = GetComponent<BoxCollider2D>();
-        }
-
-        private void OnEnable()
-        {
-            Color = _image.color;
-            IsActive = true;
-            _collider.enabled = true;
-            UpdateHealthUi();
-        }
+    /// <summary>
+    /// Sets the brick color.
+    /// </summary>
+    /// <param name="color"></param>
+    public void SetColor(Color color)
+    {
+        Color = color;
+        _image.color = Color;
+    }
         
-        /// <summary>
-        /// Sets max health.
-        /// </summary>
-        /// <param name="health"></param>
-        public void SetMaxHealth(double health)
-        {
-            _maxHealth = health;
-            _currentHealth = _maxHealth;
-        }
+    /// <summary>
+    /// Moves the brick down a row.
+    /// </summary>
+    /// <param name="position"></param>
+    public void MoveDown(Vector2 position)
+    {
+        transform.DOKill(true);
+        transform.DOLocalMoveY(position.y, 0.2f)
+            .SetEase(Ease.OutCirc);
+            
+        GridPosition += Vector2Int.up;
+    }
 
-        /// <summary>
-        /// Sets positions.
-        /// </summary>
-        /// <param name="gridPosition"></param>
-        /// <param name="position"></param>
-        public void SetPosition(Vector2Int gridPosition, Vector2 position)
-        {
-            GridPosition = gridPosition;
-            transform.localPosition = position;
-        }
+    /// <summary>
+    /// Takes damage.
+    /// </summary>
+    /// <param name="ball"></param>
+    /// <param name="damage"></param>
+    public void TakeDamage(Ball ball, double damage)
+    {
+        _currentHealth -= damage;
+        UpdateHealthUi();
 
-        /// <summary>
-        /// Sets the brick color.
-        /// </summary>
-        /// <param name="color"></param>
-        public void SetColor(Color color)
-        {
-            Color = color;
-            _image.color = Color;
-        }
+        _event.TriggerBrickDamaged(this, ball, damage);
         
-        /// <summary>
-        /// Moves the brick down a row.
-        /// </summary>
-        /// <param name="position"></param>
-        public void MoveDown(Vector2 position)
+        if (_currentHealth <= 0)
         {
-            transform.DOKill(true);
-            transform.DOLocalMoveY(position.y, 0.2f)
-                .SetEase(Ease.OutCirc);
+            Destroyed();
+            return;
+        }
+
+        _image.DOKill(true);
+        _image.DOFade(0.25f, 0.075f)
+            .OnComplete(() => _image.DOFade(1f, 0.075f));
+    }
+    
+    /// <summary>
+    /// Updates the health Ui with current health.
+    /// </summary>
+    private void UpdateHealthUi()
+    {
+        _healthUi.SetText(Helper.GetNumberAsString(_currentHealth));
+    }
+
+    /// <summary>
+    /// Destroys the brick.
+    /// </summary>
+    private void Destroyed()
+    {
+        if (!IsActive)
+            return;
             
-            GridPosition += Vector2Int.up;
-        }
-
-        /// <summary>
-        /// Takes damage.
-        /// </summary>
-        /// <param name="damage"></param>
-        public void TakeDamage(double damage)
-        {
-            _currentHealth -= damage;
-            UpdateHealthUi();
-
-            if (_currentHealth <= 0)
-            {
-                Destroyed();
-                return;
-            }
-
-            _image.DOKill(true);
-            _image.DOFade(0.25f, 0.075f)
-                .OnComplete(() => _image.DOFade(1f, 0.075f));
-        }
-
-        /// <summary>
-        /// Updates the health Ui with current health.
-        /// </summary>
-        private void UpdateHealthUi()
-        {
-            _healthUi.SetText(Helper.GetNumberAsString(_currentHealth));
-        }
-
-        /// <summary>
-        /// Destroys the brick.
-        /// </summary>
-        private void Destroyed()
-        {
-            if (!IsActive)
-                return;
+        IsActive = false;
+        _collider.enabled = false;
+        transform.DOKill(true);
+        _image.transform.DOKill(true);
             
-            IsActive = false;
-            _collider.enabled = false;
-            transform.DOKill(true);
-            _image.transform.DOKill(true);
-            
-            _event.TriggerBrickDestroyed(this, _maxHealth);
-        }
+        _event.TriggerBrickDestroyed(this, _maxHealth);
     }
 }

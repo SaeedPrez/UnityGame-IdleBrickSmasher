@@ -1,4 +1,5 @@
 ﻿using System;
+using Data;
 using Enums;
 using Menus;
 using UnityEngine;
@@ -11,6 +12,9 @@ namespace Core
 
         public event Action<EGameState> OnGameStateChanged = delegate { };
         public void TriggerGameStateChanged(EGameState state) => OnGameStateChanged?.Invoke(state);
+
+        public event Action<GameData> OnGameDataLoaded = delegate { };
+        public void TriggerGameDataLoaded(GameData data) => OnGameDataLoaded?.Invoke(data);
         
         // Input
         

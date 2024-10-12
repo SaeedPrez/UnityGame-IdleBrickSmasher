@@ -1,4 +1,5 @@
-﻿using Data;
+﻿using System.Collections;
+using Data;
 using DG.Tweening;
 using Enums;
 using UnityEngine;
@@ -8,10 +9,12 @@ namespace Core
     public class GameManager : MonoBehaviour
     {
         public static GameManager I { get; private set; }
-        public GameData Data { get; private set; } = new();
-        public EGameState State { get; private set; }
+        public static EGameState State => I._state;
+        public static GameData Data => I._gameData;
 
         private EventManager _event;
+        private EGameState _state;
+        private GameData _gameData;
         
         private void Awake()
         {
@@ -20,11 +23,25 @@ namespace Core
             _event = EventManager.I;
             DOTween.SetTweensCapacity(500, 50);
         }
+
+        private void OnEnable()
+        {
+            _event.OnGameDataLoaded += OnGameDataLoaded;
+        }
+
+        private void OnDisable()
+        {
+            _event.OnGameDataLoaded -= OnGameDataLoaded;
+        }
+
+        private void OnGameDataLoaded(GameData data)
+        {
+            StartCoroutine(GameDataLoaded(data));
+        }
         
         private void Start()
         {
-            SetState(EGameState.NewGame);
-            SetState(EGameState.Playing);
+            SetState(EGameState.Loading);
         }
         
         /// <summary>
@@ -50,8 +67,22 @@ namespace Core
             if (State == state)
                 return;
 
-            State = state;
+            _state = state;
             _event.TriggerGameStateChanged(State);
+        }
+
+        private IEnumerator GameDataLoaded(GameData data)
+        {
+            _gameData = data;
+            
+            // Give the event time to trigger on all scripts
+            yield return null;
+
+            SetState(EGameState.Loaded);
+
+            yield return new WaitForSeconds(0.1f);
+            
+            SetState(EGameState.Playing);
         }
     }
 }

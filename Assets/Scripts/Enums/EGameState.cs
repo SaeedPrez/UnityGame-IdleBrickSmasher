@@ -3,9 +3,8 @@
     public enum EGameState
     {
         Intro,
-        StartMenu,
-        ContinueGame,
-        NewGame,
+        Loading,
+        Loaded,
         Playing,
         Paused,
     }

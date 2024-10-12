@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Data;
 using Enums;
 using Menus;
 using UnityEngine;
@@ -16,42 +15,32 @@ namespace Core
         [SerializeField] private Transform _ballContainer;
         [SerializeField] private ParticleSystem _ballSpawnEffect;
         
-        private EventManager _event;
-        private GameManager _game;
-        private GameData _gameData;
         private List<BallMenuRow> _ballMenuRows = new();
-        
-        private void Awake()
-        {
-            _event = EventManager.I;
-            _game = GameManager.I;
-            _gameData = _game.Data;
-        }
 
         private void OnEnable()
         {
-            _event.OnGameStateChanged += OnGameStateChanged;
-            _event.OnBallCollidedWithPlayer += OnBallCollidedWithPlayer;
-            _event.OnBallCollidedWithBrick += OnBallCollidedWithBrick;
-            _event.OnBallCollidedWithBottomWall += OnBallCollidedWithBottomWall;
-            _event.OnLeveledUp += OnLeveledUp;
+            EventManager.I.OnGameStateChanged += OnGameStateChanged;
+            EventManager.I.OnBallCollidedWithPlayer += OnBallCollidedWithPlayer;
+            EventManager.I.OnBallCollidedWithBrick += OnBallCollidedWithBrick;
+            EventManager.I.OnBallCollidedWithBottomWall += OnBallCollidedWithBottomWall;
+            EventManager.I.OnLeveledUp += OnLeveledUp;
         }
-        
+
         private void OnDisable()
         {
-            _event.OnGameStateChanged -= OnGameStateChanged;
-            _event.OnBallCollidedWithPlayer -= OnBallCollidedWithPlayer;
-            _event.OnBallCollidedWithBrick -= OnBallCollidedWithBrick;
-            _event.OnBallCollidedWithBottomWall -= OnBallCollidedWithBottomWall;
-            _event.OnLeveledUp -= OnLeveledUp;
+            EventManager.I.OnGameStateChanged -= OnGameStateChanged;
+            EventManager.I.OnBallCollidedWithPlayer -= OnBallCollidedWithPlayer;
+            EventManager.I.OnBallCollidedWithBrick -= OnBallCollidedWithBrick;
+            EventManager.I.OnBallCollidedWithBottomWall -= OnBallCollidedWithBottomWall;
+            EventManager.I.OnLeveledUp -= OnLeveledUp;
         }
         
         private void OnGameStateChanged(EGameState state)
         {
-            if (state is EGameState.NewGame or EGameState.ContinueGame)
+            if (state is EGameState.Loaded)
                 StartCoroutine(CreateBallMenuRows());
         }
-
+        
         private void OnBallCollidedWithPlayer(Ball ball)
         {
             ball.EnableActivePlayBoost();
@@ -82,7 +71,7 @@ namespace Core
         /// </summary>
         private IEnumerator CreateBallMenuRows()
         {
-            foreach (var ballData in _gameData.Balls)
+            foreach (var ballData in GameManager.Data.Balls)
             {
                 var ball = Instantiate(_ballPrefab, _ballContainer);
                 var ballMenuRow = Instantiate(_ballMenuRowPrefab, _ballMenuRowContainer);
@@ -91,19 +80,15 @@ namespace Core
                 ballMenuRow.SetData(ballData);
             }
 
-            yield return new WaitForSeconds(0.2f);
+            yield return new WaitForSeconds(0.5f);
             
             foreach (var ballMenuRow in _ballMenuRows)
             {
-                if (ballMenuRow.Data.UnlockLevel <= _gameData.Level)
+                if (ballMenuRow.Data.UnlockLevel <= GameManager.Data.Level)
                 {
                     ballMenuRow.gameObject.SetActive(true);
                     yield return new WaitForSeconds(0.15f);
                     UnlockBallMenuRow(ballMenuRow);
-                }
-                else
-                {
-                    ballMenuRow.gameObject.SetActive(false);
                 }
             }
         }
@@ -153,10 +138,10 @@ namespace Core
         /// <param name="brick"></param>
         private void DamageBrick(Ball ball, Brick brick)
         {
-            var damage = _gameData.GetBallDamage(ball);
+            var damage = GameManager.Data.GetBallDamage(ball);
 
             if (ball.IsPlayerBoostActive)
-                damage *= _gameData.GetActivePlayDamageMultiplier(ball);
+                damage *= GameManager.Data.GetActivePlayDamageMultiplier(ball);
 
             brick.TakeDamage(ball, damage);
             ball.ReduceActivePlayBoostHits();

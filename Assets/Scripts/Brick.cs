@@ -14,14 +14,12 @@ public class Brick : MonoBehaviour
     public Color Color { get; private set; }
     public Vector2Int GridPosition { get; private set; }
 
-    private EventManager _event;
     private BoxCollider2D _collider;
     private double _maxHealth;
     private double _currentHealth;
 
     private void Awake()
     {
-        _event = EventManager.I;
         _collider = GetComponent<BoxCollider2D>();
     }
 
@@ -87,7 +85,7 @@ public class Brick : MonoBehaviour
         _currentHealth -= damage;
         UpdateHealthUi();
 
-        _event.TriggerBrickDamaged(this, ball, damage);
+        EventManager.I.TriggerBrickDamaged(this, ball, damage);
         
         if (_currentHealth <= 0)
         {
@@ -121,6 +119,6 @@ public class Brick : MonoBehaviour
         transform.DOKill(true);
         _image.transform.DOKill(true);
             
-        _event.TriggerBrickDestroyed(this, _maxHealth);
+        EventManager.I.TriggerBrickDestroyed(this, _maxHealth);
     }
 }

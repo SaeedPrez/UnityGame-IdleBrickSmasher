@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Data;
 using DG.Tweening;
 using Enums;
 using UnityEngine;
@@ -28,27 +27,20 @@ namespace Core
         [Tab("Debug")]
         [SerializeField] private Image _debugImage;
         
-        private GameData _gameData;
-        private EventManager _event;
         private readonly List<Brick> _bricks = new();
         private Vector2Int _gridSize;
         private Coroutine _autoSpawnCoroutine;
 
-        private void Awake()
-        {
-            _event = EventManager.I;
-            _gameData = GameManager.I.Data;
-        }
-
         private void OnEnable()
         {
-            _event.OnGameStateChanged += OnGameStateChanged;
-            _event.OnBrickDestroyed += OnBrickDestroyed;
+            EventManager.I.OnGameStateChanged += OnGameStateChanged;
+            EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
         }
-
+        
         private void OnDisable()
         {
-            _event.OnBrickDestroyed -= OnBrickDestroyed;
+            EventManager.I.OnGameStateChanged -= OnGameStateChanged;
+            EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
         }
 
         private void Update()
@@ -62,10 +54,10 @@ namespace Core
 
         private void OnGameStateChanged(EGameState state)
         {
-            if (state is EGameState.NewGame)
+            if (state is EGameState.Loaded)
                 SetupNewGame();
         }
-        
+
         private void OnBrickDestroyed(Brick brick, double maxHealth)
         {
             DestroyBrick(brick);
@@ -89,10 +81,10 @@ namespace Core
         /// </summary>
         private void SetRandomNoiseSeed()
         {
-            if (_gameData.BrickNoiseSeed != 0)
+            if (GameManager.Data.BrickNoiseSeed != 0)
                 return;
 
-            _gameData.BrickNoiseSeed = Random.Range(1000, 999999);
+            GameManager.Data.BrickNoiseSeed = Random.Range(1000, 999999);
         }
         
         /// <summary>
@@ -126,7 +118,7 @@ namespace Core
         {
             while (true)
             {
-                var cooldown = _gameData.GetBrickSpawnCooldown();
+                var cooldown = GameManager.Data.GetBrickSpawnCooldown();
                 
                 _cooldownIndicatorImage.DOKill();
                 _cooldownIndicatorImage.fillAmount = 1f;
@@ -146,7 +138,7 @@ namespace Core
         /// </summary>
         private IEnumerator SpawnBricksAtThreshold()
         {
-            while (_bricks.Count < _gameData.GetBrickThresholdSpawnRow())
+            while (_bricks.Count < GameManager.Data.GetBrickThresholdSpawnRow())
             {
                 if (_bricks.Any(b => b.GridPosition.y == 0))
                     MoveBricksDown();
@@ -170,7 +162,7 @@ namespace Core
 
             var bricksSpawned = false;
             
-            var y = (int)_gameData.BrickNoiseOffsetY++;
+            var y = (int)GameManager.Data.BrickNoiseOffsetY++;
             
             for (var x = 0; x <= _gridSize.x; x++)
             {
@@ -182,7 +174,7 @@ namespace Core
             }
             
             if (bricksSpawned)
-                _gameData.BrickRowsSpawned++;
+                GameManager.Data.BrickRowsSpawned++;
         }
 
         /// <summary>
@@ -199,7 +191,7 @@ namespace Core
             var brick = _brickPool.GetPooledObject().GetComponent<Brick>();
             var gridPosition = new Vector2Int(gridX, gridY);
             brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
-            brick.SetMaxHealth(Mathf.Max(1f, (float)(_gameData.BrickRowsSpawned / _gameData.BrickHealthIncreaseRate)));
+            brick.SetMaxHealth(Mathf.Max(1f, (float)(GameManager.Data.BrickRowsSpawned / GameManager.Data.BrickHealthIncreaseRate)));
             _bricks.Add(brick);
             brick.gameObject.SetActive(true);
         }
@@ -212,15 +204,15 @@ namespace Core
         /// <returns></returns>
         private bool ShouldSpawnBrick(int x, int y)
         {
-            var xCoords = x / (float)_gridSize.x * _gameData.BrickNoiseScale + _gameData.BrickNoiseSeed;
-            var yCoords = y / (float)_gridSize.y * _gameData.BrickNoiseScale + _gameData.BrickNoiseSeed;
+            var xCoords = x / (float)_gridSize.x * GameManager.Data.BrickNoiseScale + GameManager.Data.BrickNoiseSeed;
+            var yCoords = y / (float)_gridSize.y * GameManager.Data.BrickNoiseScale + GameManager.Data.BrickNoiseSeed;
 
             var noise = Mathf.PerlinNoise(xCoords, yCoords);
             
-            // var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * _gameData.BrickNoiseScale, 
-            //     y / _gameData.BrickRowsSpawned * _gameData.BrickNoiseScale);
+            // var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * GameManager.Data.BrickNoiseScale, 
+            //     y / GameManager.Data.BrickRowsSpawned * GameManager.Data.BrickNoiseScale);
 
-            return !(noise >= _gameData.GetBrickNoiseThreshold());
+            return !(noise >= GameManager.Data.GetBrickNoiseThreshold());
         }
 
         /// <summary>

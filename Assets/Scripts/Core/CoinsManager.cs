@@ -8,36 +8,27 @@ namespace Core
     public class CoinsManager : MonoBehaviour
     {
         [SerializeField] private TMP_Text _coinsValueUi;
-        
-        private EventManager _event;
-        private GameData _gameData;
-
-        private void Awake()
-        {
-            _event = EventManager.I;
-            _gameData = GameManager.I.Data;
-        }
 
         private void OnEnable()
         {
-            _event.OnBrickDestroyed += OnBrickDestroyed;
-            _event.OnLeveledUp += OnLeveledUp;
+            EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
+            EventManager.I.OnLeveledUp += OnLeveledUp;
         }
         
         private void OnDisable()
         {
-            _event.OnBrickDestroyed -= OnBrickDestroyed;
-            _event.OnLeveledUp -= OnLeveledUp;
+            EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
+            EventManager.I.OnLeveledUp -= OnLeveledUp;
         }
         
         private void OnBrickDestroyed(Brick brick, double maxHealth)
         {
-            AddCoins(_gameData.GetCoinsGainedPerHealth(maxHealth));
+            AddCoins(GameManager.Data.GetCoinsGainedPerHealth(maxHealth));
         }
 
         private void OnLeveledUp(int level)
         {
-            AddCoins(_gameData.GetCoinsGainedPerLevel(level - 1));
+            AddCoins(GameManager.Data.GetCoinsGainedPerLevel(level - 1));
         }
         
         /// <summary>
@@ -46,10 +37,10 @@ namespace Core
         /// <param name="amount"></param>
         private void AddCoins(double amount)
         {
-            _gameData.Coins += amount;
+            GameManager.Data.Coins += amount;
             UpdateCoinsValueUi();
             
-            _event.TriggerCoinsGained(amount);
+            EventManager.I.TriggerCoinsGained(amount);
         }
 
         /// <summary>
@@ -58,10 +49,10 @@ namespace Core
         /// <param name="amount"></param>
         private void SubtractCoins(double amount)
         {
-            _gameData.Coins -= amount;
+            GameManager.Data.Coins -= amount;
             UpdateCoinsValueUi();
             
-            _event.TriggerCoinsUsed(amount);
+            EventManager.I.TriggerCoinsUsed(amount);
         }
 
         /// <summary>
@@ -71,7 +62,7 @@ namespace Core
         /// <returns></returns>
         public bool CanAfford(double amount)
         {
-            return _gameData.Coins >= amount;
+            return GameManager.Data.Coins >= amount;
         }
         
         /// <summary>
@@ -79,7 +70,7 @@ namespace Core
         /// </summary>
         private void UpdateCoinsValueUi()
         {
-            _coinsValueUi.SetText(Helper.GetNumberAsString(_gameData.Coins));
+            _coinsValueUi.SetText(Helper.GetNumberAsString(GameManager.Data.Coins));
         }
     }
 }

@@ -8,26 +8,17 @@ namespace Core
     public class DiamondsManager : MonoBehaviour
     {
         [SerializeField] private TMP_Text _diamondsValueUi;
-        
-        private EventManager _event;
-        private GameData _gameData;
-        
-        private void Awake()
-        {
-            _event = EventManager.I;
-            _gameData = GameManager.I.Data;
-        }
 
         private void OnEnable()
         {
-            _event.OnBrickDestroyed += OnBrickDestroyed;
-            _event.OnLeveledUp += OnLeveledUp;
+            EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
+            EventManager.I.OnLeveledUp += OnLeveledUp;
         }
         
         private void OnDisable()
         {
-            _event.OnBrickDestroyed -= OnBrickDestroyed;
-            _event.OnLeveledUp -= OnLeveledUp;
+            EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
+            EventManager.I.OnLeveledUp -= OnLeveledUp;
         }
         
         private void OnBrickDestroyed(Brick brick, double maxHealth)
@@ -37,7 +28,7 @@ namespace Core
 
         private void OnLeveledUp(int level)
         {
-            AddDiamonds(_gameData.GetDiamondsGainedPerLevel(level - 1));
+            AddDiamonds(GameManager.Data.GetDiamondsGainedPerLevel(level - 1));
         }
         
         /// <summary>
@@ -46,10 +37,10 @@ namespace Core
         /// <param name="amount"></param>
         private void AddDiamonds(double amount)
         {
-            _gameData.Diamonds += amount;
+            GameManager.Data.Diamonds += amount;
             UpdateDiamondsValueUi();
             
-            _event.TriggerDiamondsGained(amount);
+            EventManager.I.TriggerDiamondsGained(amount);
         }
         
         /// <summary>
@@ -58,10 +49,10 @@ namespace Core
         /// <param name="amount"></param>
         private void SubtractDiamonds(double amount)
         {
-            _gameData.Diamonds -= amount;
+            GameManager.Data.Diamonds -= amount;
             UpdateDiamondsValueUi();
             
-            _event.TriggerDiamondsUsed(amount);
+            EventManager.I.TriggerDiamondsUsed(amount);
         }
         
         /// <summary>
@@ -71,7 +62,7 @@ namespace Core
         /// <returns></returns>
         public bool CanAfford(double amount)
         {
-            return _gameData.Diamonds >= amount;
+            return GameManager.Data.Diamonds >= amount;
         }
         
         /// <summary>
@@ -79,7 +70,7 @@ namespace Core
         /// </summary>
         private void UpdateDiamondsValueUi()
         {
-            _diamondsValueUi.SetText(Helper.GetNumberAsString(_gameData.Diamonds));
+            _diamondsValueUi.SetText(Helper.GetNumberAsString(GameManager.Data.Diamonds));
         }
     }
 }

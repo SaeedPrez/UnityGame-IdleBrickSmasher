@@ -27,7 +27,7 @@ namespace Data
 
         public int BrickNoiseSeed = 0;
         public double BrickNoiseOffsetY = 0;
-        public double BrickRowsSpawned = 0d;
+        public double BrickRowsSpawned = 0;
 
         public float GetBrickNoiseThreshold()
         {

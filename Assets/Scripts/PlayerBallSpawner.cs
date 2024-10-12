@@ -13,29 +13,21 @@ public class PlayerBallSpawner : MonoBehaviour
     [SerializeField] private Transform _aimPoint;
     [SerializeField] private float _aimSpeed;
 
-    private EventManager _event;
-    private GameData _gameData;
     private Ball _ball;
     private Rigidbody2D _ballRigidBody;
     private Coroutine _ballAimCoroutine;
     private int _ballAimDirection = 1;
-
-    private void Awake()
-    {
-        _event = EventManager.I;
-    }
-
+    
     private void OnEnable()
     {
-        _event.OnPlayerInputBallAction1 += OnPlayerInputBallAction1;
+        EventManager.I.OnPlayerInputBallAction1 += OnPlayerInputBallAction1;
             
         _aimLine.gameObject.SetActive(false);
-        _gameData = GameManager.I.Data;
     }
 
     private void OnDisable()
     {
-        _event.OnPlayerInputBallAction1 -= OnPlayerInputBallAction1;
+        EventManager.I.OnPlayerInputBallAction1 -= OnPlayerInputBallAction1;
     }
 
     private void OnPlayerInputBallAction1()
@@ -67,7 +59,7 @@ public class PlayerBallSpawner : MonoBehaviour
         var direction = _aimPoint.position - transform.position;
         _ball.transform.parent = _ballContainer;
         _ballRigidBody.bodyType = RigidbodyType2D.Dynamic;
-        _ballRigidBody.linearVelocity = new Vector2(direction.x, direction.y).normalized * _gameData.BallSpeedBase;
+        _ballRigidBody.linearVelocity = new Vector2(direction.x, direction.y).normalized * GameManager.Data.BallSpeedBase;
         _ballRigidBody = null;
         _ball = null;
     }

@@ -17,9 +17,6 @@ public class Player : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float _idleAlpha;
     [SerializeField] private Color _borderHitColor;
         
-    private EventManager _event;
-    private GameManager _game;
-    private GameData _gameData;
     private Rigidbody2D _rigidbody;
     private CapsuleCollider2D _collider;
     private Vector2 _playerInput;
@@ -29,9 +26,6 @@ public class Player : MonoBehaviour
 
     private void Awake()
     {
-        _event = EventManager.I;
-        _game = GameManager.I;
-        _gameData = _game.Data;
         _rigidbody = GetComponent<Rigidbody2D>();
         _collider = GetComponent<CapsuleCollider2D>();
         _borderStartColor = _borderImage.color;
@@ -39,14 +33,14 @@ public class Player : MonoBehaviour
 
     private void OnEnable()
     {
-        _event.OnPlayerInputMove += OnPlayerInputMove;
+        EventManager.I.OnPlayerInputMove += OnPlayerInputMove;
         SetPlayerActive();
         StartCoroutine(SetPlayerIdle());
     }
 
     private void OnDisable()
     {
-        _event.OnPlayerInputMove -= OnPlayerInputMove;
+        EventManager.I.OnPlayerInputMove -= OnPlayerInputMove;
     }
 
     private void FixedUpdate()
@@ -79,7 +73,7 @@ public class Player : MonoBehaviour
         if (_playerInput.x == 0f)
             return;
             
-        var x = _rigidbody.position.x + _playerInput.x * (_gameData.GetPlayerSpeed() * Time.fixedDeltaTime);
+        var x = _rigidbody.position.x + _playerInput.x * (GameManager.Data.GetPlayerSpeed() * Time.fixedDeltaTime);
         x = Mathf.Clamp(x, _movementLimitToX, _movementLimitFromX);
             
         _rigidbody.MovePosition(new Vector2(x, transform.position.y));

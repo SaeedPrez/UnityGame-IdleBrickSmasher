@@ -11,31 +11,27 @@ public class Ball : MonoBehaviour
     public bool IsPlayerBoostActive { get; private set; }
     public BallData Data { get; private set; }
         
-    private EventManager _event;
-    private GameData _gameData;
     private Rigidbody2D _rigidbody;
     private int _activePlayBoostHits;
 
     private void Awake()
     {
-        _event = EventManager.I;
         _rigidbody = GetComponent<Rigidbody2D>();
-        _gameData = GameManager.I.Data;
         _trail.emitting = false;
     }
 
     private void OnCollisionEnter2D(Collision2D other)
     {
         if (other.gameObject.CompareTag(Constants.Player))
-            _event.TriggerBallCollidedWithPlayer(this);
+            EventManager.I.TriggerBallCollidedWithPlayer(this);
 
         else if (other.gameObject.CompareTag(Constants.WallBottom))
-            _event.TriggerBallCollidedWithBottomWall(this);
+            EventManager.I.TriggerBallCollidedWithBottomWall(this);
             
         else if (other.gameObject.CompareTag(Constants.Brick))
         {
             var brick = other.gameObject.GetComponent<Brick>();
-            _event.TriggerBallCollidedWithBrick(this, brick);
+            EventManager.I.TriggerBallCollidedWithBrick(this, brick);
         }
     }
         
@@ -51,7 +47,7 @@ public class Ball : MonoBehaviour
     /// </summary>
     public void SetRandomDirectionVelocity()
     {
-        _rigidbody.linearVelocity = new Vector3(Random.Range(-1f, 1f), 1, 0).normalized * _gameData.GetBallSpeed(this);
+        _rigidbody.linearVelocity = new Vector3(Random.Range(-1f, 1f), 1, 0).normalized * GameManager.Data.GetBallSpeed(this);
     }
         
     /// <summary>
@@ -74,7 +70,7 @@ public class Ball : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         // var speed = _rigidbody.linearVelocity.magnitude;
-        _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * _gameData.GetBallSpeed(this);
+        _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * GameManager.Data.GetBallSpeed(this);
     }
         
     #endregion
@@ -88,7 +84,7 @@ public class Ball : MonoBehaviour
     {
         IsPlayerBoostActive = true;
         _trail.emitting = true;
-        _activePlayBoostHits = _gameData.GetActivePlayHits(this);
+        _activePlayBoostHits = GameManager.Data.GetActivePlayHits(this);
     }
 
     /// <summary>

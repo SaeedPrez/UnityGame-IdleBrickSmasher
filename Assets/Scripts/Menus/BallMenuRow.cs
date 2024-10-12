@@ -1,4 +1,5 @@
-﻿using Core;
+﻿using System;
+using Core;
 using Data;
 using TMPro;
 using UnityEngine;
@@ -15,24 +16,17 @@ namespace Menus
         public Ball Ball { get; private set; }
         public BallData Data { get; private set; }
         public bool IsUnlocked { get; private set; }
-        
-        private EventManager _event;
-        private GameManager _game;
-        private GameData _gameData;
 
         private void Awake()
         {
-            _event = EventManager.I;
-            _game = GameManager.I;
-            _gameData = _game.Data;
-            
-            _lockedUi.SetActive(true);
-            Ball.gameObject.SetActive(false);
+            if (!IsUnlocked)
+                _lockedUi.SetActive(true);
         }
 
         public void SetBall(Ball ball)
         {
             Ball = ball;
+            Ball.gameObject.SetActive(false);
         }
         
         public void SetData(BallData data)
@@ -48,7 +42,7 @@ namespace Menus
             _lockedUi.SetActive(false);
             Ball.gameObject.SetActive(true);
             IsUnlocked = true;
-            _event.TriggerBallMenuRowUnlocked(this);
+            EventManager.I.TriggerBallMenuRowUnlocked(this);
         }
 
         private void UpdateLockLevelUi()

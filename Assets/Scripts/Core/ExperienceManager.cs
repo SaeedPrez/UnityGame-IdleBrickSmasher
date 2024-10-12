@@ -18,33 +18,23 @@ namespace Core
         [SerializeField] private TMP_Text _levelExperienceValueUi;
         [SerializeField] private Image _levelIndicator;
         
-        private EventManager _event;
-        private GameManager _game;
-        private GameData _gameData;
-
-        private void Awake()
-        {
-            _event = EventManager.I;
-            _game = GameManager.I;
-            _gameData = _game.Data;
-        }
-
         private void OnEnable()
         {
-            _event.OnGameStateChanged += OnGameStateChanged;
-            _event.OnBrickDamaged += OnBrickDamaged;
-            _event.OnBrickDestroyed += OnBrickDestroyed;
+            EventManager.I.OnGameStateChanged += OnGameStateChanged;
+            EventManager.I.OnBrickDamaged += OnBrickDamaged;
+            EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
         }
         
         private void OnDisable()
         {
-            _event.OnGameStateChanged -= OnGameStateChanged;
-            _event.OnBrickDestroyed -= OnBrickDestroyed;
+            EventManager.I.OnGameStateChanged -= OnGameStateChanged;
+            EventManager.I.OnBrickDamaged -= OnBrickDamaged;
+            EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
         }
         
         private void OnGameStateChanged(EGameState state)
         {
-            if (state is EGameState.NewGame or EGameState.ContinueGame)
+            if (state is EGameState.Loaded)
             {
                 StartCoroutine(IncrementTime());
                 SetLevelExperience();
@@ -68,8 +58,8 @@ namespace Core
             {
                 yield return new WaitForSeconds(1f);
                 
-                if (_game.State is EGameState.Playing)                
-                    _gameData.TimeThisLevel++;
+                if (GameManager.State is EGameState.Playing)
+                    GameManager.Data.TimeThisLevel++;
             }
         }
 
@@ -80,12 +70,12 @@ namespace Core
         /// <param name="damage"></param>
         private void AddDamageExperience(Ball ball, double damage)
         {
-            var experience = _gameData.GetExpForDamage(damage);
+            var experience = GameManager.Data.GetExpForDamage(damage);
 
             if (ball.IsPlayerBoostActive)
-                experience *= _gameData.GetActivePlayExpMultiplier(ball);
+                experience *= GameManager.Data.GetActivePlayExpMultiplier(ball);
             
-            _gameData.ExperienceCurrent += experience;
+            GameManager.Data.ExperienceCurrent += experience;
             UpdateExperienceUi();
             CheckLeveledUp();
         }
@@ -96,7 +86,7 @@ namespace Core
         /// <param name="health"></param>
         private void AddDestroyExperience(double health)
         {
-            _gameData.ExperienceCurrent += _gameData.GetExpForDestroyed(health);
+            GameManager.Data.ExperienceCurrent += GameManager.Data.GetExpForDestroyed(health);
             UpdateExperienceUi();
             CheckLeveledUp();
         }
@@ -106,7 +96,7 @@ namespace Core
         /// </summary>
         private void CheckLeveledUp()
         {
-            if (_gameData.ExperienceCurrent >= _gameData.ExperienceRequiredToLevel)
+            if (GameManager.Data.ExperienceCurrent >= GameManager.Data.ExperienceRequiredToLevel)
                 LevelUp();
         }
 
@@ -115,23 +105,25 @@ namespace Core
         /// </summary>
         private void LevelUp()
         {
-            _gameData.Level++;
-            SetLevelExperience();
+            GameManager.Data.Level++;
+            SetLevelExperience(true);
             
-            _gameData.TimeTotal += _gameData.TimeThisLevel;
-            _gameData.TimeThisLevel = 0d;
+            GameManager.Data.TimeTotal += GameManager.Data.TimeThisLevel;
+            GameManager.Data.TimeThisLevel = 0d;
             
-            _event.TriggerLeveledUp(_gameData.Level);
+            EventManager.I.TriggerLeveledUp(GameManager.Data.Level);
             UpdateExperienceUi();
         }
-
+        
         /// <summary>
         /// Sets the current level experience.
         /// </summary>
-        private void SetLevelExperience()
+        private void SetLevelExperience(bool leveledUp = false)
         {
-            _gameData.ExperienceCurrent -= _gameData.ExperienceRequiredToLevel;
-            _gameData.ExperienceRequiredToLevel = _gameData.GetExpNeededToLevel(_gameData.Level);
+            if (leveledUp)
+                GameManager.Data.ExperienceCurrent -= GameManager.Data.ExperienceRequiredToLevel;
+            
+            GameManager.Data.ExperienceRequiredToLevel = GameManager.Data.GetExpNeededToLevel(GameManager.Data.Level);
             
             UpdateLevelValueUi();
         }
@@ -141,11 +133,11 @@ namespace Core
         /// </summary>
         private void UpdateExperienceUi()
         {
-            var percent = _gameData.ExperienceCurrent / _gameData.ExperienceRequiredToLevel;
+            var percent = GameManager.Data.ExperienceCurrent / GameManager.Data.ExperienceRequiredToLevel;
 
             _levelIndicator.DOKill(true);
             _levelIndicator.DOFillAmount((float)percent, 0.1f);
-            _levelExperienceValueUi.SetText($"{Helper.GetNumberAsString(_gameData.ExperienceCurrent)}\n{Helper.GetNumberAsString(_gameData.ExperienceRequiredToLevel)}");
+            _levelExperienceValueUi.SetText($"{Helper.GetNumberAsString(GameManager.Data.ExperienceCurrent)}\n{Helper.GetNumberAsString(GameManager.Data.ExperienceRequiredToLevel)}");
         }
 
         /// <summary>
@@ -153,7 +145,7 @@ namespace Core
         /// </summary>
         private void UpdateLevelValueUi()
         {
-            _levelValueUi.SetText($"Level {_gameData.Level:0}");
+            _levelValueUi.SetText($"Level {GameManager.Data.Level:0}");
         }
     }
 }

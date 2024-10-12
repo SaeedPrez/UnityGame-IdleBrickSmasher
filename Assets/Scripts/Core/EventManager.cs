@@ -15,6 +15,9 @@ namespace Core
 
         public event Action<GameData> OnGameDataLoaded = delegate { };
         public void TriggerGameDataLoaded(GameData data) => OnGameDataLoaded?.Invoke(data);
+
+        public event Action<GameData> OnGameDataSaved = delegate { };
+        public void TriggerGameDataSaved(GameData data) => OnGameDataSaved?.Invoke(data);
         
         // Input
         

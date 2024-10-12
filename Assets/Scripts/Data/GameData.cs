@@ -1,10 +1,19 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Utilities;
 
 namespace Data
 {
     public class GameData
     {
+        #region Game
+
+        public string GameId;
+        public DateTime GameDataLoaded;
+        public DateTime GameDataSaved;
+
+        #endregion
+
         #region Player
 
         private readonly float _playerSpeedBase = 2f;
@@ -21,7 +30,7 @@ namespace Data
         public readonly float BrickNoiseScale = 4;
         public readonly float BrickHealthIncreaseRate = 10f;
 
-        private readonly float _brickNoiseThresholdBase = 0.35f;
+        private readonly float _brickNoiseThresholdBase = 0.3f;
         private readonly int _brickThresholdSpawnRowBase = 3;
         private readonly float _brickRowSpawnCooldownBase = 10f;
 
@@ -50,19 +59,21 @@ namespace Data
 
         public readonly List<BallData> Balls = new()
         {
-            new BallData { UnlockLevel = 1 },
-            new BallData { UnlockLevel = 2 },
-            new BallData { UnlockLevel = 4 },
-            new BallData { UnlockLevel = 8 },
-            new BallData { UnlockLevel = 12 },
-            new BallData { UnlockLevel = 16 },
-            new BallData { UnlockLevel = 20 },
-            new BallData { UnlockLevel = 25 },
-            new BallData { UnlockLevel = 30 },
-            new BallData { UnlockLevel = 40 },
-            new BallData { UnlockLevel = 50 },
-            new BallData { UnlockLevel = 75 },
-            new BallData { UnlockLevel = 100 },
+            new BallData { Id = 1, UnlockLevel = 1 },
+            new BallData { Id = 2, UnlockLevel = 2 },
+            new BallData { Id = 3, UnlockLevel = 4 },
+            new BallData { Id = 4, UnlockLevel = 8 },
+            new BallData { Id = 5, UnlockLevel = 12 },
+            new BallData { Id = 6, UnlockLevel = 16 },
+            new BallData { Id = 7, UnlockLevel = 20 },
+            new BallData { Id = 8, UnlockLevel = 25 },
+            new BallData { Id = 9, UnlockLevel = 30 },
+            new BallData { Id = 10, UnlockLevel = 40 },
+            new BallData { Id = 11, UnlockLevel = 50 },
+            new BallData { Id = 12, UnlockLevel = 75 },
+            new BallData { Id = 13, UnlockLevel = 100 },
+            new BallData { Id = 14, UnlockLevel = 150 },
+            new BallData { Id = 15, UnlockLevel = 200 },
         };
 
         public readonly float BallSpeedBase = 2.5f;

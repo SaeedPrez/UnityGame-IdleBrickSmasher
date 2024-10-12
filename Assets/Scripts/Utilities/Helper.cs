@@ -21,6 +21,7 @@ namespace Utilities
             
             numberString += number switch
             {
+                >= 1000000000000000 => GetNumberAsENotationString(number),
                 >= 1000000000000 => (number * 0.000000001d).ToString("F2", CultureInfo.InvariantCulture) + "T",
                 >= 1000000000 => (number * 0.000000001d).ToString("F2", CultureInfo.InvariantCulture) + "B",
                 >= 1000000 => (number * 0.000001d).ToString("F2", CultureInfo.InvariantCulture) + "M",
@@ -29,6 +30,12 @@ namespace Utilities
             };
             
             return numberString;
+        }
+
+        public static string GetNumberAsENotationString(double number)
+        {
+            // Continue here - Create E notation number.
+            return "";
         }
         
         /// <summary>

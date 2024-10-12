@@ -2,6 +2,7 @@
 {
     public class BallData
     {
+        public int Id;
         public int UnlockLevel;
         public int SpeedLevel = 1;
         public int DamageLevel = 1;

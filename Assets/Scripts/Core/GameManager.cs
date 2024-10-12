@@ -36,7 +36,7 @@ namespace Core
 
         private void OnGameDataLoaded(GameData data)
         {
-            StartCoroutine(GameDataLoaded(data));
+            StartCoroutine(SetDataAndStartGame(data));
         }
         
         private void Start()
@@ -71,9 +71,11 @@ namespace Core
             _event.TriggerGameStateChanged(State);
         }
 
-        private IEnumerator GameDataLoaded(GameData data)
+        private IEnumerator SetDataAndStartGame(GameData data)
         {
             _gameData = data;
+
+            GenerateGameId();
             
             // Give the event time to trigger on all scripts
             yield return null;
@@ -83,6 +85,15 @@ namespace Core
             yield return new WaitForSeconds(0.1f);
             
             SetState(EGameState.Playing);
+        }
+
+        /// <summary>
+        /// Generate a new game id.
+        /// </summary>
+        private void GenerateGameId()
+        {
+            if (string.IsNullOrWhiteSpace(Data.GameId))
+                Data.GameId = System.Guid.NewGuid().ToString();
         }
     }
 }

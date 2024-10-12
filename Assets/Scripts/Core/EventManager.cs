@@ -70,7 +70,9 @@ namespace Core
         
         public event Action<Ball> OnBallCollidedWithBottomWall = delegate { };
         public void TriggerBallCollidedWithBottomWall(Ball ball) => OnBallCollidedWithBottomWall?.Invoke(ball);
-        
+
+        public event Action<Ball> OnBallRequestRespawn = delegate { };
+        public void TriggerBallRequestRespawn(Ball ball) => OnBallRequestRespawn?.Invoke(ball);
         
         public static EventManager I { get; private set; }
 

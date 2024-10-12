@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using Core;
 
 namespace Utilities
 {
@@ -18,26 +19,54 @@ namespace Utilities
                 numberString = "-";
                 number *= -1;
             }
-            
-            numberString += number switch
+
+            if (GameManager.Data.UseENotation)
+                return numberString + GetNumberAsENotationString(number);
+
+            if (number >= 1000000000000000000000000000d)
             {
-                >= 1000000000000000 => GetNumberAsENotationString(number),
-                >= 1000000000000 => (number * 0.000000001d).ToString("F2", CultureInfo.InvariantCulture) + "T",
-                >= 1000000000 => (number * 0.000000001d).ToString("F2", CultureInfo.InvariantCulture) + "B",
-                >= 1000000 => (number * 0.000001d).ToString("F2", CultureInfo.InvariantCulture) + "M",
-                >= 1000 => (number * 0.001d).ToString("F2", CultureInfo.InvariantCulture) + "K",
-                _ => number.ToString("F2", CultureInfo.InvariantCulture),
-            };
-            
+                numberString += number switch
+                {
+                    >= 10000000000000000000000000000000000d => (number * 0.000000000000000000000000000000001d).ToString("F2", CultureInfo.InvariantCulture) + "d",
+                    >= 1000000000000000000000000000000d => (number * 0.000000000000000000000000000001d).ToString("F2", CultureInfo.InvariantCulture) + "n",
+                    _ => (number * 0.000000000000000000000000001d).ToString("F2", CultureInfo.InvariantCulture) + "o",
+                };
+            }
+            else if (number >= 1000000000000000d)
+            {
+                numberString += number switch
+                {
+                    >= 1000000000000000000000000d => (number * 0.000000000000000000000001d).ToString("F2", CultureInfo.InvariantCulture) + "S",
+                    >= 1000000000000000000000d => (number * 0.000000000000000000001d).ToString("F2", CultureInfo.InvariantCulture) + "s",
+                    >= 1000000000000000000d => (number * 0.000000000000000001d).ToString("F2", CultureInfo.InvariantCulture) + "Q",
+                    _ => (number * 0.000000000000001d).ToString("F2", CultureInfo.InvariantCulture) + "q",
+                };
+            }
+            else
+            {
+                numberString += number switch
+                {
+                    >= 1000000000000d => (number * 0.000000000001d).ToString("F2", CultureInfo.InvariantCulture) + "T",
+                    >= 1000000000d => (number * 0.000000001d).ToString("F2", CultureInfo.InvariantCulture) + "B",
+                    >= 1000000d => (number * 0.000001d).ToString("F2", CultureInfo.InvariantCulture) + "M",
+                    >= 1000d => (number * 0.001d).ToString("F2", CultureInfo.InvariantCulture) + "K",
+                    _ => number.ToString("F2", CultureInfo.InvariantCulture),
+                };
+            }
+
             return numberString;
         }
 
         public static string GetNumberAsENotationString(double number)
         {
-            // Continue here - Create E notation number.
-            return "";
+            if (number < 1000)
+                return number.ToString("0.00");
+            
+            var numberString = number.ToString("0");
+            var length = numberString.Length;
+            return (number / double.Parse("1".PadRight(length, '0'))).ToString("0.00") + $"e{length - 1:00}";
         }
-        
+
         /// <summary>
         /// Calculates cost.
         /// </summary>
@@ -48,7 +77,7 @@ namespace Utilities
         public static double CalculateLevelCost(double baseCost, double growth, double level)
         {
             var result = 0d;
-            
+
             for (var i = 1; i <= level; i++)
                 result = (result + baseCost) * growth;
 

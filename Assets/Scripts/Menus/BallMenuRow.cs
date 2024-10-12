@@ -26,7 +26,6 @@ namespace Menus
         public void SetBall(Ball ball)
         {
             Ball = ball;
-            Ball.gameObject.SetActive(false);
         }
         
         public void SetData(BallData data)

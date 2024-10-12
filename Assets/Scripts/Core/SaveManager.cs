@@ -67,7 +67,7 @@ namespace Core
             if (GameManager.Data.BrickNoiseOffsetY < 0)
                 GameManager.Data.BrickNoiseOffsetY = 0;
 
-            GameManager.Data.BrickRowsSpawned -= 19;
+            GameManager.Data.BrickRowsSpawned -= 21;
 
             if (GameManager.Data.BrickRowsSpawned < 0)
                 GameManager.Data.BrickRowsSpawned = 0;

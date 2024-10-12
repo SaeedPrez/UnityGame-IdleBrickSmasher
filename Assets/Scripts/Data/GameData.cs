@@ -14,6 +14,12 @@ namespace Data
 
         #endregion
 
+        #region Settings
+
+        public bool UseENotation;
+
+        #endregion
+
         #region Player
 
         private readonly float _playerSpeedBase = 2f;
@@ -156,7 +162,7 @@ namespace Data
         private readonly float _expPerDamageBase = 0.67f;
         private readonly float _expPerHealthBase = 0.5f;
         private readonly float _expLevelBase = 20f;
-        private readonly float _expLevelGrowth = 1.15f;
+        private readonly float _expLevelGrowth = 1.07f;
 
         public double GetExpForDamage(double damage)
         {

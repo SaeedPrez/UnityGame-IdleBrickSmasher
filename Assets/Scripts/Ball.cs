@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using Core;
 using Data;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 [SelectionBase]
 public class Ball : MonoBehaviour
@@ -13,11 +15,22 @@ public class Ball : MonoBehaviour
         
     private Rigidbody2D _rigidbody;
     private int _activePlayBoostHits;
+    private Coroutine _ballVelocityCoroutine;
 
     private void Awake()
     {
         _rigidbody = GetComponent<Rigidbody2D>();
         _trail.emitting = false;
+    }
+
+    private void OnEnable()
+    {
+        _ballVelocityCoroutine = StartCoroutine(CheckAndFixVelocity());
+    }
+
+    private void OnDisable()
+    {
+        StopCoroutine(_ballVelocityCoroutine);
     }
 
     private void OnCollisionEnter2D(Collision2D other)
@@ -72,7 +85,27 @@ public class Ball : MonoBehaviour
         // var speed = _rigidbody.linearVelocity.magnitude;
         _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * GameManager.Data.GetBallSpeed(this);
     }
-        
+
+    /// <summary>
+    /// Checks and fixes the velocity.
+    /// </summary>
+    /// <returns></returns>
+    private IEnumerator CheckAndFixVelocity()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(5f);
+
+            var expectedVelocity = GameManager.Data.GetBallSpeed(this);
+            var currentVelocity = _rigidbody.linearVelocity.magnitude;
+
+            if (currentVelocity <= expectedVelocity * 0.5f) 
+                EventManager.I.TriggerBallRequestRespawn(this);
+            else if (currentVelocity <= expectedVelocity * 0.8f || currentVelocity >= expectedVelocity * 1.25f)
+                _rigidbody.linearVelocity = _rigidbody.linearVelocity.normalized * expectedVelocity;
+        }
+    }
+    
     #endregion
 
     #region Active Player Boost

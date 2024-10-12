@@ -24,8 +24,9 @@ namespace Core
             EventManager.I.OnBallCollidedWithBrick += OnBallCollidedWithBrick;
             EventManager.I.OnBallCollidedWithBottomWall += OnBallCollidedWithBottomWall;
             EventManager.I.OnLeveledUp += OnLeveledUp;
+            EventManager.I.OnBallRequestRespawn += OnBallRequestRespawn;
         }
-
+        
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
@@ -33,6 +34,7 @@ namespace Core
             EventManager.I.OnBallCollidedWithBrick -= OnBallCollidedWithBrick;
             EventManager.I.OnBallCollidedWithBottomWall -= OnBallCollidedWithBottomWall;
             EventManager.I.OnLeveledUp -= OnLeveledUp;
+            EventManager.I.OnBallRequestRespawn -= OnBallRequestRespawn;
         }
         
         private void OnGameStateChanged(EGameState state)
@@ -64,6 +66,11 @@ namespace Core
                 UnlockBallMenuRow(ballMenuRow);
         }
 
+        private void OnBallRequestRespawn(Ball ball)
+        {
+            SpawnBall(ball);
+        }
+
         #region Ball Menu Rows
 
         /// <summary>
@@ -78,6 +85,7 @@ namespace Core
                 _ballMenuRows.Add(ballMenuRow);
                 ballMenuRow.SetBall(ball);
                 ballMenuRow.SetData(ballData);
+                ball.gameObject.SetActive(false);
             }
 
             yield return new WaitForSeconds(0.5f);
@@ -111,10 +119,20 @@ namespace Core
             if (ballMenuRow.IsUnlocked)
                 return;
             
-            _ballSpawnEffect.Play();
             ballMenuRow.Unlock();
-            RandomizeBallVelocity(ballMenuRow.Ball);
             EnableNextBallMenuRow();
+            SpawnBall(ballMenuRow.Ball);
+        }
+
+        /// <summary>
+        /// Spawns a ball.
+        /// </summary>
+        /// <param name="ball"></param>
+        private void SpawnBall(Ball ball)
+        {
+            ball.transform.localPosition = Vector3.zero;
+            RandomizeBallVelocity(ball);
+            _ballSpawnEffect.Play();
         }
         
         private void EnableNextBallMenuRow()

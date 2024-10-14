@@ -1,5 +1,4 @@
-﻿using Data;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using Utilities;
 

@@ -1,5 +1,4 @@
-﻿using System;
-using Core;
+﻿using Core;
 using Data;
 using TMPro;
 using UnityEngine;
@@ -39,7 +38,6 @@ namespace Menus
         public void Unlock()
         {
             _lockedUi.SetActive(false);
-            Ball.gameObject.SetActive(true);
             IsUnlocked = true;
             EventManager.I.TriggerBallMenuRowUnlocked(this);
         }

@@ -88,7 +88,7 @@ namespace Core
                 ball.gameObject.SetActive(false);
             }
 
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(1.5f);
             
             foreach (var ballMenuRow in _ballMenuRows)
             {
@@ -131,6 +131,7 @@ namespace Core
         private void SpawnBall(Ball ball)
         {
             ball.transform.localPosition = Vector3.zero;
+            ball.gameObject.SetActive(true);
             RandomizeBallVelocity(ball);
             _ballSpawnEffect.Play();
         }

@@ -55,7 +55,7 @@ namespace Core
         private void OnGameStateChanged(EGameState state)
         {
             if (state is EGameState.Loaded)
-                SetupNewGame();
+                StartCoroutine(SetupNewGame());
         }
 
         private void OnBrickDestroyed(Brick brick, double maxHealth)
@@ -67,11 +67,11 @@ namespace Core
         /// <summary>
         /// Sets up a new game.
         /// </summary>
-        private void SetupNewGame()
+        private IEnumerator SetupNewGame()
         {
             CalculateGridSize();
             SetRandomNoiseSeed();
-            StartCoroutine(FillGrid());
+            yield return StartCoroutine(FillGrid());
             _autoSpawnCoroutine = StartCoroutine(AutoSpawnBricks());
         }
 

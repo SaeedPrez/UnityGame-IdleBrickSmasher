@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using Core;
-using Data;
 using UnityEngine;
 
 public class PlayerBallSpawner : MonoBehaviour

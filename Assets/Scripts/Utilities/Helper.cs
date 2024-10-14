@@ -57,6 +57,11 @@ namespace Utilities
             return numberString;
         }
 
+        /// <summary>
+        /// Formats a double number as e notation.
+        /// </summary>
+        /// <param name="number"></param>
+        /// <returns></returns>
         public static string GetNumberAsENotationString(double number)
         {
             if (number < 1000)

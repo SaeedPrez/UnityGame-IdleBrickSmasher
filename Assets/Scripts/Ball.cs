@@ -15,6 +15,7 @@ public class Ball : MonoBehaviour
     private Rigidbody2D _rigidbody;
     private int _activePlayBoostHits;
     private Coroutine _ballVelocityCoroutine;
+    private float _lastHitAt;
 
     private void Awake()
     {
@@ -24,7 +25,8 @@ public class Ball : MonoBehaviour
 
     private void OnEnable()
     {
-        _ballVelocityCoroutine = StartCoroutine(CheckAndFixVelocity());
+        _ballVelocityCoroutine = StartCoroutine(RespawnBallIfStucked());
+        _lastHitAt = Time.time;
     }
 
     private void OnDisable()
@@ -35,15 +37,19 @@ public class Ball : MonoBehaviour
     private void OnCollisionEnter2D(Collision2D other)
     {
         if (other.gameObject.CompareTag(Constants.Player))
+        {
             EventManager.I.TriggerBallCollidedWithPlayer(this);
-
+            _lastHitAt = Time.time;
+        }
         else if (other.gameObject.CompareTag(Constants.WallBottom))
+        {
             EventManager.I.TriggerBallCollidedWithBottomWall(this);
-            
+        }
         else if (other.gameObject.CompareTag(Constants.Brick))
         {
             var brick = other.gameObject.GetComponent<Brick>();
             EventManager.I.TriggerBallCollidedWithBrick(this, brick);
+            _lastHitAt = Time.time;
         }
     }
         
@@ -86,10 +92,10 @@ public class Ball : MonoBehaviour
     }
 
     /// <summary>
-    /// Checks and fixes the velocity.
+    /// Checks and respawns the ball if stuck.
     /// </summary>
     /// <returns></returns>
-    private IEnumerator CheckAndFixVelocity()
+    private IEnumerator RespawnBallIfStucked()
     {
         while (true)
         {
@@ -98,7 +104,9 @@ public class Ball : MonoBehaviour
             var expectedVelocity = GameManager.Data.GetBallSpeed(this);
             var currentVelocity = _rigidbody.linearVelocity.magnitude;
 
-            if (currentVelocity <= expectedVelocity * 0.5f) 
+            if (_lastHitAt < Time.time - 10f)
+                EventManager.I.TriggerBallRequestRespawn(this);
+            else if (currentVelocity <= expectedVelocity * 0.5f) 
                 EventManager.I.TriggerBallRequestRespawn(this);
             else if (currentVelocity <= expectedVelocity * 0.8f || currentVelocity >= expectedVelocity * 1.25f)
                 _rigidbody.linearVelocity = _rigidbody.linearVelocity.normalized * expectedVelocity;

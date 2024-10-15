@@ -11,6 +11,7 @@ namespace Menus
         [SerializeField] private GameObject _lockedUi;
         [SerializeField] private TMP_Text _lockLevelUi;
         [SerializeField] private Button _talentsButton;
+        [SerializeField] private TMP_Text _ballNrUi;
 
         public Ball Ball { get; private set; }
         public BallData Data { get; private set; }
@@ -31,6 +32,8 @@ namespace Menus
         {
             Data = data;
             Ball.SetData(data);
+            
+            _ballNrUi.SetText($"Ball {Ball.Data.Id}");
             
             UpdateLockLevelUi();
         }

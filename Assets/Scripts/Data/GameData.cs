@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Enums;
 using Utilities;
 
 namespace Data
@@ -9,8 +10,8 @@ namespace Data
         #region Game
 
         public string GameId;
-        public DateTime GameDataLoaded;
-        public DateTime GameDataSaved;
+        public DateTime GameDataLoadedAt;
+        public DateTime GameDataSavedAt;
 
         #endregion
 
@@ -20,13 +21,49 @@ namespace Data
 
         #endregion
 
+        #region Level & Experience
+
+        public int LevelCurrent = 1;
+        public double TimeCurrentLevel = 0d;
+        public double TimeTotal = 0d;
+
+        public double ExperienceCurrent = 0d;
+        public double ExperienceRequiredToLevel = 0d;
+        private readonly float _experienceGainedPerDamageBase = 0.17f;
+        private readonly float _experienceGainedPerHealthBase = 0.09f;
+        private readonly float _experienceBase = 20f;
+        private readonly float _experienceGrowthPerLevel = 1.07f;
+
+        public double GetExperienceForBrickDamage(double damage)
+        {
+            return _experienceGainedPerDamageBase * damage;
+        }
+
+        public double GetExperienceForBrickDestroyed(double health)
+        {
+            return _experienceGainedPerHealthBase * health;
+        }
+
+        public double GetExperienceNeededToLevel(double level)
+        {
+            return Helper.CalculateExponentialGrowthCost(EGrowthName.Experience, _experienceBase, _experienceGrowthPerLevel, level);
+        }
+
+        #endregion
+        
         #region Player
 
         private readonly float _playerSpeedBase = 2f;
+        private readonly float _playerIdleCooldown = 2f;
 
         public float GetPlayerSpeed()
         {
             return _playerSpeedBase;
+        }
+
+        public float GetPlayerIdleCooldown()
+        {
+            return _playerIdleCooldown;
         }
 
         #endregion
@@ -34,19 +71,26 @@ namespace Data
         #region Bricks
 
         public readonly float BrickNoiseScale = 4;
-        public readonly float BrickHealthIncreaseRate = 10f;
+        private readonly float _brickNoiseSpawnThresholdBase = 0.3f;
+        private readonly int _brickMinimumSpawnBase = 3;
+        
+        private readonly float _brickHealthBase = 0.4f;
+        private readonly float _brickHealthGrowthPerLevel = 1.05f;
 
-        private readonly float _brickNoiseThresholdBase = 0.3f;
-        private readonly int _brickThresholdSpawnRowBase = 3;
         private readonly float _brickRowSpawnCooldownBase = 10f;
 
         public int BrickNoiseSeed = 0;
         public double BrickNoiseOffsetY = 0;
-        public double BrickRowsSpawned = 0;
+        public double BrickRowLevel = 1;
 
-        public float GetBrickNoiseThreshold()
+        public float GetBrickNoiseSpawnThreshold()
         {
-            return _brickNoiseThresholdBase;
+            return _brickNoiseSpawnThresholdBase;
+        }
+
+        public int GetBrickMinimumSpawnThreshold()
+        {
+            return _brickMinimumSpawnBase;
         }
 
         public float GetBrickSpawnCooldown()
@@ -54,16 +98,19 @@ namespace Data
             return _brickRowSpawnCooldownBase;
         }
         
-        public int GetBrickThresholdSpawnRow()
+        public double GetBrickMaxHealth(double level = -1d)
         {
-            return _brickThresholdSpawnRowBase;
+            if (level == -1d)
+                level = BrickRowLevel;
+
+            return Helper.CalculateExponentialGrowthCost(EGrowthName.BrickHealth, _brickHealthBase, _brickHealthGrowthPerLevel, level);
         }
 
         #endregion
 
         #region Balls
 
-        public readonly List<BallData> Balls = new()
+        public List<BallData> Balls = new()
         {
             new BallData { Id = 1, UnlockLevel = 1 },
             new BallData { Id = 2, UnlockLevel = 2 },
@@ -82,19 +129,31 @@ namespace Data
             new BallData { Id = 15, UnlockLevel = 200 },
         };
 
-        public readonly float BallSpeedBase = 2.5f;
-        public readonly float BallDamageBase = 1f;
-        public readonly float BallCriticalChanceBase = 0f;
-        public readonly float BallCriticalDamageBase = 1f;
+        private readonly float _ballSpeedBase = 2.5f;
+        private readonly float _ballSpeedGrowthPerLevel = 0.1f;
+        public readonly int BallSpeedMaxLevel = 10;
+        private readonly float _ballDamageBase = 5f;
+        private readonly float _ballDamageGrowthPerLevel = 5f;
+        public readonly int BallDamageMaxLevel = 10;
+        private readonly float _ballCriticalChanceBase = 0f;
+        private readonly float _ballCriticalChanceGrowthPerLevel = 0.1f;
+        private readonly float _ballCriticalDamageBase = 1f;
+        private readonly float _ballCriticalDamagGrowthPerLevel = 0.1f;
 
-        public float GetBallSpeed(Ball ball)
+        public float GetBallSpeed(Ball ball, int level = -1)
         {
-            return BallSpeedBase;
+            if (level == -1)
+                level = ball.Data.SpeedLevel;
+            
+            return _ballSpeedBase + level * _ballSpeedGrowthPerLevel;
         }
 
-        public double GetBallDamage(Ball ball)
+        public double GetBallDamage(Ball ball, int level = -1)
         {
-            return BallDamageBase;
+            if (level == -1)
+                level = ball.Data.DamageLevel;
+            
+            return _ballDamageBase + (level - 1) * _ballDamageGrowthPerLevel;
         }
 
         #endregion
@@ -102,8 +161,9 @@ namespace Data
         #region Active Play
 
         private readonly int _activePlayHitsBase = 1;
-        private readonly float _activePlayDmgMultiplierBase = 1.5f;
-        private readonly float _activePlayExpMultiplierBase = 1.5f;
+        private readonly int _activePlayHitsGrowthPerLevel = 1;
+        private readonly float _activePlayDamageMultiplierBase = 1.5f;
+        private readonly float _activePlayExperienceMultiplierBase = 1.5f;
 
         public int GetActivePlayHits(Ball ball)
         {
@@ -112,71 +172,48 @@ namespace Data
 
         public float GetActivePlayDamageMultiplier(Ball ball)
         {
-            return _activePlayDmgMultiplierBase;
+            return _activePlayDamageMultiplierBase;
         }
         
         public float GetActivePlayExpMultiplier(Ball ball)
         {
-            return _activePlayExpMultiplierBase;
+            return _activePlayExperienceMultiplierBase;
         }
         
         #endregion
         
         #region Coins
 
-        public double Coins = 0d;
-        public readonly float CoinsPerBrickBase = 0.25f;
-        public readonly float CoinsPerLevelBase = 2.5f;
+        public double CoinsCurrent = 0d;
+        private readonly float _coinsPerBrickHealthBase = 0.01f;
+        private readonly float _coinsPerLevelBase = 2.5f;
 
-        public double GetCoinsGainedPerHealth(double maxHealth)
+        public double GetCoinsForBrickDestroyed(double maxHealth)
         {
-            return maxHealth * CoinsPerBrickBase;
+            return _coinsPerBrickHealthBase * maxHealth;
         }
 
-        public double GetCoinsGainedPerLevel(double level)
+        public double GetCoinsForLeveledUp(double level = -1d)
         {
-            return CoinsPerLevelBase * level;
+            if (level == -1d)
+                level = LevelCurrent - 1;
+            
+            return _coinsPerLevelBase * level;
         }
 
         #endregion
 
         #region Diamonds
 
-        public double Diamonds = 0d;
-        public readonly float DiamondsPerLevelBase = 0.25f;
+        public double DiamondsCurrent = 0d;
+        private readonly float _diamondsPerLevelBase = 0.25f;
 
-        public double GetDiamondsGainedPerLevel(double level)
+        public double GetDiamondsForLeveledUp(double level = -1d)
         {
-            return DiamondsPerLevelBase * level;
-        }
+            if (level == -1d)
+                level = LevelCurrent - 1;
 
-        #endregion
-
-        #region Level & Time
-
-        public int Level = 1;
-        public double TimeThisLevel = 0d;
-        public double TimeTotal = 0d;
-        public double ExperienceCurrent = 0d;
-        public double ExperienceRequiredToLevel = 0d;
-        private readonly float _expPerDamageBase = 0.67f;
-        private readonly float _expPerHealthBase = 0.5f;
-        private readonly float _expLevelBase = 20f;
-        private readonly float _expLevelGrowth = 1.07f;
-
-        public double GetExpForDamage(double damage)
-        {
-            return _expPerDamageBase * damage;
-        }
-
-        public double GetExpForDestroyed(double health)
-        {
-            return _expPerHealthBase * health;
-        }
-
-        public double GetExpNeededToLevel(double level)
-        {
-            return Helper.CalculateLevelCost(_expLevelBase, _expLevelGrowth, level);
+            return _diamondsPerLevelBase * level;
         }
 
         #endregion

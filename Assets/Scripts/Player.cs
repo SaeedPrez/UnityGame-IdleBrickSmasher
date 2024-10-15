@@ -2,6 +2,7 @@
 using Core;
 using Data;
 using DG.Tweening;
+using Enums;
 using UnityEngine;
 
 [SelectionBase]
@@ -10,7 +11,6 @@ public class Player : MonoBehaviour
     [SerializeField] private float _movementLimitToX;
     [SerializeField] private float _movementLimitFromX;
     [SerializeField] private float _velocityMultiplierX;
-    [SerializeField] private float _playerIdleTime;
     [SerializeField] private SpriteRenderer _bgImage;
     [SerializeField] private SpriteRenderer _borderImage;
     [SerializeField] private Transform _cooldownIndicator;
@@ -33,16 +33,25 @@ public class Player : MonoBehaviour
 
     private void OnEnable()
     {
+        EventManager.I.OnGameStateChanged += OnGameStateChanged;
         EventManager.I.OnPlayerInputMove += OnPlayerInputMove;
-        SetPlayerActive();
-        StartCoroutine(SetPlayerIdle());
     }
-
+    
     private void OnDisable()
     {
+        EventManager.I.OnGameStateChanged -= OnGameStateChanged;
         EventManager.I.OnPlayerInputMove -= OnPlayerInputMove;
     }
 
+    private void OnGameStateChanged(EGameState state)
+    {
+        if (state is EGameState.Loaded)
+        {
+            SetPlayerActive();
+            StartCoroutine(SetPlayerIdle());
+        }
+    }
+    
     private void FixedUpdate()
     {
         MovePlayer();
@@ -85,7 +94,7 @@ public class Player : MonoBehaviour
     /// </summary>
     private void SetPlayerActive()
     {
-        _playerIdleCooldown = _playerIdleTime;
+        _playerIdleCooldown = GameManager.Data.GetPlayerIdleCooldown();
             
         if (_isPlayerActive)
             return;
@@ -116,7 +125,7 @@ public class Player : MonoBehaviour
                 continue;
 
             _playerIdleCooldown -= checkDelay;
-            var percent = _playerIdleCooldown / _playerIdleTime;
+            var percent = _playerIdleCooldown / GameManager.Data.GetPlayerIdleCooldown();
 
             _cooldownIndicator.DOKill();
             _cooldownIndicator.DOScaleX(percent, checkDelay)

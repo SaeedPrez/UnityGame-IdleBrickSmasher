@@ -1,4 +1,5 @@
-﻿using TMPro;
+﻿using Enums;
+using TMPro;
 using UnityEngine;
 using Utilities;
 
@@ -10,24 +11,32 @@ namespace Core
 
         private void OnEnable()
         {
+            EventManager.I.OnGameStateChanged += OnGameStateChanged;
             EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
             EventManager.I.OnLeveledUp += OnLeveledUp;
         }
         
         private void OnDisable()
         {
+            EventManager.I.OnGameStateChanged -= OnGameStateChanged;
             EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
             EventManager.I.OnLeveledUp -= OnLeveledUp;
         }
         
+        private void OnGameStateChanged(EGameState state)
+        {
+            if (state is EGameState.Loaded)
+                UpdateCoinsValueUi();
+        }
+
         private void OnBrickDestroyed(Brick brick, double maxHealth)
         {
-            AddCoins(GameManager.Data.GetCoinsGainedPerHealth(maxHealth));
+            AddCoins(GameManager.Data.GetCoinsForBrickDestroyed(maxHealth));
         }
 
         private void OnLeveledUp(int level)
         {
-            AddCoins(GameManager.Data.GetCoinsGainedPerLevel(level - 1));
+            AddCoins(GameManager.Data.GetCoinsForLeveledUp());
         }
         
         /// <summary>
@@ -36,7 +45,7 @@ namespace Core
         /// <param name="amount"></param>
         private void AddCoins(double amount)
         {
-            GameManager.Data.Coins += amount;
+            GameManager.Data.CoinsCurrent += amount;
             UpdateCoinsValueUi();
             
             EventManager.I.TriggerCoinsGained(amount);
@@ -48,7 +57,7 @@ namespace Core
         /// <param name="amount"></param>
         private void SubtractCoins(double amount)
         {
-            GameManager.Data.Coins -= amount;
+            GameManager.Data.CoinsCurrent -= amount;
             UpdateCoinsValueUi();
             
             EventManager.I.TriggerCoinsUsed(amount);
@@ -61,7 +70,7 @@ namespace Core
         /// <returns></returns>
         public bool CanAfford(double amount)
         {
-            return GameManager.Data.Coins >= amount;
+            return GameManager.Data.CoinsCurrent >= amount;
         }
         
         /// <summary>
@@ -69,7 +78,7 @@ namespace Core
         /// </summary>
         private void UpdateCoinsValueUi()
         {
-            _coinsValueUi.SetText(Helper.GetNumberAsString(GameManager.Data.Coins));
+            _coinsValueUi.SetText(Helper.GetNumberAsString(GameManager.Data.CoinsCurrent));
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using TMPro;
+﻿using Enums;
+using TMPro;
 using UnityEngine;
 using Utilities;
 
@@ -10,14 +11,22 @@ namespace Core
 
         private void OnEnable()
         {
+            EventManager.I.OnGameStateChanged += OnGameStateChanged;
             EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
             EventManager.I.OnLeveledUp += OnLeveledUp;
         }
         
         private void OnDisable()
         {
+            EventManager.I.OnGameStateChanged -= OnGameStateChanged;
             EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
             EventManager.I.OnLeveledUp -= OnLeveledUp;
+        }
+        
+        private void OnGameStateChanged(EGameState state)
+        {
+            if (state is EGameState.Loaded)
+                UpdateDiamondsValueUi();
         }
         
         private void OnBrickDestroyed(Brick brick, double maxHealth)
@@ -27,7 +36,7 @@ namespace Core
 
         private void OnLeveledUp(int level)
         {
-            AddDiamonds(GameManager.Data.GetDiamondsGainedPerLevel(level - 1));
+            AddDiamonds(GameManager.Data.GetDiamondsForLeveledUp());
         }
         
         /// <summary>
@@ -36,7 +45,7 @@ namespace Core
         /// <param name="amount"></param>
         private void AddDiamonds(double amount)
         {
-            GameManager.Data.Diamonds += amount;
+            GameManager.Data.DiamondsCurrent += amount;
             UpdateDiamondsValueUi();
             
             EventManager.I.TriggerDiamondsGained(amount);
@@ -48,7 +57,7 @@ namespace Core
         /// <param name="amount"></param>
         private void SubtractDiamonds(double amount)
         {
-            GameManager.Data.Diamonds -= amount;
+            GameManager.Data.DiamondsCurrent -= amount;
             UpdateDiamondsValueUi();
             
             EventManager.I.TriggerDiamondsUsed(amount);
@@ -61,7 +70,7 @@ namespace Core
         /// <returns></returns>
         public bool CanAfford(double amount)
         {
-            return GameManager.Data.Diamonds >= amount;
+            return GameManager.Data.DiamondsCurrent >= amount;
         }
         
         /// <summary>
@@ -69,7 +78,7 @@ namespace Core
         /// </summary>
         private void UpdateDiamondsValueUi()
         {
-            _diamondsValueUi.SetText(Helper.GetNumberAsString(GameManager.Data.Diamonds));
+            _diamondsValueUi.SetText(Helper.GetNumberAsString(GameManager.Data.DiamondsCurrent));
         }
     }
 }

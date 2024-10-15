@@ -1,10 +1,16 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using Core;
+using Enums;
 
 namespace Utilities
 {
     public static class Helper
     {
+        private static readonly Dictionary<EGrowthName, Dictionary<double, double>> _growthNumbers = new();
+        
         /// <summary>
         /// Formats a double number.
         /// </summary>
@@ -75,18 +81,28 @@ namespace Utilities
         /// <summary>
         /// Calculates cost.
         /// </summary>
+        /// <param name="growthName"></param>
         /// <param name="baseCost"></param>
         /// <param name="growth"></param>
         /// <param name="level"></param>
         /// <returns></returns>
-        public static double CalculateLevelCost(double baseCost, double growth, double level)
+        public static double CalculateExponentialGrowthCost(EGrowthName growthName, double baseCost, double growth, double level)
         {
-            var result = 0d;
+            if (!_growthNumbers.ContainsKey(growthName))
+            {
+                _growthNumbers.Add(growthName, new Dictionary<double, double>());
+                _growthNumbers[growthName].Add(0, 0);
+            }
 
-            for (var i = 1; i <= level; i++)
-                result = (result + baseCost) * growth;
+            if (_growthNumbers[growthName].ContainsKey(level))
+                return _growthNumbers[growthName][level];
 
-            return result;
+            var lastLevel = _growthNumbers[growthName].Keys.Max() + 1;
+            
+            for (var i = lastLevel; i <= level; i++)
+                _growthNumbers[growthName].Add(i, Math.Round((_growthNumbers[growthName][i - 1] + baseCost) * growth, 2));
+            
+            return _growthNumbers[growthName][level];
         }
     }
 }

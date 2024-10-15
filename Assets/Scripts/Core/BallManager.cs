@@ -92,7 +92,7 @@ namespace Core
             
             foreach (var ballMenuRow in _ballMenuRows)
             {
-                if (ballMenuRow.Data.UnlockLevel <= GameManager.Data.Level)
+                if (ballMenuRow.Data.UnlockLevel <= GameManager.Data.LevelCurrent)
                 {
                     ballMenuRow.gameObject.SetActive(true);
                     yield return new WaitForSeconds(0.15f);

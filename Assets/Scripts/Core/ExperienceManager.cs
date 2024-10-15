@@ -58,7 +58,7 @@ namespace Core
                 yield return new WaitForSeconds(1f);
                 
                 if (GameManager.State is EGameState.Playing)
-                    GameManager.Data.TimeThisLevel++;
+                    GameManager.Data.TimeCurrentLevel++;
             }
         }
 
@@ -69,7 +69,7 @@ namespace Core
         /// <param name="damage"></param>
         private void AddDamageExperience(Ball ball, double damage)
         {
-            var experience = GameManager.Data.GetExpForDamage(damage);
+            var experience = GameManager.Data.GetExperienceForBrickDamage(damage);
 
             if (ball.IsPlayerBoostActive)
                 experience *= GameManager.Data.GetActivePlayExpMultiplier(ball);
@@ -85,7 +85,7 @@ namespace Core
         /// <param name="health"></param>
         private void AddDestroyExperience(double health)
         {
-            GameManager.Data.ExperienceCurrent += GameManager.Data.GetExpForDestroyed(health);
+            GameManager.Data.ExperienceCurrent += GameManager.Data.GetExperienceForBrickDestroyed(health);
             UpdateExperienceUi();
             CheckLeveledUp();
         }
@@ -104,13 +104,14 @@ namespace Core
         /// </summary>
         private void LevelUp()
         {
-            GameManager.Data.Level++;
+            GameManager.Data.LevelCurrent++;
+            MessageManager.Queue($"Level {GameManager.Data.LevelCurrent}!");
             SetLevelExperience(true);
             
-            GameManager.Data.TimeTotal += GameManager.Data.TimeThisLevel;
-            GameManager.Data.TimeThisLevel = 0d;
+            GameManager.Data.TimeTotal += GameManager.Data.TimeCurrentLevel;
+            GameManager.Data.TimeCurrentLevel = 0d;
             
-            EventManager.I.TriggerLeveledUp(GameManager.Data.Level);
+            EventManager.I.TriggerLeveledUp(GameManager.Data.LevelCurrent);
             UpdateExperienceUi();
         }
         
@@ -122,7 +123,7 @@ namespace Core
             if (leveledUp)
                 GameManager.Data.ExperienceCurrent -= GameManager.Data.ExperienceRequiredToLevel;
             
-            GameManager.Data.ExperienceRequiredToLevel = GameManager.Data.GetExpNeededToLevel(GameManager.Data.Level);
+            GameManager.Data.ExperienceRequiredToLevel = GameManager.Data.GetExperienceNeededToLevel(GameManager.Data.LevelCurrent);
             
             UpdateLevelValueUi();
         }
@@ -144,7 +145,7 @@ namespace Core
         /// </summary>
         private void UpdateLevelValueUi()
         {
-            _levelValueUi.SetText($"Level {GameManager.Data.Level:0}");
+            _levelValueUi.SetText($"Level {GameManager.Data.LevelCurrent:0}");
         }
     }
 }

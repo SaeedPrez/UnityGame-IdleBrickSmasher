@@ -1,4 +1,5 @@
-﻿using Core;
+﻿using System;
+using Core;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -13,6 +14,7 @@ public class Brick : MonoBehaviour
     public bool IsActive { get; private set; }
     public Color Color { get; private set; }
     public Vector2Int GridPosition { get; private set; }
+    public double SpawnedRowNumber { get; private set; }
 
     private BoxCollider2D _collider;
     private double _maxHealth;
@@ -53,6 +55,15 @@ public class Brick : MonoBehaviour
     }
 
     /// <summary>
+    /// Set the row number where the brick belongs.
+    /// </summary>
+    /// <param name="row"></param>
+    public void SetSpawnedRowNumber(double row)
+    {
+        SpawnedRowNumber = row;
+    }
+
+    /// <summary>
     /// Sets the brick color.
     /// </summary>
     /// <param name="color"></param>
@@ -82,12 +93,15 @@ public class Brick : MonoBehaviour
     /// <param name="damage"></param>
     public void TakeDamage(Ball ball, double damage)
     {
-        _currentHealth -= damage;
+        if (damage > _currentHealth)
+            damage = _currentHealth;
+        
+        _currentHealth -= Math.Round(damage, 2);
         UpdateHealthUi();
 
         EventManager.I.TriggerBrickDamaged(this, ball, damage);
         
-        if (_currentHealth <= 0)
+        if (_currentHealth <= 0.01d)
         {
             Destroyed();
             return;

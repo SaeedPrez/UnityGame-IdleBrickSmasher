@@ -138,7 +138,7 @@ namespace Core
         /// </summary>
         private IEnumerator SpawnBricksAtThreshold()
         {
-            while (_bricks.Count < GameManager.Data.GetBrickThresholdSpawnRow())
+            while (_bricks.Count < GameManager.Data.GetBrickMinimumSpawnThreshold())
             {
                 if (_bricks.Any(b => b.GridPosition.y == 0))
                     MoveBricksDown();
@@ -174,7 +174,7 @@ namespace Core
             }
             
             if (bricksSpawned)
-                GameManager.Data.BrickRowsSpawned++;
+                GameManager.Data.BrickRowLevel++;
         }
 
         /// <summary>
@@ -191,7 +191,7 @@ namespace Core
             var brick = _brickPool.GetPooledObject().GetComponent<Brick>();
             var gridPosition = new Vector2Int(gridX, gridY);
             brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
-            brick.SetMaxHealth(Mathf.Max(1f, (float)(GameManager.Data.BrickRowsSpawned / GameManager.Data.BrickHealthIncreaseRate)));
+            brick.SetMaxHealth(GameManager.Data.GetBrickMaxHealth());
             _bricks.Add(brick);
             brick.gameObject.SetActive(true);
         }
@@ -212,7 +212,7 @@ namespace Core
             // var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * GameManager.Data.BrickNoiseScale, 
             //     y / GameManager.Data.BrickRowsSpawned * GameManager.Data.BrickNoiseScale);
 
-            return !(noise >= GameManager.Data.GetBrickNoiseThreshold());
+            return !(noise >= GameManager.Data.GetBrickNoiseSpawnThreshold());
         }
 
         /// <summary>

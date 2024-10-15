@@ -23,28 +23,9 @@ namespace Core
             SetupSingleton();
         }
         
-        private void OnEnable()
+        private void Start()
         {
-            EventManager.I.OnGameStateChanged += OnGameStateChanged;
-
             _messageValue.alpha = 0;
-        }
-        
-        private void OnDisable()
-        {
-            EventManager.I.OnGameStateChanged -= OnGameStateChanged;
-        }
-
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.E))
-                Queue($"Hello World {Time.time}", 1.5f);
-        }
-
-        private void OnGameStateChanged(EGameState state)
-        {
-            if (state is EGameState.Loaded)
-                Queue("Spawning Bricks..", 1.5f);
         }
 
         /// <summary>
@@ -61,7 +42,7 @@ namespace Core
             I = this;
         }
 
-        public static void Queue(string message, float duration)
+        public static void Queue(string message, float duration = 1.5f)
         {
             I.QueueMessage(message, duration);
         }
@@ -111,6 +92,8 @@ namespace Core
                 _messageQueue.Remove(next.Key);
                 
                 yield return new WaitForSeconds(_animationDuration);
+
+                _queueCoroutine = null;
             }
         }
     }

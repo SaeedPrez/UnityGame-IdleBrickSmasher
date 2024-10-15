@@ -41,7 +41,7 @@ namespace Core
         private void LoadGameData()
         {
             var data = ES3.Load<GameData>(Constants.SaveGameName);
-            data.GameDataLoaded = DateTime.UtcNow;
+            data.GameDataLoadedAt = DateTime.UtcNow;
             EventManager.I.TriggerGameDataLoaded(data);
         }
 
@@ -59,7 +59,7 @@ namespace Core
         /// </summary>
         private void SaveGameData()
         {
-            GameManager.Data.GameDataSaved = DateTime.UtcNow;
+            GameManager.Data.GameDataSavedAt = DateTime.UtcNow;
             
             // TODO: Improve
             GameManager.Data.BrickNoiseOffsetY -= 21;
@@ -67,10 +67,10 @@ namespace Core
             if (GameManager.Data.BrickNoiseOffsetY < 0)
                 GameManager.Data.BrickNoiseOffsetY = 0;
 
-            GameManager.Data.BrickRowsSpawned -= 21;
+            GameManager.Data.BrickRowLevel -= 21;
 
-            if (GameManager.Data.BrickRowsSpawned < 0)
-                GameManager.Data.BrickRowsSpawned = 0;
+            if (GameManager.Data.BrickRowLevel < 1)
+                GameManager.Data.BrickRowLevel = 1;
             
             ES3.Save(Constants.SaveGameName, GameManager.Data);
             EventManager.I.TriggerGameDataSaved(GameManager.Data);

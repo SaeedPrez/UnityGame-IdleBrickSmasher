@@ -82,6 +82,7 @@ namespace Core
 
             SetState(EGameState.Loaded);
 
+            MessageManager.Queue("Spawning Bricks..", 1.6f);
             yield return new WaitForSeconds(0.1f);
             
             SetState(EGameState.Playing);

@@ -74,6 +74,12 @@ namespace Core
         public event Action<Ball> OnBallRequestRespawn = delegate { };
         public void TriggerBallRequestRespawn(Ball ball) => OnBallRequestRespawn?.Invoke(ball);
         
+        // Menus
+
+        public event Action<MenuBase> OnBottomMenuHidden = delegate { };
+        public void TriggerBottomMenuHidden(MenuBase menu) => OnBottomMenuHidden?.Invoke(menu);
+        
+        
         public static EventManager I { get; private set; }
 
         private void Awake()

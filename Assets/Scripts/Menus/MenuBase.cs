@@ -1,4 +1,5 @@
-﻿using DG.Tweening;
+﻿using Core;
+using DG.Tweening;
 using UnityEngine;
 
 namespace Menus
@@ -49,6 +50,8 @@ namespace Menus
 
             if (skipAnimation)
                 RectTransform.DOKill(true);
+
+            EventManager.I.TriggerBottomMenuHidden(this);
         }
     }
 }

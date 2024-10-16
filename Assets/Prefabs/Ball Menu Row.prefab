@@ -899,6 +899,7 @@ MonoBehaviour:
   _lockLevelUi: {fileID: 462917051923526891}
   _talentsButton: {fileID: 5530492704470172925}
   _ballNrUi: {fileID: 47463095648488622}
+  _rectSizeOpenY: 410
   _speedStatsUi: {fileID: 6490742314848127564}
   _dmgStatsUi: {fileID: 6243358646605557123}
   _dpsStatsUi: {fileID: 6141659832347939250}

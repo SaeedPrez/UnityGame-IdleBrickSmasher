@@ -15,7 +15,7 @@ namespace Core
         [SerializeField] private Transform _ballContainer;
         [SerializeField] private ParticleSystem _ballSpawnEffect;
         
-        private List<BallMenuRow> _ballMenuRows = new();
+        private readonly List<BallMenuRow> _ballMenuRows = new();
 
         private void OnEnable()
         {

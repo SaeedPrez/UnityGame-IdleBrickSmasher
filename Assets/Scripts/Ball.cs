@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Core;
 using Data;
@@ -25,7 +26,7 @@ public class Ball : MonoBehaviour
 
     private void OnEnable()
     {
-        _ballVelocityCoroutine = StartCoroutine(RespawnBallIfStucked());
+        _ballVelocityCoroutine = StartCoroutine(RespawnBallIfStuck());
         _lastHitAt = Time.time;
     }
 
@@ -48,7 +49,7 @@ public class Ball : MonoBehaviour
         else if (other.gameObject.CompareTag(Constants.Brick))
         {
             var brick = other.gameObject.GetComponent<Brick>();
-            EventManager.I.TriggerBallCollidedWithBrick(this, brick);
+            EventManager.I.TriggerBallCollidedWithBrick(this, brick, other.contacts[0].point);
             _lastHitAt = Time.time;
         }
     }
@@ -65,7 +66,7 @@ public class Ball : MonoBehaviour
     /// </summary>
     public void SetRandomDirectionVelocity()
     {
-        _rigidbody.linearVelocity = new Vector3(Random.Range(-1f, 1f), 1, 0).normalized * GameManager.Data.GetBallSpeed(this);
+        _rigidbody.linearVelocity = new Vector3(Random.Range(-2f, 2f), 1, 0).normalized * GameManager.Data.GetBallSpeed(this);
     }
         
     /// <summary>
@@ -95,7 +96,7 @@ public class Ball : MonoBehaviour
     /// Checks and respawns the ball if stuck.
     /// </summary>
     /// <returns></returns>
-    private IEnumerator RespawnBallIfStucked()
+    private IEnumerator RespawnBallIfStuck()
     {
         while (true)
         {
@@ -108,7 +109,7 @@ public class Ball : MonoBehaviour
                 EventManager.I.TriggerBallRequestRespawn(this);
             else if (currentVelocity <= expectedVelocity * 0.5f) 
                 EventManager.I.TriggerBallRequestRespawn(this);
-            else if (currentVelocity <= expectedVelocity * 0.8f || currentVelocity >= expectedVelocity * 1.25f)
+            else if (Math.Abs(currentVelocity - expectedVelocity) > 0.01f)
                 _rigidbody.linearVelocity = _rigidbody.linearVelocity.normalized * expectedVelocity;
         }
     }

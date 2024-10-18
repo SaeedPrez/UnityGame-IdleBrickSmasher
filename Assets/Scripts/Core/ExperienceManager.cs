@@ -21,14 +21,12 @@ namespace Core
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
             EventManager.I.OnBrickDamaged += OnBrickDamaged;
-            EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
         }
         
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
             EventManager.I.OnBrickDamaged -= OnBrickDamaged;
-            EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
         }
         
         private void OnGameStateChanged(EGameState state)
@@ -41,14 +39,16 @@ namespace Core
             }
         }
         
-        private void OnBrickDamaged(Brick brick, Ball ball, double damage)
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool destroyed)
         {
             AddDamageExperience(ball, damage);
+            
+            if (destroyed)
+                AddDestroyExperience(brick.MaxHealth);
         }
 
         private void OnBrickDestroyed(Brick brick, double health)
         {
-            AddDestroyExperience(health);
         }
 
         private IEnumerator IncrementTime()

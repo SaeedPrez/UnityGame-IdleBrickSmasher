@@ -12,14 +12,14 @@ namespace Core
         private void OnEnable()
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
-            EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
+            EventManager.I.OnBrickDamaged += OnBrickDamaged;
             EventManager.I.OnLeveledUp += OnLeveledUp;
         }
         
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
-            EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
+            EventManager.I.OnBrickDamaged -= OnBrickDamaged;
             EventManager.I.OnLeveledUp -= OnLeveledUp;
         }
         
@@ -29,9 +29,10 @@ namespace Core
                 UpdateCoinsValueUi();
         }
 
-        private void OnBrickDestroyed(Brick brick, double maxHealth)
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool destroyed)
         {
-            AddCoins(GameManager.Data.GetCoinsForBrickDestroyed(maxHealth));
+            if (destroyed)
+                AddCoins(GameManager.Data.GetCoinsForBrickDestroyed(brick));
         }
 
         private void OnLeveledUp(int level)
@@ -48,7 +49,7 @@ namespace Core
             GameManager.Data.CoinsCurrent += amount;
             UpdateCoinsValueUi();
             
-            EventManager.I.TriggerCoinsGained(amount);
+            EventManager.I.TriggerCoinsUpdated(GameManager.Data.CoinsCurrent, amount);
         }
 
         /// <summary>
@@ -60,7 +61,7 @@ namespace Core
             GameManager.Data.CoinsCurrent -= amount;
             UpdateCoinsValueUi();
             
-            EventManager.I.TriggerCoinsUsed(amount);
+            EventManager.I.TriggerCoinsUpdated(GameManager.Data.CoinsCurrent, -amount);
         }
 
         /// <summary>

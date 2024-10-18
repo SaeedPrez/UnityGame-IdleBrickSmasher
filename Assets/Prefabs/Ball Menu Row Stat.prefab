@@ -148,7 +148,7 @@ GameObject:
   - component: {fileID: 6455929832226721986}
   - component: {fileID: 8387199202550821922}
   m_Layer: 5
-  m_Name: Ball Menu Row Stats
+  m_Name: Ball Menu Row Stat
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -362,7 +362,7 @@ GameObject:
   - component: {fileID: 8588654194812211702}
   - component: {fileID: 6810940569124132387}
   m_Layer: 5
-  m_Name: Image
+  m_Name: Border
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

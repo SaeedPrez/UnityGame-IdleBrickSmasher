@@ -48,7 +48,7 @@ namespace Core
             ball.EnableActivePlayBoost();
         }
 
-        private void OnBallCollidedWithBrick(Ball ball, Brick brick)
+        private void OnBallCollidedWithBrick(Ball ball, Brick brick, Vector2 point)
         {
             DamageBrick(ball, brick);
         }
@@ -102,15 +102,6 @@ namespace Core
         }
 
         /// <summary>
-        /// Set a randomized ball velocity.
-        /// </summary>
-        /// <param name="ball"></param>
-        private void RandomizeBallVelocity(Ball ball)
-        {
-            ball.SetRandomDirectionVelocity();
-        }
-
-        /// <summary>
         /// Unlocks ball menu row.
         /// </summary>
         /// <param name="ballMenuRow"></param>
@@ -134,6 +125,15 @@ namespace Core
             ball.gameObject.SetActive(true);
             RandomizeBallVelocity(ball);
             _ballSpawnEffect.Play();
+        }
+        
+        /// <summary>
+        /// Set a randomized ball velocity.
+        /// </summary>
+        /// <param name="ball"></param>
+        private void RandomizeBallVelocity(Ball ball)
+        {
+            ball.SetRandomDirectionVelocity();
         }
         
         private void EnableNextBallMenuRow()

@@ -9,7 +9,7 @@ namespace Utilities
 {
     public static class Helper
     {
-        private static readonly Dictionary<EGrowthName, Dictionary<double, double>> _growthNumbers = new();
+        private static readonly Dictionary<EStat, Dictionary<double, double>> _growthNumbers = new();
         
         /// <summary>
         /// Formats a double number.
@@ -81,28 +81,28 @@ namespace Utilities
         /// <summary>
         /// Calculates cost.
         /// </summary>
-        /// <param name="growthName"></param>
+        /// <param name="stat"></param>
         /// <param name="baseCost"></param>
         /// <param name="growth"></param>
         /// <param name="level"></param>
         /// <returns></returns>
-        public static double CalculateExponentialGrowthCost(EGrowthName growthName, double baseCost, double growth, double level)
+        public static double CalculateExponentialGrowthCost(EStat stat, double baseCost, double growth, double level)
         {
-            if (!_growthNumbers.ContainsKey(growthName))
+            if (!_growthNumbers.ContainsKey(stat))
             {
-                _growthNumbers.Add(growthName, new Dictionary<double, double>());
-                _growthNumbers[growthName].Add(0, 0);
+                _growthNumbers.Add(stat, new Dictionary<double, double>());
+                _growthNumbers[stat].Add(0, 0);
             }
 
-            if (_growthNumbers[growthName].ContainsKey(level))
-                return _growthNumbers[growthName][level];
+            if (_growthNumbers[stat].ContainsKey(level))
+                return _growthNumbers[stat][level];
 
-            var lastLevel = _growthNumbers[growthName].Keys.Max() + 1;
+            var lastLevel = _growthNumbers[stat].Keys.Max() + 1;
             
             for (var i = lastLevel; i <= level; i++)
-                _growthNumbers[growthName].Add(i, Math.Round((_growthNumbers[growthName][i - 1] + baseCost) * growth, 2));
+                _growthNumbers[stat].Add(i, Math.Round((_growthNumbers[stat][i - 1] + baseCost) * growth, 2));
             
-            return _growthNumbers[growthName][level];
+            return _growthNumbers[stat][level];
         }
     }
 }

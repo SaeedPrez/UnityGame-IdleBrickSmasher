@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Core;
 using Enums;
 using Utilities;
 
@@ -46,7 +47,7 @@ namespace Data
 
         public double GetExperienceNeededToLevel(double level)
         {
-            return Helper.CalculateExponentialGrowthCost(EGrowthName.Experience, _experienceBase, _experienceGrowthPerLevel, level);
+            return Helper.CalculateExponentialGrowthCost(EStat.Experience, _experienceBase, _experienceGrowthPerLevel, level);
         }
 
         #endregion
@@ -103,12 +104,12 @@ namespace Data
             if (level == -1d)
                 level = BrickRowLevel;
 
-            return Helper.CalculateExponentialGrowthCost(EGrowthName.BrickHealth, _brickHealthBase, _brickHealthGrowthPerLevel, level);
+            return Helper.CalculateExponentialGrowthCost(EStat.BrickHealth, _brickHealthBase, _brickHealthGrowthPerLevel, level);
         }
 
         #endregion
 
-        #region Balls
+        #region Ball
 
         public List<BallData> Balls = new()
         {
@@ -128,36 +129,105 @@ namespace Data
             new BallData { Id = 14, UnlockLevel = 150 },
             new BallData { Id = 15, UnlockLevel = 200 },
         };
+        
+        #endregion
 
-        private readonly float _ballSpeedBase = 2.5f;
-        private readonly float _ballSpeedGrowthPerLevel = 0.1f;
-        public readonly int BallSpeedMaxLevel = 10;
-        private readonly float _ballDamageBase = 5f;
-        private readonly float _ballDamageGrowthPerLevel = 5f;
-        public readonly int BallDamageMaxLevel = 10;
-        private readonly float _ballCriticalChanceBase = 0f;
-        private readonly float _ballCriticalChanceGrowthPerLevel = 0.1f;
-        private readonly float _ballCriticalDamageBase = 1f;
-        private readonly float _ballCriticalDamagGrowthPerLevel = 0.1f;
+        #region Ball Speed
+
+        private readonly float _ballSpeedBase = 1.5f;
+        private readonly float _ballSpeedGrowthPerLevel = 0.025f;
+        private readonly int _ballSpeedMaxLevel = 100;
 
         public float GetBallSpeed(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.SpeedLevel;
             
-            return _ballSpeedBase + level * _ballSpeedGrowthPerLevel;
+            return _ballSpeedBase + (_ballSpeedBase * _ballSpeedGrowthPerLevel * (level - 1));
         }
+
+        public bool IsBallSpeedMaxLevel(Ball ball)
+        {
+            return ball.Data.SpeedLevel >= _ballSpeedMaxLevel;
+        }
+
+        public bool CanBallSpeedUpgrade(Ball ball)
+        {
+            if (IsBallSpeedMaxLevel(ball))
+                return false;
+
+            if (CoinsCurrent < 1)
+                return false;
+            
+            return true;
+        }
+
+        public void UpgradeBallSpeed(Ball ball)
+        {
+            if (!CanBallSpeedUpgrade(ball))
+                return;
+            
+            ball.Data.SpeedLevel++;
+            EventManager.I.TriggerBallUpgraded(ball, EStat.BallSpeed);
+        }
+
+        #endregion
+
+        #region Ball Damage
+
+        private readonly float _ballDamageBase = 5f;
+        private readonly float _ballDamageGrowthPerLevel = 5f;
+        private readonly int _ballDamageMaxLevel = 100;
 
         public double GetBallDamage(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.DamageLevel;
             
-            return _ballDamageBase + (level - 1) * _ballDamageGrowthPerLevel;
+            return _ballDamageBase + (level * level - 1) * _ballDamageGrowthPerLevel;
         }
+        
+        public bool IsBallDamageMaxLevel(Ball ball)
+        {
+            return ball.Data.DamageLevel >= _ballDamageMaxLevel;
+        }
+        
+        public bool CanBallDamageUpgrade(Ball ball)
+        {
+            if (IsBallDamageMaxLevel(ball))
+                return false;
+
+            if (CoinsCurrent < 1)
+                return false;
+            
+            return true;
+        }
+        
+        public void UpgradeBallDamage(Ball ball)
+        {
+            if (!CanBallDamageUpgrade(ball))
+                return;
+            
+            ball.Data.DamageLevel++;
+            EventManager.I.TriggerBallUpgraded(ball, EStat.BallDamage);
+        }
+        
+        #endregion
+
+        #region Ball Critical Chance
+
+        private readonly float _ballCriticalChanceBase = 0f;
+        private readonly float _ballCriticalChanceGrowthPerLevel = 0.1f;
 
         #endregion
 
+        #region Ball Critical Damage
+
+        private readonly float _ballCriticalDamageBase = 1f;
+        private readonly float _ballCriticalDamagGrowthPerLevel = 0.1f;
+
+        #endregion
+        
         #region Active Play
 
         private readonly int _activePlayHitsBase = 1;
@@ -188,9 +258,9 @@ namespace Data
         private readonly float _coinsPerBrickHealthBase = 0.01f;
         private readonly float _coinsPerLevelBase = 2.5f;
 
-        public double GetCoinsForBrickDestroyed(double maxHealth)
+        public double GetCoinsForBrickDestroyed(Brick brick)
         {
-            return _coinsPerBrickHealthBase * maxHealth;
+            return _coinsPerBrickHealthBase * brick.MaxHealth;
         }
 
         public double GetCoinsForLeveledUp(double level = -1d)

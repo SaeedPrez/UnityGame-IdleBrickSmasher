@@ -12,12 +12,12 @@ public class Brick : MonoBehaviour
     [SerializeField] private SpriteRenderer _image;
         
     public bool IsActive { get; private set; }
+    public double MaxHealth { get; private set; }
     public Color Color { get; private set; }
     public Vector2Int GridPosition { get; private set; }
     public double SpawnedRowNumber { get; private set; }
 
     private BoxCollider2D _collider;
-    private double _maxHealth;
     private double _currentHealth;
 
     private void Awake()
@@ -39,8 +39,8 @@ public class Brick : MonoBehaviour
     /// <param name="health"></param>
     public void SetMaxHealth(double health)
     {
-        _maxHealth = health;
-        _currentHealth = _maxHealth;
+        MaxHealth = health;
+        _currentHealth = MaxHealth;
     }
 
     /// <summary>
@@ -99,17 +99,18 @@ public class Brick : MonoBehaviour
         _currentHealth -= Math.Round(damage, 2);
         UpdateHealthUi();
 
-        EventManager.I.TriggerBrickDamaged(this, ball, damage);
-        
-        if (_currentHealth <= 0.01d)
+        if (_currentHealth <= 0.1d)
         {
             Destroyed();
-            return;
+            EventManager.I.TriggerBrickDamaged(this, ball, damage, true);
         }
-
-        _image.DOKill(true);
-        _image.DOFade(0.25f, 0.075f)
-            .OnComplete(() => _image.DOFade(1f, 0.075f));
+        else
+        {
+            _image.DOKill(true);
+            _image.DOFade(0.25f, 0.075f)
+                .OnComplete(() => _image.DOFade(1f, 0.075f));
+            EventManager.I.TriggerBrickDamaged(this, ball, damage, false);
+        }
     }
     
     /// <summary>
@@ -132,7 +133,5 @@ public class Brick : MonoBehaviour
         _collider.enabled = false;
         transform.DOKill(true);
         _image.transform.DOKill(true);
-            
-        EventManager.I.TriggerBrickDestroyed(this, _maxHealth);
     }
 }

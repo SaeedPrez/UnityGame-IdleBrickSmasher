@@ -15,6 +15,7 @@ namespace Core
         [Tab("Pools")]
         [SerializeField] private ObjectPool _brickPool;
         [SerializeField] private ObjectPool _brickDestroyEffectsPool;
+        [SerializeField] private ObjectPool _brickHitEffectsPool;
         
         [Tab("Grid")]
         [SerializeField] private Vector2 _brickSize;
@@ -34,13 +35,15 @@ namespace Core
         private void OnEnable()
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
-            EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
+            EventManager.I.OnBallCollidedWithBrick += OnBallCollidedWithBrick;
+            EventManager.I.OnBrickDamaged += OnBrickDamaged;
         }
         
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
-            EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
+            EventManager.I.OnBallCollidedWithBrick -= OnBallCollidedWithBrick;
+            EventManager.I.OnBrickDamaged -= OnBrickDamaged;
         }
 
         private void Update()
@@ -58,8 +61,16 @@ namespace Core
                 StartCoroutine(SetupNewGame());
         }
 
-        private void OnBrickDestroyed(Brick brick, double maxHealth)
+        private void OnBallCollidedWithBrick(Ball ball, Brick brick, Vector2 point)
         {
+            SpawnBrickHitEffect(brick, point);
+        }
+        
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool destroyed)
+        {
+            if (!destroyed)
+                return;
+            
             DestroyBrick(brick);
             StartCoroutine(SpawnBricksAtThreshold());
         }
@@ -255,6 +266,15 @@ namespace Core
             _brickPool.ReleasePooledObject(brick.gameObject);
         }
 
+        private void SpawnBrickHitEffect(Brick brick, Vector2 point)
+        {
+            var effect = _brickHitEffectsPool.GetPooledObject().GetComponent<ParticleSystem>();
+            effect.transform.position = point;
+            var main = effect.main;
+            main.startColor = brick.Color;
+            effect.gameObject.SetActive(true);
+        }
+        
         /// <summary>
         /// Spawns a brick destroy effect.
         /// </summary>

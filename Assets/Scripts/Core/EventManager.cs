@@ -29,11 +29,8 @@ namespace Core
 
         // Bricks
 
-        public event Action<Brick, Ball, double> OnBrickDamaged = delegate { };
-        public void TriggerBrickDamaged(Brick brick, Ball ball, double damage) => OnBrickDamaged?.Invoke(brick, ball, damage);
-        
-        public event Action<Brick, double> OnBrickDestroyed = delegate { };
-        public void TriggerBrickDestroyed(Brick brick, double health) => OnBrickDestroyed?.Invoke(brick, health);
+        public event Action<Brick, Ball, double, bool> OnBrickDamaged = delegate { };
+        public void TriggerBrickDamaged(Brick brick, Ball ball, double damage, bool destroyed) => OnBrickDamaged?.Invoke(brick, ball, damage, destroyed);
         
         // Experience & Level
 
@@ -42,12 +39,9 @@ namespace Core
         
         // Coins
 
-        public event Action<double> OnCoinsGained = delegate { };
-        public void TriggerCoinsGained(double amount) => OnCoinsGained?.Invoke(amount);
-
-        public event Action<double> OnCoinsUsed = delegate { };
-        public void TriggerCoinsUsed(double amount) => OnCoinsUsed?.Invoke(amount);
-
+        public event Action<double, double> OnCoinsUpdated = delegate { };
+        public void TriggerCoinsUpdated(double total, double change) => OnCoinsUpdated?.Invoke(total, change);
+        
         // Diamonds
         
         public event Action<double> OnDiamondsGained = delegate { };
@@ -64,15 +58,18 @@ namespace Core
         public event Action<Ball> OnBallCollidedWithPlayer = delegate { };
         public void TriggerBallCollidedWithPlayer(Ball ball) => OnBallCollidedWithPlayer?.Invoke(ball);
         
-        public event Action<Ball, Brick> OnBallCollidedWithBrick = delegate { };
-        public void TriggerBallCollidedWithBrick(Ball ball, Brick brick) =>
-            OnBallCollidedWithBrick?.Invoke(ball, brick);
+        public event Action<Ball, Brick, Vector2> OnBallCollidedWithBrick = delegate { };
+        public void TriggerBallCollidedWithBrick(Ball ball, Brick brick, Vector2 point) =>
+            OnBallCollidedWithBrick?.Invoke(ball, brick, point);
         
         public event Action<Ball> OnBallCollidedWithBottomWall = delegate { };
         public void TriggerBallCollidedWithBottomWall(Ball ball) => OnBallCollidedWithBottomWall?.Invoke(ball);
 
         public event Action<Ball> OnBallRequestRespawn = delegate { };
         public void TriggerBallRequestRespawn(Ball ball) => OnBallRequestRespawn?.Invoke(ball);
+
+        public event Action<Ball, EStat> OnBallUpgraded = delegate { };
+        public void TriggerBallUpgraded(Ball ball, EStat stat) => OnBallUpgraded?.Invoke(ball, stat);
         
         // Menus
 

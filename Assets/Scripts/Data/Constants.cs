@@ -8,5 +8,7 @@
         public const string WallBottom = "WallBottom";
 
         public const string SaveGameName = "GameData";
+
+        public const string Maxed = "Maxed";
     }
 }

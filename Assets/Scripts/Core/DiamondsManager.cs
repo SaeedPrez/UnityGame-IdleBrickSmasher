@@ -12,14 +12,14 @@ namespace Core
         private void OnEnable()
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
-            EventManager.I.OnBrickDestroyed += OnBrickDestroyed;
+            EventManager.I.OnBrickDamaged += OnBrickDamaged;
             EventManager.I.OnLeveledUp += OnLeveledUp;
         }
         
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
-            EventManager.I.OnBrickDestroyed -= OnBrickDestroyed;
+            EventManager.I.OnBrickDamaged -= OnBrickDamaged;
             EventManager.I.OnLeveledUp -= OnLeveledUp;
         }
         
@@ -29,7 +29,7 @@ namespace Core
                 UpdateDiamondsValueUi();
         }
         
-        private void OnBrickDestroyed(Brick brick, double maxHealth)
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool destroyed)
         {
             // TODO: Chance to get diamonds?
         }

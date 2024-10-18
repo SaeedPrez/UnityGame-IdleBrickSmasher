@@ -1,9 +1,10 @@
 ﻿namespace Enums
 {
-    public enum EGrowthName
+    public enum EStat
     {
         Experience,
         BrickHealth,
-        Damage,
+        BallSpeed,
+        BallDamage,
     }
 }

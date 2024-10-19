@@ -6,5 +6,9 @@
         BrickHealth,
         BallSpeed,
         BallDamage,
+        BallCriticalChance,
+        BallCriticalDamage,
+        BallActiveHits,
+        BallActiveDamage,
     }
 }

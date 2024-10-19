@@ -160,7 +160,7 @@ namespace Core
             var damage = GameManager.Data.GetBallDamage(ball);
 
             if (ball.IsPlayerBoostActive)
-                damage *= GameManager.Data.GetActivePlayDamageMultiplier(ball);
+                damage *= GameManager.Data.GetBallActiveDamage(ball);
 
             brick.TakeDamage(ball, damage);
             ball.ReduceActivePlayBoostHits();

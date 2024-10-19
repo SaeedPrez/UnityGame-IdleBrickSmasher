@@ -184,7 +184,7 @@ namespace Data
             if (level == -1)
                 level = ball.Data.DamageLevel;
             
-            return _ballDamageBase + (level * level - 1) * _ballDamageGrowthPerLevel;
+            return _ballDamageBase + ((level - 1) * (level - 1)) * _ballDamageGrowthPerLevel;
         }
         
         public bool IsBallDamageMaxLevel(Ball ball)
@@ -217,37 +217,164 @@ namespace Data
         #region Ball Critical Chance
 
         private readonly float _ballCriticalChanceBase = 0f;
-        private readonly float _ballCriticalChanceGrowthPerLevel = 0.1f;
+        private readonly float _ballCriticalChanceGrowthPerLevel = 1f;
+        private readonly int _ballCriticalChanceMaxLevel = 100;
 
+        public double GetBallCriticalChance(Ball ball, int level = -1)
+        {
+            if (level == -1)
+                level = ball.Data.CriticalChanceLevel;
+            
+            return _ballCriticalChanceBase + ((level - 1) * _ballCriticalChanceGrowthPerLevel);
+        }
+        
+        public bool IsBallCriticalChanceMaxLevel(Ball ball)
+        {
+            return ball.Data.CriticalChanceLevel >= _ballCriticalChanceMaxLevel;
+        }
+        
+        public bool CanBallCriticalChanceUpgrade(Ball ball)
+        {
+            if (IsBallCriticalChanceMaxLevel(ball))
+                return false;
+
+            if (CoinsCurrent < 1)
+                return false;
+            
+            return true;
+        }
+        
+        public void UpgradeBallCriticalChance(Ball ball)
+        {
+            if (!CanBallCriticalChanceUpgrade(ball))
+                return;
+            
+            ball.Data.CriticalChanceLevel++;
+            EventManager.I.TriggerBallUpgraded(ball, EStat.BallCriticalChance);
+        }
+        
         #endregion
 
         #region Ball Critical Damage
 
         private readonly float _ballCriticalDamageBase = 1f;
-        private readonly float _ballCriticalDamagGrowthPerLevel = 0.1f;
+        private readonly float _ballCriticalDamageGrowthPerLevel = 0.1f;
+        private readonly int _ballCriticalDamageMaxLevel = 1000;
 
+        public double GetBallCriticalDamage(Ball ball, int level = -1)
+        {
+            if (level == -1)
+                level = ball.Data.CriticalDamageLevel;
+            
+            return _ballCriticalDamageBase + ((level - 1) * _ballCriticalDamageGrowthPerLevel);
+        }
+        
+        public bool IsBallCriticalDamageMaxLevel(Ball ball)
+        {
+            return ball.Data.CriticalDamageLevel >= _ballCriticalDamageMaxLevel;
+        }
+        
+        public bool CanBallCriticalDamageUpgrade(Ball ball)
+        {
+            if (IsBallCriticalDamageMaxLevel(ball))
+                return false;
+
+            if (CoinsCurrent < 1)
+                return false;
+            
+            return true;
+        }
+        
+        public void UpgradeBallCriticalDamage(Ball ball)
+        {
+            if (!CanBallCriticalDamageUpgrade(ball))
+                return;
+            
+            ball.Data.CriticalDamageLevel++;
+            EventManager.I.TriggerBallUpgraded(ball, EStat.BallCriticalDamage);
+        }
+        
         #endregion
         
-        #region Active Play
+        #region Ball Active Hits
 
-        private readonly int _activePlayHitsBase = 1;
-        private readonly int _activePlayHitsGrowthPerLevel = 1;
-        private readonly float _activePlayDamageMultiplierBase = 1.5f;
-        private readonly float _activePlayExperienceMultiplierBase = 1.5f;
+        private readonly int _ballActiveHitsBase = 1;
+        private readonly int _ballActiveHitsGrowthPerLevel = 1;
+        private readonly int _ballActiveHitsMaxLevel = 100;
 
-        public int GetActivePlayHits(Ball ball)
+        public int GetBallActiveHits(Ball ball, int level = -1)
         {
-            return _activePlayHitsBase;
+            if (level == -1)
+                level = ball.Data.ActiveHitsLevel;
+            
+            return _ballActiveHitsBase + _ballActiveHitsGrowthPerLevel * (level - 1);
         }
 
-        public float GetActivePlayDamageMultiplier(Ball ball)
+        public bool IsBallActiveHitsMaxLevel(Ball ball)
         {
-            return _activePlayDamageMultiplierBase;
+            return ball.Data.ActiveHitsLevel >= _ballActiveHitsMaxLevel;
+        }
+
+        public bool CanBallActiveHitsUpgrade(Ball ball)
+        {
+            if (IsBallActiveHitsMaxLevel(ball))
+                return false;
+
+            if (CoinsCurrent < 1)
+                return false;
+            
+            return true;
+        }
+
+        public void UpgradeBallActiveHits(Ball ball)
+        {
+            if (!CanBallActiveHitsUpgrade(ball))
+                return;
+            
+            ball.Data.ActiveHitsLevel++;
+            EventManager.I.TriggerBallUpgraded(ball, EStat.BallActiveHits);
         }
         
-        public float GetActivePlayExpMultiplier(Ball ball)
+        
+        #endregion
+
+        #region Ball Active Damage
+
+        private readonly float _ballActiveDamageBase = 1.5f;
+        private readonly float _ballActiveDamageGrowthPerLevel = 0.1f;
+        private readonly int _ballActiveDamageMaxLevel = 100;
+
+        public double GetBallActiveDamage(Ball ball, int level = -1)
         {
-            return _activePlayExperienceMultiplierBase;
+            if (level == -1)
+                level = ball.Data.ActiveDamageLevel;
+            
+            return _ballActiveDamageBase + ((level - 1) * _ballActiveDamageGrowthPerLevel);
+        }
+        
+        public bool IsBallActiveDamageMaxLevel(Ball ball)
+        {
+            return ball.Data.ActiveDamageLevel >= _ballActiveDamageMaxLevel;
+        }
+        
+        public bool CanBallActiveDamageUpgrade(Ball ball)
+        {
+            if (IsBallActiveDamageMaxLevel(ball))
+                return false;
+
+            if (CoinsCurrent < 1)
+                return false;
+            
+            return true;
+        }
+        
+        public void UpgradeBallActiveDamage(Ball ball)
+        {
+            if (!CanBallActiveDamageUpgrade(ball))
+                return;
+            
+            ball.Data.ActiveDamageLevel++;
+            EventManager.I.TriggerBallUpgraded(ball, EStat.BallActiveDamage);
         }
         
         #endregion

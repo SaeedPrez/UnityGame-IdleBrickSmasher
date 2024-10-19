@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using Core;
 using Data;
+using TMPro;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -9,7 +10,8 @@ using Random = UnityEngine.Random;
 public class Ball : MonoBehaviour
 {
     [SerializeField] private TrailRenderer _trail;
-
+    [SerializeField] private TMP_Text _ballIdUi;
+    
     public bool IsPlayerBoostActive { get; private set; }
     public BallData Data { get; private set; }
         
@@ -53,12 +55,17 @@ public class Ball : MonoBehaviour
             _lastHitAt = Time.time;
         }
     }
-        
+
+    #region Data
+
     public void SetData(BallData data)
     {
         Data = data;
+        _ballIdUi.SetText(Data.Id.ToString());
     }
-        
+
+    #endregion
+       
     #region Velocity
 
     /// <summary>
@@ -100,13 +107,16 @@ public class Ball : MonoBehaviour
     {
         while (true)
         {
-            yield return new WaitForSeconds(5f);
+            yield return new WaitForSeconds(1f);
 
             var expectedVelocity = GameManager.Data.GetBallSpeed(this);
             var currentVelocity = _rigidbody.linearVelocity.magnitude;
 
-            if (_lastHitAt < Time.time - 10f)
+            if (_lastHitAt < Time.time - 20f)
+            {
                 EventManager.I.TriggerBallRequestRespawn(this);
+                _lastHitAt = Time.time;
+            }
             else if (currentVelocity <= expectedVelocity * 0.5f) 
                 EventManager.I.TriggerBallRequestRespawn(this);
             else if (Math.Abs(currentVelocity - expectedVelocity) > 0.01f)
@@ -125,7 +135,7 @@ public class Ball : MonoBehaviour
     {
         IsPlayerBoostActive = true;
         _trail.emitting = true;
-        _activePlayBoostHits = GameManager.Data.GetActivePlayHits(this);
+        _activePlayBoostHits = GameManager.Data.GetBallActiveHits(this);
     }
 
     /// <summary>

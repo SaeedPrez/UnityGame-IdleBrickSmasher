@@ -4,6 +4,7 @@ using Data;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Utilities;
 using VInspector;
@@ -24,10 +25,10 @@ namespace Menus
         [SerializeField] private TMP_Text _speedStatsUi;
         [SerializeField] private TMP_Text _dmgStatsUi;
         [SerializeField] private TMP_Text _dpsStatsUi;
-        [SerializeField] private TMP_Text _critHitStatsUi;
-        [SerializeField] private TMP_Text _critDmgStatsUi;
+        [SerializeField] private TMP_Text _chcStatsUi;
+        [SerializeField] private TMP_Text _chdStatsUi;
         [SerializeField] private TMP_Text _activeHitsStatsUi;
-        [SerializeField] private TMP_Text _otherStatsUi;
+        [SerializeField] private TMP_Text _activeDmgStatsUi;
 
         [Tab("Speed")] 
         [SerializeField] private Button _speedUpgradeButton;
@@ -42,6 +43,34 @@ namespace Menus
         [SerializeField] private TMP_Text _dmgUpgradeCurrentUi;
         [SerializeField] private TMP_Text _dmgUpgradeNextUi;
         [SerializeField] private TMP_Text _dmgUpgradeCostUi;
+
+        [Tab("Critical")] 
+        [Foldout("Critical Hits")]
+        [SerializeField] private Button _chcUpgradeButton;
+        [SerializeField] private TMP_Text _chcUpgradeLevelUi;
+        [SerializeField] private TMP_Text _chcUpgradeCurrentUi;
+        [SerializeField] private TMP_Text _chcUpgradeNextUi;
+        [SerializeField] private TMP_Text _chcUpgradeCostUi;
+        [Foldout("Critical Damage")]
+        [SerializeField] private Button _chdUpgradeButton;
+        [SerializeField] private TMP_Text _chdUpgradeLevelUi;
+        [SerializeField] private TMP_Text _chdUpgradeCurrentUi;
+        [SerializeField] private TMP_Text _chdUpgradeNextUi;
+        [SerializeField] private TMP_Text _chdUpgradeCostUi;
+
+        [Tab("Active")]
+        [Foldout("Active Hits")]
+        [SerializeField] private Button _activeHitsUpgradeButton;
+        [SerializeField] private TMP_Text _activeHitsUpgradeLevelUi;
+        [SerializeField] private TMP_Text _activeHitsUpgradeCurrentUi;
+        [SerializeField] private TMP_Text _activeHitsUpgradeNextUi;
+        [SerializeField] private TMP_Text _activeHitsUpgradeCostUi;
+        [Foldout("Active Damage")]
+        [SerializeField] private Button _activeDmgUpgradeButton;
+        [SerializeField] private TMP_Text _activeDmgUpgradeLevelUi;
+        [SerializeField] private TMP_Text _activeDmgUpgradeCurrentUi;
+        [SerializeField] private TMP_Text _activeDmgUpgradeNextUi;
+        [SerializeField] private TMP_Text _activeDmgUpgradeCostUi;
         
         public Ball Ball { get; private set; }
         public BallData Data { get; private set; }
@@ -63,7 +92,11 @@ namespace Menus
             EventManager.I.OnCoinsUpdated += OnCoinsUpdated;
             _talentsButton.onClick.AddListener(OnTalentButtonClicked);
             _speedUpgradeButton.onClick.AddListener(OnSpeedUpgradeButtonClicked);
-            _dmgUpgradeButton.onClick.AddListener(OnUDamageUpgradeButtonClicked);
+            _dmgUpgradeButton.onClick.AddListener(OnDamageUpgradeButtonClicked);
+            _chcUpgradeButton.onClick.AddListener(OnCriticalChanceUpgradeButtonClicked);
+            _chdUpgradeButton.onClick.AddListener(OnCriticalDamageUpgradeButtonClicked);
+            _activeHitsUpgradeButton.onClick.AddListener(OnCActiveHitsUpgradeButtonClicked);
+            _activeDmgUpgradeButton.onClick.AddListener(OnCActiveDamageUpgradeButtonClicked);
             
             if (!IsUnlocked)
                 _lockedUi.SetActive(true);
@@ -77,7 +110,11 @@ namespace Menus
             EventManager.I.OnCoinsUpdated -= OnCoinsUpdated;
             _talentsButton.onClick.RemoveListener(OnTalentButtonClicked);
             _speedUpgradeButton.onClick.RemoveListener(OnSpeedUpgradeButtonClicked);
-            _dmgUpgradeButton.onClick.RemoveListener(OnUDamageUpgradeButtonClicked);
+            _dmgUpgradeButton.onClick.RemoveListener(OnDamageUpgradeButtonClicked);
+            _chcUpgradeButton.onClick.RemoveListener(OnCriticalChanceUpgradeButtonClicked);
+            _chdUpgradeButton.onClick.RemoveListener(OnCriticalDamageUpgradeButtonClicked);
+            _activeHitsUpgradeButton.onClick.RemoveListener(OnCActiveHitsUpgradeButtonClicked);
+            _activeDmgUpgradeButton.onClick.RemoveListener(OnCActiveDamageUpgradeButtonClicked);
         }
         
         private void OnBottomMenuHidden(MenuBase menu)
@@ -90,6 +127,10 @@ namespace Menus
         {
             UpdateSpeedButtonState();
             UpdateDamageButtonState();
+            UpdateCriticalChanceButtonState();
+            UpdateCriticalDamageButtonState();
+            UpdateActiveHitsButtonState();
+            UpdateActiveDamageButtonState();
         }
 
         private void OnTalentButtonClicked()
@@ -102,11 +143,32 @@ namespace Menus
             UpgradeSpeed();
         }
 
-        private void OnUDamageUpgradeButtonClicked()
+        private void OnDamageUpgradeButtonClicked()
         {
             UpgradeDamage();
         }
 
+        private void OnCriticalChanceUpgradeButtonClicked()
+        {
+            UpgradeCriticalChance();
+        }
+        
+        private void OnCriticalDamageUpgradeButtonClicked()
+        {
+            UpgradeCriticalDamage();
+        }
+
+        private void OnCActiveHitsUpgradeButtonClicked()
+        {
+            UpgradeActiveHits();
+        }
+
+        private void OnCActiveDamageUpgradeButtonClicked()
+        {
+            UpgradeActiveDamage();
+        }
+
+        
         #region Setup
 
         /// <summary>
@@ -205,7 +267,10 @@ namespace Menus
         {
             _speedStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallSpeed(Ball)));
             _dmgStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallDamage(Ball)));
-            _activeHitsStatsUi.SetText(GameManager.Data.GetActivePlayHits(Ball).ToString());
+            _chcStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallCriticalChance(Ball)));
+            _chdStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallCriticalDamage(Ball) * 100));
+            _activeHitsStatsUi.SetText(GameManager.Data.GetBallActiveHits(Ball).ToString());
+            _activeDmgStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball) * 100));
         }
         
         /// <summary>
@@ -215,8 +280,21 @@ namespace Menus
         {
             UpdateSpeedButtonState();
             UpdateSpeedUpgradeUi();
+
             UpdateDamageButtonState();
             UpdateDamageUpgradeUi();
+            
+            UpdateCriticalChanceButtonState();
+            UpdateCriticalChanceUpgradeUi();
+            
+            UpdateCriticalDamageButtonState();
+            UpdateCriticalDamageUpgradeUi();
+            
+            UpdateActiveHitsButtonState();
+            UpdateActiveHitsUpgradeUi();
+            
+            UpdateActiveDamageButtonState();
+            UpdateActiveDamageUpgradeUi();
         }
 
         #endregion
@@ -315,6 +393,202 @@ namespace Menus
 
             _dmgUpgradeNextUi.SetText(next);
             _dmgUpgradeCostUi.SetText(cost);
+        }
+
+        #endregion
+        
+        #region Critical Chance
+        
+        /// <summary>
+        /// Upgrades ball critical chance.
+        /// </summary>
+        private void UpgradeCriticalChance()
+        {
+            if (!GameManager.Data.CanBallCriticalChanceUpgrade(Ball))
+                return;
+            
+            GameManager.Data.UpgradeBallCriticalChance(Ball);
+            UpdateCriticalChanceUpgradeUi();
+            UpdateStatsUi();
+        }
+        
+        /// <summary>
+        /// Updates the critical chance button state.
+        /// </summary>
+        private void UpdateCriticalChanceButtonState()
+        {
+            if (!_isTalentsVisible)
+                return;
+            
+            _chcUpgradeButton.interactable = GameManager.Data.CanBallCriticalChanceUpgrade(Ball);
+        }
+        
+        /// <summary>
+        /// Updates critical chance upgrade Ui.
+        /// </summary>
+        private void UpdateCriticalChanceUpgradeUi()
+        {
+            _chcUpgradeLevelUi.SetText(Data.CriticalChanceLevel.ToString());
+            _chcUpgradeCurrentUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallCriticalChance(Ball)));
+
+            var next = Constants.Maxed;
+            var cost = Constants.Maxed;
+
+            if (!GameManager.Data.IsBallCriticalChanceMaxLevel(Ball))
+            {
+                next = Helper.GetNumberAsString(GameManager.Data.GetBallCriticalChance(Ball, Ball.Data.CriticalChanceLevel + 1));
+                cost = "0.00";
+            }
+
+            _chcUpgradeNextUi.SetText(next);
+            _chcUpgradeCostUi.SetText(cost);
+        }
+
+        #endregion
+        
+        #region Critical Damage
+        
+        /// <summary>
+        /// Upgrades ball critical damage.
+        /// </summary>
+        private void UpgradeCriticalDamage()
+        {
+            if (!GameManager.Data.CanBallCriticalDamageUpgrade(Ball))
+                return;
+            
+            GameManager.Data.UpgradeBallCriticalDamage(Ball);
+            UpdateCriticalDamageUpgradeUi();
+            UpdateStatsUi();
+        }
+        
+        /// <summary>
+        /// Updates the critical damage button state.
+        /// </summary>
+        private void UpdateCriticalDamageButtonState()
+        {
+            if (!_isTalentsVisible)
+                return;
+            
+            _chdUpgradeButton.interactable = GameManager.Data.CanBallCriticalDamageUpgrade(Ball);
+        }
+        
+        /// <summary>
+        /// Updates critical damage upgrade Ui.
+        /// </summary>
+        private void UpdateCriticalDamageUpgradeUi()
+        {
+            _chdUpgradeLevelUi.SetText(Data.CriticalDamageLevel.ToString());
+            _chdUpgradeCurrentUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallCriticalDamage(Ball) * 100));
+
+            var next = Constants.Maxed;
+            var cost = Constants.Maxed;
+
+            if (!GameManager.Data.IsBallCriticalDamageMaxLevel(Ball))
+            {
+                next = Helper.GetNumberAsString(GameManager.Data.GetBallCriticalDamage(Ball, Ball.Data.CriticalDamageLevel + 1) * 100);
+                cost = "0.00";
+            }
+
+            _chdUpgradeNextUi.SetText(next);
+            _chdUpgradeCostUi.SetText(cost);
+        }
+
+        #endregion
+        
+        #region Active Hits
+        
+        /// <summary>
+        /// Upgrades ball active hits.
+        /// </summary>
+        private void UpgradeActiveHits()
+        {
+            if (!GameManager.Data.CanBallActiveHitsUpgrade(Ball))
+                return;
+            
+            GameManager.Data.UpgradeBallActiveHits(Ball);
+            UpdateActiveHitsUpgradeUi();
+            UpdateStatsUi();
+        }
+        
+        /// <summary>
+        /// Updates the active hits button state.
+        /// </summary>
+        private void UpdateActiveHitsButtonState()
+        {
+            if (!_isTalentsVisible)
+                return;
+            
+            _activeHitsUpgradeButton.interactable = GameManager.Data.CanBallActiveHitsUpgrade(Ball);
+        }
+        
+        /// <summary>
+        /// Updates active hits upgrade Ui.
+        /// </summary>
+        private void UpdateActiveHitsUpgradeUi()
+        {
+            _activeHitsUpgradeLevelUi.SetText(Data.ActiveHitsLevel.ToString());
+            _activeHitsUpgradeCurrentUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveHits(Ball)));
+
+            var next = Constants.Maxed;
+            var cost = Constants.Maxed;
+
+            if (!GameManager.Data.IsBallActiveHitsMaxLevel(Ball))
+            {
+                next = Helper.GetNumberAsString(GameManager.Data.GetBallActiveHits(Ball, Ball.Data.ActiveHitsLevel + 1));
+                cost = "0.00";
+            }
+
+            _activeHitsUpgradeNextUi.SetText(next);
+            _activeHitsUpgradeCostUi.SetText(cost);
+        }
+
+        #endregion
+        
+        #region Active Damage
+        
+        /// <summary>
+        /// Upgrades ball active damage.
+        /// </summary>
+        private void UpgradeActiveDamage()
+        {
+            if (!GameManager.Data.CanBallActiveDamageUpgrade(Ball))
+                return;
+            
+            GameManager.Data.UpgradeBallActiveDamage(Ball);
+            UpdateActiveDamageUpgradeUi();
+            UpdateStatsUi();
+        }
+        
+        /// <summary>
+        /// Updates the active damage button state.
+        /// </summary>
+        private void UpdateActiveDamageButtonState()
+        {
+            if (!_isTalentsVisible)
+                return;
+            
+            _activeDmgUpgradeButton.interactable = GameManager.Data.CanBallActiveDamageUpgrade(Ball);
+        }
+        
+        /// <summary>
+        /// Updates active damage upgrade Ui.
+        /// </summary>
+        private void UpdateActiveDamageUpgradeUi()
+        {
+            _activeDmgUpgradeLevelUi.SetText(Data.ActiveDamageLevel.ToString());
+            _activeDmgUpgradeCurrentUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball)));
+
+            var next = Constants.Maxed;
+            var cost = Constants.Maxed;
+
+            if (!GameManager.Data.IsBallActiveDamageMaxLevel(Ball))
+            {
+                next = Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball, Ball.Data.ActiveDamageLevel + 1) * 100);
+                cost = "0.00";
+            }
+
+            _activeDmgUpgradeNextUi.SetText(next);
+            _activeDmgUpgradeCostUi.SetText(cost);
         }
 
         #endregion

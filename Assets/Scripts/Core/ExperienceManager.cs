@@ -70,9 +70,6 @@ namespace Core
         private void AddDamageExperience(Ball ball, double damage)
         {
             var experience = GameManager.Data.GetExperienceForBrickDamage(damage);
-
-            if (ball.IsPlayerBoostActive)
-                experience *= GameManager.Data.GetActivePlayExpMultiplier(ball);
             
             GameManager.Data.ExperienceCurrent += experience;
             UpdateExperienceUi();

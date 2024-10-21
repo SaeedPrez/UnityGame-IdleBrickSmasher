@@ -203,6 +203,7 @@ namespace Core
             var gridPosition = new Vector2Int(gridX, gridY);
             brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
             brick.SetMaxHealth(GameManager.Data.GetBrickMaxHealth());
+            brick.SetSpawnedRowNumber(GameManager.Data.BrickRowLevel);
             _bricks.Add(brick);
             brick.gameObject.SetActive(true);
         }
@@ -266,6 +267,11 @@ namespace Core
             _brickPool.ReleasePooledObject(brick.gameObject);
         }
 
+        /// <summary>
+        /// Spawns a brick hit effect.
+        /// </summary>
+        /// <param name="brick"></param>
+        /// <param name="point"></param>
         private void SpawnBrickHitEffect(Brick brick, Vector2 point)
         {
             var effect = _brickHitEffectsPool.GetPooledObject().GetComponent<ParticleSystem>();

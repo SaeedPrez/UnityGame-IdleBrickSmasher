@@ -4,7 +4,6 @@ using Data;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 using Utilities;
 using VInspector;
@@ -76,7 +75,7 @@ namespace Menus
         public BallData Data { get; private set; }
         public bool IsUnlocked { get; private set; }
 
-        private bool _isTalentsVisible;
+        private bool _isUpgradeWindowVisible;
         private RectTransform _rect;
         private Vector2 _rectStartSize;
 
@@ -89,7 +88,7 @@ namespace Menus
         private void OnEnable()
         {
             EventManager.I.OnBottomMenuHidden += OnBottomMenuHidden;
-            EventManager.I.OnCoinsUpdated += OnCoinsUpdated;
+            EventManager.I.OnUpgradePointsUpdated += OnUpgradePointsUpdated;
             _talentsButton.onClick.AddListener(OnTalentButtonClicked);
             _speedUpgradeButton.onClick.AddListener(OnSpeedUpgradeButtonClicked);
             _dmgUpgradeButton.onClick.AddListener(OnDamageUpgradeButtonClicked);
@@ -101,13 +100,13 @@ namespace Menus
             if (!IsUnlocked)
                 _lockedUi.SetActive(true);
             
-            HideTalentWindow();
+            HideUpgradeWindow();
         }
         
         private void OnDisable()
         {
             EventManager.I.OnBottomMenuHidden -= OnBottomMenuHidden;
-            EventManager.I.OnCoinsUpdated -= OnCoinsUpdated;
+            EventManager.I.OnUpgradePointsUpdated -= OnUpgradePointsUpdated;
             _talentsButton.onClick.RemoveListener(OnTalentButtonClicked);
             _speedUpgradeButton.onClick.RemoveListener(OnSpeedUpgradeButtonClicked);
             _dmgUpgradeButton.onClick.RemoveListener(OnDamageUpgradeButtonClicked);
@@ -120,10 +119,10 @@ namespace Menus
         private void OnBottomMenuHidden(MenuBase menu)
         {
             if (menu is BallsMenu)
-                HideTalentWindow();
+                HideUpgradeWindow();
         }
 
-        private void OnCoinsUpdated(double total, double change)
+        private void OnUpgradePointsUpdated(double total, double change)
         {
             UpdateSpeedButtonState();
             UpdateDamageButtonState();
@@ -135,7 +134,7 @@ namespace Menus
 
         private void OnTalentButtonClicked()
         {
-            StartCoroutine(ToggleTalentWindow());
+            StartCoroutine(ToggleUpgradeWindow());
         }
 
         private void OnSpeedUpgradeButtonClicked()
@@ -195,7 +194,7 @@ namespace Menus
 
         #endregion
 
-        #region Talent Window
+        #region Upgrade Window
 
         /// <summary>
         /// Unlocks ball.
@@ -209,15 +208,15 @@ namespace Menus
         }
 
         /// <summary>
-        /// Toggles the talent window.
+        /// Toggles the Upgrade window.
         /// </summary>
-        private IEnumerator ToggleTalentWindow()
+        private IEnumerator ToggleUpgradeWindow()
         {
-            _isTalentsVisible = !_isTalentsVisible;
+            _isUpgradeWindowVisible = !_isUpgradeWindowVisible;
 
             var sequence = DOTween.Sequence();
             
-            if (_isTalentsVisible)
+            if (_isUpgradeWindowVisible)
             {
                 UpdateAllUpgradesUi();
                 
@@ -239,11 +238,11 @@ namespace Menus
         }
 
         /// <summary>
-        /// Closes the talent window.
+        /// Closes the upgrade window.
         /// </summary>
-        private void HideTalentWindow()
+        private void HideUpgradeWindow()
         {
-            _isTalentsVisible = false;
+            _isUpgradeWindowVisible = false;
             _rect.sizeDelta = _rectStartSize;
             _upgrades.alpha = 0f;
         }
@@ -310,6 +309,7 @@ namespace Menus
                 return;
             
             GameManager.Data.UpgradeBallSpeed(Ball);
+            UpdateSpeedButtonState();
             UpdateSpeedUpgradeUi();
             UpdateStatsUi();
         }
@@ -319,7 +319,7 @@ namespace Menus
         /// </summary>
         private void UpdateSpeedButtonState()
         {
-            if (!_isTalentsVisible)
+            if (!_isUpgradeWindowVisible)
                 return;
             
             _speedUpgradeButton.interactable = GameManager.Data.CanBallSpeedUpgrade(Ball);
@@ -339,7 +339,7 @@ namespace Menus
             if (!GameManager.Data.IsBallSpeedMaxLevel(Ball))
             {
                 next = Helper.GetNumberAsString(GameManager.Data.GetBallSpeed(Ball, Ball.Data.SpeedLevel + 1));
-                cost = "0.00";
+                cost = Helper.GetNumberAsString(GameManager.Data.GetBallSpeedUpgradeCost(Ball));
             }
 
             _speedUpgradeNextUi.SetText(next);
@@ -368,7 +368,7 @@ namespace Menus
         /// </summary>
         private void UpdateDamageButtonState()
         {
-            if (!_isTalentsVisible)
+            if (!_isUpgradeWindowVisible)
                 return;
             
             _dmgUpgradeButton.interactable = GameManager.Data.CanBallDamageUpgrade(Ball);
@@ -417,7 +417,7 @@ namespace Menus
         /// </summary>
         private void UpdateCriticalChanceButtonState()
         {
-            if (!_isTalentsVisible)
+            if (!_isUpgradeWindowVisible)
                 return;
             
             _chcUpgradeButton.interactable = GameManager.Data.CanBallCriticalChanceUpgrade(Ball);
@@ -466,7 +466,7 @@ namespace Menus
         /// </summary>
         private void UpdateCriticalDamageButtonState()
         {
-            if (!_isTalentsVisible)
+            if (!_isUpgradeWindowVisible)
                 return;
             
             _chdUpgradeButton.interactable = GameManager.Data.CanBallCriticalDamageUpgrade(Ball);
@@ -515,7 +515,7 @@ namespace Menus
         /// </summary>
         private void UpdateActiveHitsButtonState()
         {
-            if (!_isTalentsVisible)
+            if (!_isUpgradeWindowVisible)
                 return;
             
             _activeHitsUpgradeButton.interactable = GameManager.Data.CanBallActiveHitsUpgrade(Ball);
@@ -564,7 +564,7 @@ namespace Menus
         /// </summary>
         private void UpdateActiveDamageButtonState()
         {
-            if (!_isTalentsVisible)
+            if (!_isUpgradeWindowVisible)
                 return;
             
             _activeDmgUpgradeButton.interactable = GameManager.Data.CanBallActiveDamageUpgrade(Ball);

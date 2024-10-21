@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 6117216}
   - component: {fileID: 6117215}
   m_Layer: 5
-  m_Name: Coins Icon
+  m_Name: Upgrade Icon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -176,7 +176,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2e727e661dc5c554cb991433e5f0880e, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 2e7a140d1a63e6f4aa673cfea78593ac, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -327,7 +327,7 @@ GameObject:
   - component: {fileID: 83227424}
   - component: {fileID: 83227423}
   m_Layer: 5
-  m_Name: Diamonds Icon
+  m_Name: Talent Icon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -350,7 +350,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
   m_AnchoredPosition: {x: 10, y: 0}
-  m_SizeDelta: {x: 40, y: 45}
+  m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &83227423
 MonoBehaviour:
@@ -372,7 +372,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 3d79b1cecdd4bbd438fbd1c8bf131176, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 2f42ffb3ac5049f47906ec4167e5db88, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -540,7 +540,7 @@ GameObject:
   - component: {fileID: 176641403}
   - component: {fileID: 176641402}
   m_Layer: 5
-  m_Name: Diamonds Value
+  m_Name: Talent Value
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1683,7 +1683,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d3622d9316e4e93a154a6f3a1eeb046, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _diamondsValueUi: {fileID: 176641402}
+  _talentPointsValueUi: {fileID: 176641402}
 --- !u!1 &453741344
 GameObject:
   m_ObjectHideFlags: 0
@@ -2166,7 +2166,7 @@ GameObject:
   m_Component:
   - component: {fileID: 618049795}
   m_Layer: 5
-  m_Name: Coins
+  m_Name: Upgrade Points
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2341,7 +2341,7 @@ GameObject:
   - component: {fileID: 639096321}
   - component: {fileID: 639096322}
   m_Layer: 0
-  m_Name: Coins
+  m_Name: Upgrade Points
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2374,7 +2374,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f70728c1d3746a2836c5cfe59569d2d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _coinsValueUi: {fileID: 1766987756}
+  _upgradePointsValueUi: {fileID: 1766987756}
 --- !u!1 &706482968
 GameObject:
   m_ObjectHideFlags: 0
@@ -29415,7 +29415,7 @@ GameObject:
   - component: {fileID: 1766987757}
   - component: {fileID: 1766987756}
   m_Layer: 5
-  m_Name: Coins Value
+  m_Name: Upgrade Value
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -31021,7 +31021,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7147558607264143877, guid: ed6211e6846d92540ad574a4cb6ad474, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7328737855268593549, guid: ed6211e6846d92540ad574a4cb6ad474, type: 3}
       propertyPath: m_Pivot.x
@@ -31129,7 +31129,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9113733190738012230, guid: ed6211e6846d92540ad574a4cb6ad474, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 0
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 9113733190738012230, guid: ed6211e6846d92540ad574a4cb6ad474, type: 3}
       propertyPath: m_LocalPosition.y

@@ -147,7 +147,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _movementLimitToX: -2.25
   _movementLimitFromX: 2.25
-  _velocityMultiplierX: 10
+  _velocityMultiplierX: 5
   _bgImage: {fileID: 6751472464380582004}
   _borderImage: {fileID: 3809903173375794958}
   _cooldownIndicator: {fileID: 2227386635221529960}

@@ -9,10 +9,12 @@ using Utilities;
 public class Brick : MonoBehaviour
 {
     [SerializeField] private TMP_Text _healthUi;
-    [SerializeField] private SpriteRenderer _image;
+    [SerializeField] private Transform _fillContainer;
+    [SerializeField] private SpriteRenderer _fillImage;
+    [SerializeField] private SpriteRenderer _borderImage;
         
-    public bool IsActive { get; private set; }
     public double MaxHealth { get; private set; }
+    public bool IsActive { get; private set; }
     public Color Color { get; private set; }
     public Vector2Int GridPosition { get; private set; }
     public double SpawnedRowNumber { get; private set; }
@@ -27,7 +29,7 @@ public class Brick : MonoBehaviour
 
     private void OnEnable()
     {
-        Color = _image.color;
+        Color = _fillImage.color;
         IsActive = true;
         _collider.enabled = true;
         UpdateHealthUi();
@@ -70,7 +72,7 @@ public class Brick : MonoBehaviour
     public void SetColor(Color color)
     {
         Color = color;
-        _image.color = Color;
+        _fillImage.color = Color;
     }
         
     /// <summary>
@@ -106,9 +108,9 @@ public class Brick : MonoBehaviour
         }
         else
         {
-            _image.DOKill(true);
-            _image.DOFade(0.25f, 0.075f)
-                .OnComplete(() => _image.DOFade(1f, 0.075f));
+            _fillImage.DOKill(true);
+            _fillImage.DOFade(0.25f, 0.075f)
+                .OnComplete(() => _fillImage.DOFade(1f, 0.075f));
             EventManager.I.TriggerBrickDamaged(this, ball, damage, false);
         }
     }
@@ -118,6 +120,15 @@ public class Brick : MonoBehaviour
     /// </summary>
     private void UpdateHealthUi()
     {
+        if (_currentHealth <= 0 || MaxHealth <= 0)
+        {
+            _fillContainer.localScale = Vector3.one;
+            return;
+        }
+        
+        _fillContainer.DOKill();
+        _fillContainer.DOScaleX((float)(_currentHealth / MaxHealth), 0.1f);
+        
         _healthUi.SetText(Helper.GetNumberAsString(_currentHealth));
     }
 
@@ -132,6 +143,6 @@ public class Brick : MonoBehaviour
         IsActive = false;
         _collider.enabled = false;
         transform.DOKill(true);
-        _image.transform.DOKill(true);
+        _fillImage.transform.DOKill(true);
     }
 }

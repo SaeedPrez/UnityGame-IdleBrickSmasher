@@ -37,18 +37,15 @@ namespace Core
         public event Action<int> OnLeveledUp = delegate { };
         public void TriggerLeveledUp(int level) => OnLeveledUp?.Invoke(level);
         
-        // Coins
+        // Upgrade Points
 
-        public event Action<double, double> OnCoinsUpdated = delegate { };
-        public void TriggerCoinsUpdated(double total, double change) => OnCoinsUpdated?.Invoke(total, change);
+        public event Action<double, double> OnUpgradePointsUpdated = delegate { };
+        public void TriggerUpgradePointsUpdated(double total, double change) => OnUpgradePointsUpdated?.Invoke(total, change);
         
-        // Diamonds
+        // Talents Points
         
-        public event Action<double> OnDiamondsGained = delegate { };
-        public void TriggerDiamondsGained(double amount) => OnDiamondsGained?.Invoke(amount);
-
-        public event Action<double> OnDiamondsUsed = delegate { };
-        public void TriggerDiamondsUsed(double amount) => OnDiamondsUsed?.Invoke(amount);
+        public event Action<double, double> OnTalentPointsUpdated = delegate { };
+        public void TriggerTalentPointsUpdated(double total, double amount) => OnTalentPointsUpdated?.Invoke(total, amount);
         
         // Balls
 
@@ -68,8 +65,8 @@ namespace Core
         public event Action<Ball> OnBallRequestRespawn = delegate { };
         public void TriggerBallRequestRespawn(Ball ball) => OnBallRequestRespawn?.Invoke(ball);
 
-        public event Action<Ball, EStat> OnBallUpgraded = delegate { };
-        public void TriggerBallUpgraded(Ball ball, EStat stat) => OnBallUpgraded?.Invoke(ball, stat);
+        public event Action<Ball, EStat, double> OnBallUpgraded = delegate { };
+        public void TriggerBallUpgraded(Ball ball, EStat stat, double cost) => OnBallUpgraded?.Invoke(ball, stat, cost);
         
         // Menus
 

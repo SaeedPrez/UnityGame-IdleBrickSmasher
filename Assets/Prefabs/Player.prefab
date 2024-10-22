@@ -59,14 +59,14 @@ Transform:
   m_GameObject: {fileID: 1164200170361835330}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.875, y: -4, z: 0}
+  m_LocalPosition: {x: 0, y: -4, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8628035220523938720}
   - {fileID: 4373357860087214526}
   - {fileID: 5305433183544898172}
-  - {fileID: 2227386635221529960}
+  - {fileID: 131600693228184039}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!70 &3423118805846903338
@@ -104,7 +104,7 @@ CapsuleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Size: {x: 1.25, y: 0.25}
+  m_Size: {x: 1.26, y: 0.3}
   m_Direction: 1
 --- !u!50 &796210599457925025
 Rigidbody2D:
@@ -150,7 +150,7 @@ MonoBehaviour:
   _velocityMultiplierX: 5
   _bgImage: {fileID: 6751472464380582004}
   _borderImage: {fileID: 3809903173375794958}
-  _cooldownIndicator: {fileID: 2227386635221529960}
+  _cooldownIndicator: {fileID: 131600693228184039}
   _idleAlpha: 0.3
   _borderHitColor: {r: 0, g: 0.49019608, b: 0.8509804, a: 1}
 --- !u!1 &1736776229167498086
@@ -180,7 +180,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 5129010500373940298}
@@ -229,12 +229,12 @@ SpriteRenderer:
   m_SortingLayerID: 1368899033
   m_SortingLayer: 2
   m_SortingOrder: 1
-  m_Sprite: {fileID: 21300000, guid: 29ef6eb745ef9334da3d1b2f9214d1e2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 4b824c99212ad914bb8a586b80c4403f, type: 3}
   m_Color: {r: 0, g: 0.2941177, b: 0.5, a: 1}
   m_FlipX: 0
   m_FlipY: 0
-  m_DrawMode: 1
-  m_Size: {x: 5, y: 1}
+  m_DrawMode: 0
+  m_Size: {x: 1.28, y: 0.32}
   m_AdaptiveModeThreshold: 0.668
   m_SpriteTileMode: 1
   m_WasSpriteAssigned: 1
@@ -267,7 +267,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 5129010500373940298}
@@ -316,11 +316,11 @@ SpriteRenderer:
   m_SortingLayerID: 1368899033
   m_SortingLayer: 2
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: fef41645d03ff4a4db9cd1e2961fac9c, type: 3}
-  m_Color: {r: 0, g: 0.14705884, b: 0.25, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 3840794f63d08444288f29289fd1e614, type: 3}
+  m_Color: {r: 0, g: 0.083125, b: 0.14, a: 1}
   m_FlipX: 0
   m_FlipY: 0
-  m_DrawMode: 1
+  m_DrawMode: 0
   m_Size: {x: 5, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
@@ -338,7 +338,7 @@ GameObject:
   - component: {fileID: 131600693228184039}
   - component: {fileID: 8688256356321277680}
   m_Layer: 13
-  m_Name: Image
+  m_Name: Idle Indicator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -354,10 +354,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.15, y: 0.0025, z: 0.005}
+  m_LocalScale: {x: 1, y: 0.3, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2227386635221529960}
+  m_Father: {fileID: 5129010500373940298}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &8688256356321277680
 SpriteRenderer:
@@ -403,49 +403,17 @@ SpriteRenderer:
   m_SortingLayerID: 1368899033
   m_SortingLayer: 2
   m_SortingOrder: 1
-  m_Sprite: {fileID: 21300000, guid: 33345165ea7978048ab2fafad5cd895a, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ce16aba4425fa7445a3a488b0cb0b40f, type: 3}
   m_Color: {r: 0, g: 0.2941177, b: 0.5, a: 1}
   m_FlipX: 0
   m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_DrawMode: 1
+  m_Size: {x: 1.45, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!1 &6074948741235747190
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2227386635221529960}
-  m_Layer: 13
-  m_Name: Idle Cooldown
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2227386635221529960
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6074948741235747190}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 131600693228184039}
-  m_Father: {fileID: 5129010500373940298}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6302926563504014016
 GameObject:
   m_ObjectHideFlags: 0

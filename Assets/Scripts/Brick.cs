@@ -12,15 +12,17 @@ public class Brick : MonoBehaviour
     [SerializeField] private Transform _fillContainer;
     [SerializeField] private SpriteRenderer _fillImage;
     [SerializeField] private SpriteRenderer _borderImage;
+    [SerializeField] private Color _damageColor;
         
     public double MaxHealth { get; private set; }
     public bool IsActive { get; private set; }
-    public Color Color { get; private set; }
+    public Color FillColor { get; private set; }
     public Vector2Int GridPosition { get; private set; }
     public double SpawnedRowNumber { get; private set; }
 
     private BoxCollider2D _collider;
     private double _currentHealth;
+    private Color _borderColor;
 
     private void Awake()
     {
@@ -29,7 +31,8 @@ public class Brick : MonoBehaviour
 
     private void OnEnable()
     {
-        Color = _fillImage.color;
+        FillColor = _fillImage.color;
+        _borderColor = _borderImage.color;
         IsActive = true;
         _collider.enabled = true;
         UpdateHealthUi();
@@ -71,8 +74,8 @@ public class Brick : MonoBehaviour
     /// <param name="color"></param>
     public void SetColor(Color color)
     {
-        Color = color;
-        _fillImage.color = Color;
+        FillColor = color;
+        _fillImage.color = FillColor;
     }
         
     /// <summary>
@@ -93,7 +96,8 @@ public class Brick : MonoBehaviour
     /// </summary>
     /// <param name="ball"></param>
     /// <param name="damage"></param>
-    public void TakeDamage(Ball ball, double damage)
+    /// <param name="critical"></param>
+    public void TakeDamage(Ball ball, double damage, bool critical = false)
     {
         if (damage > _currentHealth)
             damage = _currentHealth;
@@ -104,14 +108,16 @@ public class Brick : MonoBehaviour
         if (_currentHealth <= 0.1d)
         {
             Destroyed();
-            EventManager.I.TriggerBrickDamaged(this, ball, damage, true);
+            EventManager.I.TriggerBrickDamaged(this, ball, damage, critical, true);
         }
         else
         {
-            _fillImage.DOKill(true);
-            _fillImage.DOFade(0.25f, 0.075f)
-                .OnComplete(() => _fillImage.DOFade(1f, 0.075f));
-            EventManager.I.TriggerBrickDamaged(this, ball, damage, false);
+            _borderImage.DOKill();
+            _borderImage.color = _damageColor;
+            _borderImage.DOColor(_borderColor, 0.1f)
+                .SetEase(Ease.InOutCirc);
+            
+            EventManager.I.TriggerBrickDamaged(this, ball, damage, critical, false);
         }
     }
     
@@ -144,5 +150,6 @@ public class Brick : MonoBehaviour
         _collider.enabled = false;
         transform.DOKill(true);
         _fillImage.transform.DOKill(true);
+        _borderImage.DOKill(true);
     }
 }

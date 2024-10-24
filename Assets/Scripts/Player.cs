@@ -142,7 +142,6 @@ public class Player : MonoBehaviour
                 
             _borderImage.DOKill();
             _borderImage.DOFade(_idleAlpha / 2f, checkDelay);
-
         }
     }
 }

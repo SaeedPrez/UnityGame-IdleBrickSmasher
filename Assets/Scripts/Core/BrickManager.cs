@@ -66,7 +66,7 @@ namespace Core
             SpawnBrickHitEffect(brick, point);
         }
         
-        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool destroyed)
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool critical, bool destroyed)
         {
             if (!destroyed)
                 return;
@@ -277,7 +277,7 @@ namespace Core
             var effect = _brickHitEffectsPool.GetPooledObject().GetComponent<ParticleSystem>();
             effect.transform.position = point;
             var main = effect.main;
-            main.startColor = brick.Color;
+            main.startColor = brick.FillColor;
             effect.gameObject.SetActive(true);
         }
         
@@ -290,7 +290,7 @@ namespace Core
             var effect = _brickDestroyEffectsPool.GetPooledObject().GetComponent<ParticleSystem>();
             effect.transform.position = brick.transform.position;
             var main = effect.main;
-            main.startColor = brick.Color;
+            main.startColor = brick.FillColor;
             effect.gameObject.SetActive(true);
         }
 

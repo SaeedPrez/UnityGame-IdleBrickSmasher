@@ -166,7 +166,6 @@ namespace Menus
         {
             UpgradeActiveDamage();
         }
-
         
         #region Setup
 
@@ -359,6 +358,7 @@ namespace Menus
                 return;
             
             GameManager.Data.UpgradeBallDamage(Ball);
+            UpdateDamageButtonState();
             UpdateDamageUpgradeUi();
             UpdateStatsUi();
         }
@@ -388,7 +388,7 @@ namespace Menus
             if (!GameManager.Data.IsBallDamageMaxLevel(Ball))
             {
                 next = Helper.GetNumberAsString(GameManager.Data.GetBallDamage(Ball, Ball.Data.DamageLevel + 1));
-                cost = "0.00";
+                cost = Helper.GetNumberAsString(GameManager.Data.GetBallDamageUpgradeCost(Ball));
             }
 
             _dmgUpgradeNextUi.SetText(next);
@@ -408,6 +408,7 @@ namespace Menus
                 return;
             
             GameManager.Data.UpgradeBallCriticalChance(Ball);
+            UpdateCriticalChanceButtonState();
             UpdateCriticalChanceUpgradeUi();
             UpdateStatsUi();
         }
@@ -437,7 +438,7 @@ namespace Menus
             if (!GameManager.Data.IsBallCriticalChanceMaxLevel(Ball))
             {
                 next = Helper.GetNumberAsString(GameManager.Data.GetBallCriticalChance(Ball, Ball.Data.CriticalChanceLevel + 1));
-                cost = "0.00";
+                cost = Helper.GetNumberAsString(GameManager.Data.GetBallCriticalChanceUpgradeCost(Ball));
             }
 
             _chcUpgradeNextUi.SetText(next);
@@ -457,6 +458,7 @@ namespace Menus
                 return;
             
             GameManager.Data.UpgradeBallCriticalDamage(Ball);
+            UpdateCriticalDamageButtonState();
             UpdateCriticalDamageUpgradeUi();
             UpdateStatsUi();
         }
@@ -486,7 +488,7 @@ namespace Menus
             if (!GameManager.Data.IsBallCriticalDamageMaxLevel(Ball))
             {
                 next = Helper.GetNumberAsString(GameManager.Data.GetBallCriticalDamage(Ball, Ball.Data.CriticalDamageLevel + 1) * 100);
-                cost = "0.00";
+                cost = Helper.GetNumberAsString(GameManager.Data.GetBallCriticalDamageUpgradeCost(Ball));
             }
 
             _chdUpgradeNextUi.SetText(next);
@@ -506,6 +508,7 @@ namespace Menus
                 return;
             
             GameManager.Data.UpgradeBallActiveHits(Ball);
+            UpdateActiveHitsButtonState();
             UpdateActiveHitsUpgradeUi();
             UpdateStatsUi();
         }
@@ -527,15 +530,15 @@ namespace Menus
         private void UpdateActiveHitsUpgradeUi()
         {
             _activeHitsUpgradeLevelUi.SetText(Data.ActiveHitsLevel.ToString());
-            _activeHitsUpgradeCurrentUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveHits(Ball)));
+            _activeHitsUpgradeCurrentUi.SetText(GameManager.Data.GetBallActiveHits(Ball).ToString());
 
             var next = Constants.Maxed;
             var cost = Constants.Maxed;
 
             if (!GameManager.Data.IsBallActiveHitsMaxLevel(Ball))
             {
-                next = Helper.GetNumberAsString(GameManager.Data.GetBallActiveHits(Ball, Ball.Data.ActiveHitsLevel + 1));
-                cost = "0.00";
+                next = GameManager.Data.GetBallActiveHits(Ball, Ball.Data.ActiveHitsLevel + 1).ToString();
+                cost = Helper.GetNumberAsString(GameManager.Data.GetBallActiveHitsUpgradeCost(Ball));
             }
 
             _activeHitsUpgradeNextUi.SetText(next);
@@ -555,6 +558,7 @@ namespace Menus
                 return;
             
             GameManager.Data.UpgradeBallActiveDamage(Ball);
+            UpdateActiveDamageButtonState();
             UpdateActiveDamageUpgradeUi();
             UpdateStatsUi();
         }
@@ -576,7 +580,7 @@ namespace Menus
         private void UpdateActiveDamageUpgradeUi()
         {
             _activeDmgUpgradeLevelUi.SetText(Data.ActiveDamageLevel.ToString());
-            _activeDmgUpgradeCurrentUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball)));
+            _activeDmgUpgradeCurrentUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball) * 100));
 
             var next = Constants.Maxed;
             var cost = Constants.Maxed;
@@ -584,7 +588,7 @@ namespace Menus
             if (!GameManager.Data.IsBallActiveDamageMaxLevel(Ball))
             {
                 next = Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball, Ball.Data.ActiveDamageLevel + 1) * 100);
-                cost = "0.00";
+                cost = Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamageUpgradeCost(Ball));
             }
 
             _activeDmgUpgradeNextUi.SetText(next);

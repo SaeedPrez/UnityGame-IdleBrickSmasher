@@ -39,7 +39,7 @@ namespace Core
             }
         }
         
-        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool destroyed)
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool critical, bool destroyed)
         {
             AddDamageExperience(ball, damage);
             

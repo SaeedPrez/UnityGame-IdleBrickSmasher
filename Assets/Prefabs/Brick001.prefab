@@ -218,6 +218,7 @@ MonoBehaviour:
   _fillContainer: {fileID: 4218416483967715685}
   _fillImage: {fileID: 3294592642362269078}
   _borderImage: {fileID: 4136082294705763505}
+  _damageColor: {r: 0, g: 0.49019608, b: 0.8509804, a: 1}
 --- !u!1 &5917992406530116948
 GameObject:
   m_ObjectHideFlags: 0

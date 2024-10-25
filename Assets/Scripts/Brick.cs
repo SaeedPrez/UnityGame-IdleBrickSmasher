@@ -97,7 +97,7 @@ public class Brick : MonoBehaviour
     /// <param name="ball"></param>
     /// <param name="damage"></param>
     /// <param name="critical"></param>
-    public void TakeDamage(Ball ball, double damage, bool critical = false)
+    public void TakeDamage(Ball ball, double damage, bool activeBoost, bool critical = false)
     {
         if (damage > _currentHealth)
             damage = _currentHealth;
@@ -108,7 +108,7 @@ public class Brick : MonoBehaviour
         if (_currentHealth <= 0.1d)
         {
             Destroyed();
-            EventManager.I.TriggerBrickDamaged(this, ball, damage, critical, true);
+            EventManager.I.TriggerBrickDamaged(this, ball, damage, activeBoost, critical, true);
         }
         else
         {
@@ -117,7 +117,7 @@ public class Brick : MonoBehaviour
             _borderImage.DOColor(_borderColor, 0.1f)
                 .SetEase(Ease.InOutCirc);
             
-            EventManager.I.TriggerBrickDamaged(this, ball, damage, critical, false);
+            EventManager.I.TriggerBrickDamaged(this, ball, damage, activeBoost, critical, false);
         }
     }
     

@@ -42,16 +42,19 @@ public class Ball : MonoBehaviour
         if (other.gameObject.CompareTag(Constants.Player))
         {
             EventManager.I.TriggerBallCollidedWithPlayer(this);
+            EnableActivePlayBoost();
             _lastHitAt = Time.time;
         }
         else if (other.gameObject.CompareTag(Constants.WallBottom))
         {
             EventManager.I.TriggerBallCollidedWithBottomWall(this);
+            DisableActivePlayBoost();
         }
         else if (other.gameObject.CompareTag(Constants.Brick))
         {
             var brick = other.gameObject.GetComponent<Brick>();
             EventManager.I.TriggerBallCollidedWithBrick(this, brick, other.contacts[0].point);
+            DamageBrick(brick);
             _lastHitAt = Time.time;
         }
     }
@@ -65,7 +68,7 @@ public class Ball : MonoBehaviour
     }
 
     #endregion
-       
+    
     #region Velocity
 
     /// <summary>
@@ -126,12 +129,32 @@ public class Ball : MonoBehaviour
     
     #endregion
 
+    #region Brick
+
+    /// <summary>
+    /// Damages brick and reduces balls active player boost.
+    /// </summary>
+    /// <param name="brick"></param>
+    private void DamageBrick(Brick brick)
+    {
+        var damage = GameManager.Data.GetBallDamage(this);
+
+        if (IsPlayerBoostActive)
+            damage *= GameManager.Data.GetBallActiveDamage(this);
+
+        brick.TakeDamage(this, damage, IsPlayerBoostActive, false);
+        ReduceActivePlayBoostHits();
+        Data.TotalDamage += damage;
+    }
+
+    #endregion
+    
     #region Active Player Boost
 
     /// <summary>
     /// Activates the active play boost.
     /// </summary>
-    public void EnableActivePlayBoost()
+    private void EnableActivePlayBoost()
     {
         IsPlayerBoostActive = true;
         _trail.emitting = true;
@@ -141,7 +164,7 @@ public class Ball : MonoBehaviour
     /// <summary>
     /// Reduces active play boost hits.
     /// </summary>
-    public void ReduceActivePlayBoostHits()
+    private void ReduceActivePlayBoostHits()
     {
         if (_activePlayBoostHits <= 0)
             return;
@@ -155,7 +178,7 @@ public class Ball : MonoBehaviour
     /// <summary>
     /// Disables the active player boost.
     /// </summary>
-    public void DisableActivePlayBoost()
+    private void DisableActivePlayBoost()
     {
         IsPlayerBoostActive = false;
         _trail.emitting = false;

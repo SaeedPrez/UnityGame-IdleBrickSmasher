@@ -66,7 +66,7 @@ namespace Core
             SpawnBrickHitEffect(brick, point);
         }
         
-        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool critical, bool destroyed)
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool activeBoost, bool critical, bool destroyed)
         {
             if (!destroyed)
                 return;

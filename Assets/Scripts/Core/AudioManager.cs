@@ -17,7 +17,7 @@ namespace Core
             EventManager.I.OnBrickDamaged -= OnBrickDamaged;
         }
         
-        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool critical, bool destroyed)
+        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool activeBoost, bool critical, bool destroyed)
         {
             _sfxPlayer.PlayOneShot(_brickHitClips[0]);
         }

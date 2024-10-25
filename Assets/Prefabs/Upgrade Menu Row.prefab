@@ -1122,11 +1122,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4591602321705938236, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_text
-      value: Active Damage
+      value: Active Boost %
       objectReference: {fileID: 0}
     - target: {fileID: 4591602321705938236, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_fontSize
-      value: 17.15
+      value: 16.4
       objectReference: {fileID: 0}
     - target: {fileID: 6468030174252465493, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_Pivot.x
@@ -1210,7 +1210,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6974495639680481037, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_Name
-      value: Ball Upgrade - Active Damage
+      value: Ball Upgrade - Active Boost
       objectReference: {fileID: 0}
     - target: {fileID: 8325158921430819512, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_SizeDelta.x
@@ -1291,7 +1291,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4591602321705938236, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_text
-      value: Crit Damage
+      value: Crit Damage %
+      objectReference: {fileID: 0}
+    - target: {fileID: 4591602321705938236, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
+      propertyPath: m_fontSize
+      value: 16.95
       objectReference: {fileID: 0}
     - target: {fileID: 6468030174252465493, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_Pivot.x
@@ -1621,7 +1625,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 4591602321705938236, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_text
-      value: Crit Chance
+      value: Crit Chance %
       objectReference: {fileID: 0}
     - target: {fileID: 6468030174252465493, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_Pivot.x
@@ -1862,7 +1866,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6554628926337127085, guid: 267156feacf02344799f25beb6c80704, type: 3}
       propertyPath: m_text
-      value: Crit Hit %
+      value: Crit Chance %
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2729,11 +2733,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3135758726906896897, guid: 267156feacf02344799f25beb6c80704, type: 3}
       propertyPath: m_Name
-      value: Stats - Active Damage
+      value: Stats - Active Boost
       objectReference: {fileID: 0}
     - target: {fileID: 6554628926337127085, guid: 267156feacf02344799f25beb6c80704, type: 3}
       propertyPath: m_text
-      value: Active Dmg %
+      value: Active Boost %
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

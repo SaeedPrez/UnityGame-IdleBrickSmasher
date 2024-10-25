@@ -20,9 +20,6 @@ namespace Core
         private void OnEnable()
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
-            EventManager.I.OnBallCollidedWithPlayer += OnBallCollidedWithPlayer;
-            EventManager.I.OnBallCollidedWithBrick += OnBallCollidedWithBrick;
-            EventManager.I.OnBallCollidedWithBottomWall += OnBallCollidedWithBottomWall;
             EventManager.I.OnLeveledUp += OnLeveledUp;
             EventManager.I.OnBallRequestRespawn += OnBallRequestRespawn;
         }
@@ -30,9 +27,6 @@ namespace Core
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
-            EventManager.I.OnBallCollidedWithPlayer -= OnBallCollidedWithPlayer;
-            EventManager.I.OnBallCollidedWithBrick -= OnBallCollidedWithBrick;
-            EventManager.I.OnBallCollidedWithBottomWall -= OnBallCollidedWithBottomWall;
             EventManager.I.OnLeveledUp -= OnLeveledUp;
             EventManager.I.OnBallRequestRespawn -= OnBallRequestRespawn;
         }
@@ -43,21 +37,6 @@ namespace Core
                 StartCoroutine(CreateBallMenuRows());
         }
         
-        private void OnBallCollidedWithPlayer(Ball ball)
-        {
-            ball.EnableActivePlayBoost();
-        }
-
-        private void OnBallCollidedWithBrick(Ball ball, Brick brick, Vector2 point)
-        {
-            DamageBrick(ball, brick);
-        }
-
-        private void OnBallCollidedWithBottomWall(Ball ball)
-        {
-            ball.DisableActivePlayBoost();
-        }
-
         private void OnLeveledUp(int level)
         {
             var ballMenuRow = _ballMenuRows.FirstOrDefault(bmr => bmr.Ball.Data.UnlockLevel == level);
@@ -144,27 +123,6 @@ namespace Core
 
             if (nextBallMenuRow)
                 nextBallMenuRow.gameObject.SetActive(true);
-        }
-
-        #endregion
-        
-        #region Bricks
-
-        /// <summary>
-        /// Damages brick and reduces balls active player boost.
-        /// </summary>
-        /// <param name="ball"></param>
-        /// <param name="brick"></param>
-        private void DamageBrick(Ball ball, Brick brick)
-        {
-            var damage = GameManager.Data.GetBallDamage(ball);
-
-            if (ball.IsPlayerBoostActive)
-                damage *= GameManager.Data.GetBallActiveDamage(ball);
-
-            brick.TakeDamage(ball, damage);
-            ball.ReduceActivePlayBoostHits();
-            ball.Data.TotalDamage += damage;
         }
 
         #endregion

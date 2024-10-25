@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-namespace Utilities
+namespace Prez.Utilities
 {
     public class AspectRatioController : MonoBehaviour
     {

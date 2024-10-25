@@ -1,13 +1,14 @@
 ﻿using System.Collections;
 using DG.Tweening;
-using Enums;
+using Prez.Data;
+using Prez.Enums;
+using Prez.Utilities;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Utilities;
 using VInspector;
 
-namespace Core
+namespace Prez.Core
 {
     public class ExperienceManager : MonoBehaviour
     {
@@ -39,12 +40,12 @@ namespace Core
             }
         }
         
-        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool activeBoost, bool critical, bool destroyed)
+        private void OnBrickDamaged(DamageData data)
         {
-            AddDamageExperience(ball, damage);
+            AddDamageExperience(data.Ball, data.Damage);
             
-            if (destroyed)
-                AddDestroyExperience(brick.MaxHealth);
+            if (data.BrickDestroyed)
+                AddDestroyExperience(data.Brick.MaxHealth);
         }
 
         private void OnBrickDestroyed(Brick brick, double health)

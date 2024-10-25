@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
-using Enums;
+using Prez.Data;
+using Prez.Enums;
+using Prez.Utilities;
 using UnityEngine;
 using UnityEngine.UI;
-using Utilities;
 using VInspector;
 
-namespace Core
+namespace Prez.Core
 {
     public class BrickManager : MonoBehaviour
     {
@@ -66,12 +67,12 @@ namespace Core
             SpawnBrickHitEffect(brick, point);
         }
         
-        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool activeBoost, bool critical, bool destroyed)
+        private void OnBrickDamaged(DamageData data)
         {
-            if (!destroyed)
+            if (!data.BrickDestroyed)
                 return;
             
-            DestroyBrick(brick);
+            DestroyBrick(data.Brick);
             StartCoroutine(SpawnBricksAtThreshold());
         }
 

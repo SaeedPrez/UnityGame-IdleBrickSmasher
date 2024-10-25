@@ -1,4 +1,4 @@
-﻿namespace Menus
+﻿namespace Prez.Menus
 {
     public class PlayerMenu : MenuBase
     {

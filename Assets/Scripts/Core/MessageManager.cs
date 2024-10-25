@@ -5,7 +5,7 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine;
 
-namespace Core
+namespace Prez.Core
 {
     public class MessageManager : MonoBehaviour
     {

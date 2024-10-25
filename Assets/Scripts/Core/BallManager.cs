@@ -1,11 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Enums;
-using Menus;
+using Prez.Enums;
+using Prez.Menus;
 using UnityEngine;
 
-namespace Core
+namespace Prez.Core
 {
     public class BallManager : MonoBehaviour
     {

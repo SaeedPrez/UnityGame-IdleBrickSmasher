@@ -1,4 +1,4 @@
-﻿namespace Data
+﻿namespace Prez.Data
 {
     public class BallData
     {

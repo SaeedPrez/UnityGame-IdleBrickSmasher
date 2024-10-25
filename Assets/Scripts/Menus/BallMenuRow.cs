@@ -1,14 +1,14 @@
 ﻿using System.Collections;
-using Core;
-using Data;
 using DG.Tweening;
+using Prez.Core;
+using Prez.Data;
+using Prez.Utilities;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Utilities;
 using VInspector;
 
-namespace Menus
+namespace Prez.Menus
 {
     public class BallMenuRow : MonoBehaviour
     {

@@ -1,9 +1,9 @@
-﻿using Enums;
+﻿using Prez.Enums;
+using Prez.Utilities;
 using TMPro;
 using UnityEngine;
-using Utilities;
 
-namespace Core
+namespace Prez.Core
 {
     public class UpgradePointsManager : MonoBehaviour
     {

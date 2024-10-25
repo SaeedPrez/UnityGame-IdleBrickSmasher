@@ -1,4 +1,4 @@
-﻿namespace Enums
+﻿namespace Prez.Enums
 {
     public enum EStat
     {

@@ -1,10 +1,10 @@
 ﻿using System;
-using Data;
-using Enums;
-using Menus;
+using Prez.Data;
+using Prez.Enums;
+using Prez.Menus;
 using UnityEngine;
 
-namespace Core
+namespace Prez.Core
 {
     public class EventManager : MonoBehaviour
     {
@@ -29,8 +29,8 @@ namespace Core
 
         // Bricks
 
-        public event Action<Brick, Ball, double, bool, bool, bool> OnBrickDamaged = delegate { };
-        public void TriggerBrickDamaged(Brick brick, Ball ball, double damage, bool activeBoost, bool critical, bool destroyed) => OnBrickDamaged?.Invoke(brick, ball, damage, activeBoost, critical, destroyed);
+        public event Action<DamageData> OnBrickDamaged = delegate { };
+        public void TriggerBrickDamaged(DamageData data) => OnBrickDamaged?.Invoke(data);
         
         // Experience & Level
 

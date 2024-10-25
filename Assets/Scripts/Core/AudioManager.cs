@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using Prez.Data;
+using UnityEngine;
 
-namespace Core
+namespace Prez.Core
 {
     public class AudioManager : MonoBehaviour
     {
@@ -17,7 +18,7 @@ namespace Core
             EventManager.I.OnBrickDamaged -= OnBrickDamaged;
         }
         
-        private void OnBrickDamaged(Brick brick, Ball ball, double damage, bool activeBoost, bool critical, bool destroyed)
+        private void OnBrickDamaged(DamageData data)
         {
             _sfxPlayer.PlayOneShot(_brickHitClips[0]);
         }

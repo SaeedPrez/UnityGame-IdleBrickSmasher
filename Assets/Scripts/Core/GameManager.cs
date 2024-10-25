@@ -1,10 +1,10 @@
 ﻿using System.Collections;
-using Data;
 using DG.Tweening;
-using Enums;
+using Prez.Data;
+using Prez.Enums;
 using UnityEngine;
 
-namespace Core
+namespace Prez.Core
 {
     public class GameManager : MonoBehaviour
     {

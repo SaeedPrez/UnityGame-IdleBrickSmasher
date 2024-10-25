@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.Pool;
 
-namespace Utilities
+namespace Prez.Utilities
 {
     public class ObjectPool : MonoBehaviour
     {

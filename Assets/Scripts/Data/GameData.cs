@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Core;
-using Enums;
-using Utilities;
+using Prez.Core;
+using Prez.Enums;
+using Prez.Utilities;
 
-namespace Data
+namespace Prez.Data
 {
     public class GameData
     {

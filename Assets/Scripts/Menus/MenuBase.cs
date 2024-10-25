@@ -1,8 +1,8 @@
-﻿using Core;
-using DG.Tweening;
+﻿using DG.Tweening;
+using Prez.Core;
 using UnityEngine;
 
-namespace Menus
+namespace Prez.Menus
 {
     public class MenuBase : MonoBehaviour
     {

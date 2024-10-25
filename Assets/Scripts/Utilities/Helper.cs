@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using Core;
-using Enums;
+using Prez.Core;
+using Prez.Enums;
 
-namespace Utilities
+namespace Prez.Utilities
 {
     public static class Helper
     {

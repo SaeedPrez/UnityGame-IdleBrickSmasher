@@ -1,9 +1,9 @@
 ﻿using System;
-using Data;
-using Enums;
+using Prez.Data;
+using Prez.Enums;
 using UnityEngine;
 
-namespace Core
+namespace Prez.Core
 {
     public class SaveManager : MonoBehaviour
     {

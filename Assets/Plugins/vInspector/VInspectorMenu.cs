@@ -13,32 +13,26 @@ namespace VInspector
 {
     class VInspectorMenu
     {
-        public static bool navigationBarEnabled { get => EditorPrefs.GetBool("vInspector-navigationBarEnabled", false); set => EditorPrefs.SetBool("vInspector-navigationBarEnabled", value); }
-        public static bool copyPasteButtonsEnabled { get => EditorPrefs.GetBool("vInspector-copyPasteButtonsEnabled", false); set => EditorPrefs.SetBool("vInspector-copyPasteButtonsEnabled", value); }
-        public static bool saveInPlaymodeButtonEnabled { get => EditorPrefs.GetBool("vInspector-saveInPlaymodeButtonEnabled", false); set => EditorPrefs.SetBool("vInspector-saveInPlaymodeButtonEnabled", value); }
-        public static bool componentWindowsEnabled { get => EditorPrefs.GetBool("vInspector-componentWindowsEnabled", false); set => EditorPrefs.SetBool("vInspector-componentWindowsEnabled", value); }
-        public static bool componentAnimationsEnabled { get => EditorPrefs.GetBool("vInspector-componentAnimationsEnabled", false); set => EditorPrefs.SetBool("vInspector-componentAnimationsEnabled", value); }
-        public static bool minimalModeEnabled { get => EditorPrefs.GetBool("vInspector-minimalModeEnabled", false); set => EditorPrefs.SetBool("vInspector-minimalModeEnabled", value); }
-        public static bool attributesEnabled { get => EditorPrefs.GetBool("vInspector-attributesEnabled", false); set => EditorPrefs.SetBool("vInspector-attributesEnabled", value); }
-        public static bool resettableVariablesEnabled { get => EditorPrefs.GetBool("vInspector-resettableVariablesEnabled", false); set => EditorPrefs.SetBool("vInspector-resettableVariablesEnabled", value); }
-        public static bool hideScriptFieldEnabled { get => EditorPrefs.GetBool("vInspector-hideScriptFieldEnabled", false); set => EditorPrefs.SetBool("vInspector-hideScriptFieldEnabled", value); }
-        public static bool hideHelpButtonEnabled { get => !helpButtonEnabled; set => helpButtonEnabled = !value; }
-        public static bool hidePresetsButtonEnabled { get => !presetsButtonEnabled; set => presetsButtonEnabled = !value; }
+        public static bool navigationBarEnabled { get => EditorPrefsCached.GetBool("vInspector-navigationBarEnabled", false); set => EditorPrefsCached.SetBool("vInspector-navigationBarEnabled", value); }
+        public static bool copyPasteButtonsEnabled { get => EditorPrefsCached.GetBool("vInspector-copyPasteButtonsEnabled", false); set => EditorPrefsCached.SetBool("vInspector-copyPasteButtonsEnabled", value); }
+        public static bool playmodeSaveButtonEnabled { get => EditorPrefsCached.GetBool("vInspector-saveInPlaymodeButtonEnabled", false); set => EditorPrefsCached.SetBool("vInspector-saveInPlaymodeButtonEnabled", value); }
+        public static bool componentWindowsEnabled { get => EditorPrefsCached.GetBool("vInspector-componentWindowsEnabled", false); set => EditorPrefsCached.SetBool("vInspector-componentWindowsEnabled", value); }
+        public static bool componentAnimationsEnabled { get => EditorPrefsCached.GetBool("vInspector-componentAnimationsEnabled", false); set => EditorPrefsCached.SetBool("vInspector-componentAnimationsEnabled", value); }
+        public static bool minimalModeEnabled { get => EditorPrefsCached.GetBool("vInspector-minimalModeEnabled", false); set => EditorPrefsCached.SetBool("vInspector-minimalModeEnabled", value); }
+        public static bool resettableVariablesEnabled { get => EditorPrefsCached.GetBool("vInspector-resettableVariablesEnabled", false); set => EditorPrefsCached.SetBool("vInspector-resettableVariablesEnabled", value); }
+        public static bool hideScriptFieldEnabled { get => EditorPrefsCached.GetBool("vInspector-hideScriptFieldEnabled", false); set => EditorPrefsCached.SetBool("vInspector-hideScriptFieldEnabled", value); }
+        public static bool hideHelpButtonEnabled { get => EditorPrefsCached.GetBool("vInspector-hideHelpButtonEnabled", false); set => EditorPrefsCached.SetBool("vInspector-hideHelpButtonEnabled", value); }
+        public static bool hidePresetsButtonEnabled { get => EditorPrefsCached.GetBool("vInspector-hidePresetsButtonEnabled", false); set => EditorPrefsCached.SetBool("vInspector-hidePresetsButtonEnabled", value); }
 
-        public static bool toggleActiveEnabled { get => EditorPrefs.GetBool("vInspector-toggleActiveEnabled", true); set => EditorPrefs.SetBool("vInspector-toggleActiveEnabled", value); }
-        public static bool deleteEnabled { get => EditorPrefs.GetBool("vInspector-deleteEnabled", true); set => EditorPrefs.SetBool("vInspector-deleteEnabled", value); }
-        public static bool toggleExpandedEnabled { get => EditorPrefs.GetBool("vInspector-toggleExpandedEnabled", true); set => EditorPrefs.SetBool("vInspector-toggleExpandedEnabled", value); }
-        public static bool collapseEverythingElseEnabled { get => EditorPrefs.GetBool("vInspector-collapseEverythingElseEnabled", true); set => EditorPrefs.SetBool("vInspector-collapseEverythingElseEnabled", value); }
-        public static bool collapseEverythingEnabled { get => EditorPrefs.GetBool("vInspector-collapseEverythingEnabled", true); set => EditorPrefs.SetBool("vInspector-collapseEverythingEnabled", value); }
+        public static bool toggleActiveEnabled { get => EditorPrefsCached.GetBool("vInspector-toggleActiveEnabled", true); set => EditorPrefsCached.SetBool("vInspector-toggleActiveEnabled", value); }
+        public static bool deleteEnabled { get => EditorPrefsCached.GetBool("vInspector-deleteEnabled", true); set => EditorPrefsCached.SetBool("vInspector-deleteEnabled", value); }
+        public static bool toggleExpandedEnabled { get => EditorPrefsCached.GetBool("vInspector-toggleExpandedEnabled", true); set => EditorPrefsCached.SetBool("vInspector-toggleExpandedEnabled", value); }
+        public static bool collapseEverythingElseEnabled { get => EditorPrefsCached.GetBool("vInspector-collapseEverythingElseEnabled", true); set => EditorPrefsCached.SetBool("vInspector-collapseEverythingElseEnabled", value); }
+        public static bool collapseEverythingEnabled { get => EditorPrefsCached.GetBool("vInspector-collapseEverythingEnabled", true); set => EditorPrefsCached.SetBool("vInspector-collapseEverythingEnabled", value); }
 
-        public static bool attributesDisabled { get => IsSymbolDefinedInAsmdef(nameof(VInspector), "VINSPECTOR_ATTRIBUTES_DISABLED"); set => SetSymbolDefinedInAsmdef(nameof(VInspector), "VINSPECTOR_ATTRIBUTES_DISABLED", value); }
-        public static bool pluginDisabled { get => EditorPrefs.GetBool("vInspector-pluginDisabled-" + GetProjectId(), false); set => EditorPrefs.SetBool("vInspector-pluginDisabled-" + GetProjectId(), value); }
+        public static bool attributesDisabled { get => EditorUtils.IsSymbolDefinedInAsmdef(nameof(VInspector), "VINSPECTOR_ATTRIBUTES_DISABLED"); set => EditorUtils.SetSymbolDefinedInAsmdef(nameof(VInspector), "VINSPECTOR_ATTRIBUTES_DISABLED", value); }
+        public static bool pluginDisabled { get => ProjectPrefs.GetBool("vInspector-pluginDisabled", false); set => ProjectPrefs.SetBool("vInspector-pluginDisabled", value); }
 
-
-        public static int componentButtons_defaultButtonsCount { get => EditorPrefs.GetInt("vInspector-componentButtons_defaultButtonsCount", 3); set => EditorPrefs.SetInt("vInspector-componentButtons_defaultButtonsCount", value); }
-        public static bool menuButtonEnabled { get => componentButtons_defaultButtonsCount >= 1; set => componentButtons_defaultButtonsCount = value ? 1 : 0; }
-        public static bool presetsButtonEnabled { get => componentButtons_defaultButtonsCount >= 2; set => componentButtons_defaultButtonsCount = value ? 2 : 1; }
-        public static bool helpButtonEnabled { get => componentButtons_defaultButtonsCount >= 3; set => componentButtons_defaultButtonsCount = value ? 3 : 2; }
 
 
 
@@ -66,8 +60,8 @@ namespace VInspector
         const string navigationBar = dir + "Navigation bar";
         const string copyPasteButtons = dir + "Copy \u2215 Paste components";
         const string saveInPlaymodeButton = dir + "Save in play mode";
-        const string componentWindows = dir + "Component windows";
-        const string componentAnimations = dir + "Component animations";
+        const string componentWindows = dir + "Create component windows with Alt-Drag";
+        const string componentAnimations = dir + "Component expand \u2215 collapse animations";
         const string minimalMode = dir + "Minimal mode";
         const string resettableVariables = dir + "Resettable variables";
         const string hideScriptField = dir + "Hide script field";
@@ -77,7 +71,7 @@ namespace VInspector
         const string toggleActive = dir + "A to toggle component active";
         const string delete = dir + "X to delete component";
         const string toggleExpanded = dir + "E to expand \u2215 collapse component";
-        const string collapseEverythingElse = dir + "Shift-E to expand only one component";
+        const string collapseEverythingElse = dir + "Shift-E to isolate component";
         const string collapseEverything = dir + "Ctrl-Shift-E to expand \u2215 collapse all components";
 
         const string disableAttributes = dir + "Disable attributes";
@@ -95,11 +89,11 @@ namespace VInspector
         [MenuItem(navigationBar, false, 2)] static void dadsadsadasdsadadsas() { navigationBarEnabled = !navigationBarEnabled; RepaintInspectors(); }
         [MenuItem(navigationBar, true, 2)] static bool dadsaddsasadadsdasadsas() { Menu.SetChecked(navigationBar, navigationBarEnabled); return !pluginDisabled; }
 
-        [MenuItem(copyPasteButtons, false, 3)] static void dadsaasddsadaasdsdsadadsas() { copyPasteButtonsEnabled = !copyPasteButtonsEnabled; RepaintInspectors(); }
+        [MenuItem(copyPasteButtons, false, 3)] static void dadsaasddsadaasdsdsadadsas() { copyPasteButtonsEnabled = !copyPasteButtonsEnabled; VInspector.UpdateHeaderButtons(null); RepaintInspectors(); }
         [MenuItem(copyPasteButtons, true, 3)] static bool dadsaddasdsasaasddadsdasadsas() { Menu.SetChecked(copyPasteButtons, copyPasteButtonsEnabled); return !pluginDisabled; }
 
-        [MenuItem(saveInPlaymodeButton, false, 4)] static void dadsadsadaasasdsdsadadsas() { saveInPlaymodeButtonEnabled = !saveInPlaymodeButtonEnabled; RepaintInspectors(); }
-        [MenuItem(saveInPlaymodeButton, true, 4)] static bool dadsaddsasaadsasddadsdasadsas() { Menu.SetChecked(saveInPlaymodeButton, saveInPlaymodeButtonEnabled); return !pluginDisabled; }
+        [MenuItem(saveInPlaymodeButton, false, 4)] static void dadsadsadaasasdsdsadadsas() { playmodeSaveButtonEnabled = !playmodeSaveButtonEnabled; VInspector.UpdateHeaderButtons(null); RepaintInspectors(); }
+        [MenuItem(saveInPlaymodeButton, true, 4)] static bool dadsaddsasaadsasddadsdasadsas() { Menu.SetChecked(saveInPlaymodeButton, playmodeSaveButtonEnabled); return !pluginDisabled; }
 
         [MenuItem(componentWindows, false, 5)] static void dadsadsadaasdsdsadadsas() { componentWindowsEnabled = !componentWindowsEnabled; RepaintInspectors(); }
         [MenuItem(componentWindows, true, 5)] static bool dadsaddsasaasddadsdasadsas() { Menu.SetChecked(componentWindows, componentWindowsEnabled); return !pluginDisabled; }
@@ -116,10 +110,10 @@ namespace VInspector
         [MenuItem(hideScriptField, false, 9)] static void dadsadsdsaadsadsadasdsadadsas() { hideScriptFieldEnabled = !hideScriptFieldEnabled; RepaintInspectors(); }
         [MenuItem(hideScriptField, true, 9)] static bool dadsadasadsdasddsasadadsdasadsas() { Menu.SetChecked(hideScriptField, hideScriptFieldEnabled); return !pluginDisabled; }
 
-        [MenuItem(hideHelpButton, false, 10)] static void dadsadsadsdsaadsadsadasdsadadsas() { hideHelpButtonEnabled = !hideHelpButtonEnabled; RepaintInspectors(); }
+        [MenuItem(hideHelpButton, false, 10)] static void dadsadsadsdsaadsadsadasdsadadsas() { hideHelpButtonEnabled = !hideHelpButtonEnabled; VInspector.UpdateHeaderButtons(null); RepaintInspectors(); }
         [MenuItem(hideHelpButton, true, 10)] static bool dadsaadsdasadsdasddsasadadsdasadsas() { Menu.SetChecked(hideHelpButton, hideHelpButtonEnabled); return !pluginDisabled; }
 
-        [MenuItem(hidePresetsButton, false, 11)] static void dadsadsdsaadssdadsadasdsadadsas() { hidePresetsButtonEnabled = !hidePresetsButtonEnabled; RepaintInspectors(); }
+        [MenuItem(hidePresetsButton, false, 11)] static void dadsadsdsaadssdadsadasdsadadsas() { hidePresetsButtonEnabled = !hidePresetsButtonEnabled; VInspector.UpdateHeaderButtons(null); RepaintInspectors(); }
         [MenuItem(hidePresetsButton, true, 11)] static bool dadsadasadsddsasddsasadadsdasadsas() { Menu.SetChecked(hidePresetsButton, hidePresetsButtonEnabled); return !pluginDisabled; }
 
 
@@ -158,19 +152,7 @@ namespace VInspector
 
 
 
-        // [MenuItem(dir + "Clear state", false, 5555)] static void dassaadsasddc() { VInspectorState.Clear(); VInspector.firstAttrStateCacheLayer.Clear(); RepaintInspectors(); }
-        // [MenuItem(dir + "Clear state", true, 5555)] static bool dassaadsadsasddc() { return !pluginDisabled; }
-
-        // [MenuItem(dir + "Save state", false, 5556)] static void dassaaasddsasddc() { VInspectorState.Save(); }
-        // [MenuItem(dir + "Save state", true, 5556)] static bool dassaadsaasddsasddc() { return !pluginDisabled; }
-
-        // [MenuItem(disableAttributes, false, 5557)] static void dadsadsdasadasdasdsadadsas() { attributesDisabled = !attributesDisabled; }
-        // [MenuItem(disableAttributes, true, 5557)] static bool dadsaddssdaasadsadadsdasadsas() { Menu.SetChecked(disableAttributes, attributesDisabled); return !pluginDisabled; }
-
-
-
-
-        [MenuItem(disablePlugin, false, 100001)] static void dadsadsdsdasadasdasdsadadsas() { pluginDisabled = !pluginDisabled; if (!pluginDisabled) EditorPrefs.SetBool("vInspector-pluginWasReenabled", true); attributesDisabled = pluginDisabled; }
+        [MenuItem(disablePlugin, false, 100001)] static void dadsadsdsdasadasdasdsadadsas() { pluginDisabled = !pluginDisabled; if (!pluginDisabled) EditorPrefsCached.SetBool("vInspector-pluginWasReenabled", true); attributesDisabled = pluginDisabled; }
         [MenuItem(disablePlugin, true, 100001)] static bool dadsaddssdsdaasadsadadsdasadsas() { Menu.SetChecked(disablePlugin, pluginDisabled); return true; }
 
 

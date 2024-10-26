@@ -328,7 +328,7 @@ namespace VInspector
 
 
     [CustomPropertyDrawer(typeof(VariantsAttribute))]
-    public class VariantsAttributeDrawer : PropertyDrawer
+    public class VariantsDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect rect, SerializedProperty prop, GUIContent label)
         {
@@ -347,6 +347,75 @@ namespace VInspector
                 prop.SetBoxedValue(variants[0]);
 
             EditorGUI.EndProperty();
+
+        }
+    }
+
+
+    [CustomPropertyDrawer(typeof(MinMaxSliderAttribute))]
+    public class MinMaxSliderDrawer : PropertyDrawer
+    {
+        public override void OnGUI(Rect rect, SerializedProperty prop, GUIContent label)
+        {
+            var fieldWidth = 52;
+
+            var controlsRect = rect.AddWidthFromRight(-EditorGUIUtility.labelWidth);
+
+            var minFieldRect = controlsRect.SetWidth(fieldWidth).AddWidthFromRight(-2 + EditorGUI.indentLevel * 15);
+            var maxFieldRect = controlsRect.SetWidthFromRight(fieldWidth).AddWidthFromRight(-2 + EditorGUI.indentLevel * 15);
+            var sliderRect = controlsRect.AddWidthFromMid(-fieldWidth * 2 - 4).AddWidthFromRight(-2 + EditorGUI.indentLevel * 15);
+
+
+            var isInt = prop.propertyType == SerializedPropertyType.Vector2Int;
+
+            var min = isInt ? prop.vector2IntValue.x : prop.vector2Value.x;
+            var max = isInt ? prop.vector2IntValue.y : prop.vector2Value.y;
+
+            var minLimit = ((MinMaxSliderAttribute)attribute).min;
+            var maxLimit = ((MinMaxSliderAttribute)attribute).max;
+
+
+
+
+            EditorGUI.PrefixLabel(rect, label);
+
+
+            EditorGUI.BeginProperty(rect, label, prop);
+
+            if (sliderRect.width > 14)
+            {
+                EditorGUI.BeginChangeCheck();
+
+                EditorGUI.MinMaxSlider(sliderRect, ref min, ref max, minLimit, maxLimit);
+
+                if (EditorGUI.EndChangeCheck())
+                {
+                    var abs = (maxLimit - minLimit).Abs();
+
+                    var decimals = abs > 190 ?
+                               0 : abs > 19 ?
+                               1 : abs > 1.9f ?
+                               2 :
+                               3;
+
+                    min = (float)System.Math.Round(min, decimals);
+                    max = (float)System.Math.Round(max, decimals);
+
+                    // same rounding logic as for [Range]
+                }
+
+            }
+
+            min = EditorGUI.DelayedFloatField(minFieldRect, min).Max(minLimit).Min(maxLimit);
+            max = EditorGUI.DelayedFloatField(maxFieldRect, max).Max(min).Max(minLimit).Min(maxLimit);
+
+            if (isInt)
+                prop.vector2IntValue = new Vector2Int(min.RoundToInt(), max.RoundToInt());
+            else
+                prop.vector2Value = new Vector2(min, max);
+
+            EditorGUI.EndProperty();
+
 
         }
     }

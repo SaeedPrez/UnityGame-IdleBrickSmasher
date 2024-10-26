@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 481331f9e0bfe494f98ee0fc8ebfeb84
+guid: 2e946bdceafc44945ad0c659f550d6d5
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
@@ -14,5 +14,5 @@ AssetOrigin:
   productId: 252297
   packageName: vInspector 2
   packageVersion: 2.0.10
-  assetPath: Assets/Plugins/vInspector/VInspectorDrawers.cs
+  assetPath: Assets/Plugins/vInspector/VInspectorClipboard.cs
   uploadId: 701931

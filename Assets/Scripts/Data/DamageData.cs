@@ -12,5 +12,6 @@ namespace Prez.Data
         public bool CriticalHit;
         public bool ActiveHit;
         public bool BrickDestroyed;
+        public double Experience;
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using DG.Tweening;
 using Prez.Data;
 using Prez.Enums;
@@ -43,7 +44,16 @@ namespace Prez.Core
         {
             SetState(EGameState.Loading);
         }
-        
+
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.KeypadPlus))
+                Time.timeScale = 10;
+
+            if (Input.GetKeyDown(KeyCode.KeypadMinus))
+                Time.timeScale = 1;
+        }
+
         /// <summary>
         /// Setups the singleton.
         /// </summary>

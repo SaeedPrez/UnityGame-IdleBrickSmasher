@@ -78,6 +78,7 @@ namespace Prez.Menus
         private bool _isUpgradeWindowVisible;
         private RectTransform _rect;
         private Vector2 _rectStartSize;
+        private Coroutine _dpsUiCoroutine;
 
         private void Awake()
         {
@@ -101,6 +102,7 @@ namespace Prez.Menus
                 _lockedUi.SetActive(true);
             
             HideUpgradeWindow();
+            StartCoroutine(UpdateStatsDpsUi());
         }
         
         private void OnDisable()
@@ -114,6 +116,7 @@ namespace Prez.Menus
             _chdUpgradeButton.onClick.RemoveListener(OnCriticalDamageUpgradeButtonClicked);
             _activeHitsUpgradeButton.onClick.RemoveListener(OnCActiveHitsUpgradeButtonClicked);
             _activeDmgUpgradeButton.onClick.RemoveListener(OnCActiveDamageUpgradeButtonClicked);
+            StopCoroutine(UpdateStatsDpsUi());
         }
         
         private void OnBottomMenuHidden(MenuBase menu)
@@ -269,6 +272,20 @@ namespace Prez.Menus
             _chdStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallCriticalDamage(Ball) * 100));
             _activeHitsStatsUi.SetText(GameManager.Data.GetBallActiveHits(Ball).ToString());
             _activeDmgStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball) * 100));
+            _dpsStatsUi.SetText(Helper.GetNumberAsString(Ball.Dps));
+        }
+
+        /// <summary>
+        /// Updates he stats Dps Ui
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator UpdateStatsDpsUi()
+        {
+            while (true)
+            {
+                _dpsStatsUi.SetText(Helper.GetNumberAsString(Ball.Dps));
+                yield return new WaitForSeconds(3.33f);
+            }
         }
         
         /// <summary>

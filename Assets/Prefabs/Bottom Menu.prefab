@@ -635,7 +635,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 600}
+  m_SizeDelta: {x: 0, y: 700}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1041351352424253121
 MonoBehaviour:
@@ -650,4 +650,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PositionVisible: {x: 0, y: 0}
-  PositionHidden: {x: 0, y: -600}
+  PositionHidden: {x: 0, y: -650}

@@ -680,7 +680,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PositionVisible: {x: 0, y: 0}
-  PositionHidden: {x: 0, y: -600}
+  PositionHidden: {x: 0, y: -700}
 --- !u!1 &176641400
 GameObject:
   m_ObjectHideFlags: 0
@@ -27983,7 +27983,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PositionVisible: {x: 0, y: 0}
-  PositionHidden: {x: 0, y: -600}
+  PositionHidden: {x: 0, y: -700}
 --- !u!1 &958291034
 GameObject:
   m_ObjectHideFlags: 0
@@ -28661,7 +28661,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PositionVisible: {x: 0, y: 0}
-  PositionHidden: {x: 0, y: -600}
+  PositionHidden: {x: 0, y: -700}
 --- !u!1 &1167392052 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7147558607264143877, guid: ed6211e6846d92540ad574a4cb6ad474, type: 3}
@@ -28680,7 +28680,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PositionVisible: {x: 0, y: 0}
-  PositionHidden: {x: 0, y: -600}
+  PositionHidden: {x: 0, y: -700}
 --- !u!1 &1182480810
 GameObject:
   m_ObjectHideFlags: 0
@@ -30733,7 +30733,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:

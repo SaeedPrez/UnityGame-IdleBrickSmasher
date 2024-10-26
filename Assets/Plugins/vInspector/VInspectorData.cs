@@ -19,13 +19,13 @@ using static VInspector.Libs.VGUI;
 
 namespace VInspector
 {
-    public class VInspectorData : ScriptableObject, ISerializationCallbackReceiver
+    public class VInspectorData : ScriptableObject
     {
 
-        public List<Item> items = new();
+        public List<Bookmark> bookmarks = new();
 
         [System.Serializable]
-        public class Item
+        public class Bookmark
         {
             public GlobalID globalId;
 
@@ -43,7 +43,7 @@ namespace VInspector
                     return _obj;
 
                     // updating scene objects here using globalId.GetObject() could cause performance issues on large scenes
-                    // so instead they are batch updated in VInspector.UpdateBookmarkedObjectsForScene()
+                    // so instead they are batch updated in VInspector.LoadBookmarkObjectsForScene()
 
                 }
             }
@@ -81,7 +81,7 @@ namespace VInspector
             public string assetPath => globalId.guid.ToPath();
 
 
-            public Item(Object o)
+            public Bookmark(Object o)
             {
                 globalId = o.GetGlobalID();
 
@@ -99,8 +99,8 @@ namespace VInspector
             }
 
 
-
-            public float width => VInspectorNavbar.expandedItemWidth;
+            // [System.NonSerialized]
+            public float width => VInspectorNavbar.expandedBookmarkWidth;
 
 
 
@@ -126,14 +126,14 @@ namespace VInspector
 
 
 
-            public ItemState state
+            public BookmarkState state
             {
                 get
                 {
-                    if (!VInspectorState.instance.itemStates_byItemId.ContainsKey(id))
-                        VInspectorState.instance.itemStates_byItemId[id] = new ItemState();
+                    if (!VInspectorState.instance.bookmarkStates_byBookmarkId.ContainsKey(id))
+                        VInspectorState.instance.bookmarkStates_byBookmarkId[id] = new BookmarkState();
 
-                    return VInspectorState.instance.itemStates_byItemId[id];
+                    return VInspectorState.instance.bookmarkStates_byBookmarkId[id];
 
                 }
             }
@@ -142,10 +142,6 @@ namespace VInspector
 
         }
 
-
-
-        public void OnAfterDeserialize() => VInspectorNavbar.repaintNeededAfterUndoRedo = true;
-        public void OnBeforeSerialize() { }
 
 
 

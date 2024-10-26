@@ -107,8 +107,8 @@ namespace VInspector
         {
             if (!goEditors_byWindow.TryGetValue(window, out var editor)) return;
 
-            var isActive = VInspectorComponentClipboard.CanComponentsBePastedTo(editor.targets.Cast<GameObject>());
-            var copiedDatas = VInspectorComponentClipboard.instance.copiedComponetDatas;
+            var isActive = VInspectorClipboard.CanComponentsBePastedTo(editor.targets.Cast<GameObject>());
+            var copiedDatas = VInspectorClipboard.instance.copiedComponetDatas;
             var text = copiedDatas.Count > 1 ? $"Paste {copiedDatas.Count} components" : "Paste Component";
 
             void pasteButton_active()
@@ -119,10 +119,10 @@ namespace VInspector
 
                 foreach (var target in editor.targets)
                     foreach (var data in copiedDatas)
-                        VInspectorComponentClipboard.PasteComponentAsNew(data, target as GameObject);
+                        VInspectorClipboard.PasteComponentAsNew(data, target as GameObject);
 
                 if (!curEvent.holdingAlt)
-                    VInspectorComponentClipboard.ClearCopiedDatas();
+                    VInspectorClipboard.ClearCopiedDatas();
 
             }
             void pasteButton_inactive()
@@ -149,7 +149,7 @@ namespace VInspector
 
                 if (!IconButton(buttonRect, "CrossIcon", iconSize, colorNormal, colorHovered, colorPressed)) return;
 
-                VInspectorComponentClipboard.ClearCopiedDatas();
+                VInspectorClipboard.ClearCopiedDatas();
 
             }
             void escHint()
@@ -191,7 +191,7 @@ namespace VInspector
                 if (!window.hasFocus) return;
 
 
-                var hasCopiedComponents = VInspectorComponentClipboard.instance.copiedComponetDatas.Any();
+                var hasCopiedComponents = VInspectorClipboard.instance.copiedComponetDatas.Any();
                 var inspectingGameObjects = window.GetType() == t_InspectorWindow ? window.InvokeMethod<Object[]>("GetInspectedObjects")?.All(r => r is GameObject) == true :
                                             window.GetType() == t_PropertyEditor ? propertyEditorsInspectingGameObjects.Contains(window) : true;
 
@@ -376,7 +376,6 @@ namespace VInspector
             }
             void toggleActive()
             {
-                if (curEvent.isNull) return;    // tocheck 
                 if (curEvent.holdingAnyModifierKey) return;
                 if (!curEvent.isKeyDown || curEvent.keyCode != KeyCode.A) return;
                 if (Tools.viewTool == ViewTool.FPS) return;
@@ -457,7 +456,7 @@ namespace VInspector
                 if (curEvent.keyCode != KeyCode.Escape) return;
 
 
-                VInspectorComponentClipboard.ClearCopiedDatas();
+                VInspectorClipboard.ClearCopiedDatas();
 
 
                 hoveredWindow.Repaint();
@@ -694,7 +693,8 @@ namespace VInspector
                 {
                     if (expandedInspectorHeightUnknown) return;
 
-                    SmoothDamp(ref currentInspectorHeight, targetInspectorHeight, expandAnimation_lerpSpeed, ref currentInspectorHeightDerivative, deltaTime, expandAnimation_speedLimit);
+
+                    MathUtil.SmoothDamp(ref currentInspectorHeight, targetInspectorHeight, expandAnimation_lerpSpeed, ref currentInspectorHeightDerivative, deltaTime, expandAnimation_speedLimit);
 
                 }
                 void modifyInspectorElementStyle()
@@ -796,7 +796,7 @@ namespace VInspector
             {
                 void lerp()
                 {
-                    SmoothDamp(ref currentSpacerHeight, 0, deleteAnimation_lerpSpeed, ref currentSpacerHeightDerivative, deltaTime, deleteAnimation_speedLimit);
+                    MathUtil.SmoothDamp(ref currentSpacerHeight, 0, deleteAnimation_lerpSpeed, ref currentSpacerHeightDerivative, deltaTime, deleteAnimation_speedLimit);
                 }
                 void modifySpacerElement()
                 {
@@ -980,10 +980,7 @@ namespace VInspector
 
             var components = gameObject.GetComponents<Component>().Where(r => r);
 
-            if (!componentHeaders_byComponent__byEditor.ContainsKey(editor))
-                componentHeaders_byComponent__byEditor[editor] = new();
-
-            // if (editor.targets.Length > 1) 
+            // if (editor.targets.Length > 1)
             // components = tracker.activeEditors.Where(r => r.target && r.target is Component && r.targets.Length == editor.targets.Length).Select(r => r.targets.First() as Component).ToArray();
 
             void clearHeadersOnReorder()
@@ -991,7 +988,7 @@ namespace VInspector
                 var curOrderHash = components.Aggregate(17, (hash, element) => hash * 31 + (element?.GetHashCode() ?? 0));
 
                 if (curOrderHash != componentOrderHashes_byEditor.GetValueOrDefault(editor))
-                    componentHeaders_byComponent__byEditor[editor].Clear();
+                    componentHeaders_byComponent.Clear();
 
                 componentOrderHashes_byEditor[editor] = curOrderHash;
 
@@ -999,9 +996,9 @@ namespace VInspector
             void createHeader(Component component)
             {
                 if (!component) return;
-                if (componentHeaders_byComponent__byEditor[editor].ContainsKey(component)) return;
+                if (componentHeaders_byComponent.ContainsKey(component)) return;
 
-                componentHeaders_byComponent__byEditor[editor][component] = new VInspectorComponentHeader(component, editor);
+                componentHeaders_byComponent[component] = new VInspectorComponentHeader(component, editor);
 
             }
 
@@ -1012,13 +1009,177 @@ namespace VInspector
                 createHeader(component);
 
             foreach (var component in components)
-                componentHeaders_byComponent__byEditor[editor][component].Update();
+                componentHeaders_byComponent[component].Update();
 
         }
 
-        static Dictionary<Editor, Dictionary<Component, VInspectorComponentHeader>> componentHeaders_byComponent__byEditor = new();
+        static Dictionary<Component, VInspectorComponentHeader> componentHeaders_byComponent = new();
 
         static Dictionary<Editor, int> componentOrderHashes_byEditor = new();
+
+
+
+
+
+
+        public static void UpdateHeaderButtons(Editor _)
+        {
+
+            var buttons = typeof(EditorGUIUtility).GetMemberValue<IList>("s_EditorHeaderItemsMethods");
+
+            if (buttons == null) return; // will be checked again next gui frame
+
+
+
+            var t_HeaderItemDelegate = typeof(EditorGUIUtility).GetNestedType("HeaderItemDelegate", maxBindingFlags);
+
+            helpButton ??= buttons.Cast<System.Delegate>().FirstOrDefault(r => r.Method.Name == "HelpIconButton");
+            presetsButton ??= buttons.Cast<System.Delegate>().FirstOrDefault(r => r.Method.Name == "DrawPresetButton");
+            copyPasteButton ??= typeof(VInspector).GetMethod(nameof(CopyPasteButton), maxBindingFlags).CreateDelegate(t_HeaderItemDelegate);
+            playmodeSaveButton ??= typeof(VInspector).GetMethod(nameof(PlaymodeSaveButton), maxBindingFlags).CreateDelegate(t_HeaderItemDelegate);
+
+
+
+
+            buttons.Remove(helpButton);
+            buttons.Remove(presetsButton);
+            buttons.Remove(copyPasteButton);
+            buttons.Remove(playmodeSaveButton);
+
+
+            if (VInspectorMenu.playmodeSaveButtonEnabled)
+                buttons.Insert(0, playmodeSaveButton);
+
+            if (VInspectorMenu.copyPasteButtonsEnabled)
+                buttons.Insert(0, copyPasteButton);
+
+            if (!VInspectorMenu.hideHelpButtonEnabled && helpButton != null)
+                buttons.Insert(0, helpButton);
+
+            if (!VInspectorMenu.hidePresetsButtonEnabled && presetsButton != null)
+                buttons.Insert(0, presetsButton);
+
+
+
+
+            Editor.finishedDefaultHeaderGUI -= UpdateHeaderButtons;
+
+        }
+
+        static System.Delegate helpButton;
+        static System.Delegate presetsButton;
+        static System.Delegate copyPasteButton;
+        static System.Delegate playmodeSaveButton;
+
+
+        static bool CopyPasteButton(Rect buttonRect, Object[] targets)
+        {
+            if (targets.First() is not Component component) return false;
+
+
+            var copiedData = VInspectorClipboard.instance.copiedComponetDatas.FirstOrDefault(r => r.sourceComponent == component);
+            var pastableData = VInspectorClipboard.instance.copiedComponetDatas.FirstOrDefault(r => r.sourceComponent.GetType() == component.GetType());
+
+            var isCopied = copiedData != null;
+            var canValuesBePasted = !isCopied && pastableData != null;
+
+            GUI.Label(buttonRect, new GUIContent("", canValuesBePasted ? "Paste values" : isCopied ? "Copied" : "Copy component"));
+
+
+
+            var iconName = canValuesBePasted ? "Paste values" : isCopied ? "Copied" : "Copy";
+            var iconSize = 16;
+            var color = Greyscale(isDarkTheme ? .78f : .49f);
+            var colorHovered = Greyscale(isDarkTheme ? 1f : .2f);
+            var colorPressed = Greyscale(isDarkTheme ? .8f : .6f);
+            var colorDisabled = Greyscale(.52f);
+
+
+
+
+            var disabled = targets.Length > 1;
+
+            if (disabled) { IconButton(buttonRect, iconName, iconSize, colorDisabled, colorDisabled, colorDisabled); return true; }
+
+
+
+            if (!IconButton(buttonRect, iconName, iconSize, color, colorHovered, colorPressed)) return true;
+
+            if (canValuesBePasted)
+                VInspectorClipboard.PasteComponentValues(pastableData, component);
+            else
+                VInspectorClipboard.CopyComponent(component);
+
+            return true;
+
+        }
+
+        static bool PlaymodeSaveButton(Rect buttonRect, Object[] targets)
+        {
+
+            void tryApplyingFailedToSaveDatas()
+            {
+                if (Application.isPlaying) return;
+                if (!VInspectorClipboard.instance.failedToSaveComponentDatas.Any()) return;
+
+                foreach (var data in VInspectorClipboard.instance.failedToSaveComponentDatas.ToList())
+                    foreach (var target in targets)
+                        if (target is Component component_)
+                            if (target.GetGlobalID().UnpackForPrefab() == data.globalId)
+                            {
+                                VInspectorClipboard.ApplyComponentData(data, component_);
+                                VInspectorClipboard.instance.failedToSaveComponentDatas.Remove(data);
+                            }
+
+
+                // applies saved component datas that couldn't be applied on playmode exit
+                // such datas correspond to:
+                // - prefabs (because prefabs produce different (unpacked) globalId in playmode) 
+                // - objects from scenes that weren't loaded before playmode (because datas can only be applied to loaded object)
+                //
+                // this solution applies datas once respective components become visible in inspector
+                // a "proper" solution would involve looping through all objects in a scene once it's opened
+
+            }
+
+            tryApplyingFailedToSaveDatas();
+
+
+
+            if (!Application.isPlaying) return false;
+            if (targets.First() is not Component component) return false;
+
+
+            var savedData = VInspectorClipboard.instance.savedComponentDatas.FirstOrDefault(r => r.sourceComponent == component);
+
+            var isSaved = savedData != null;
+
+            GUI.Label(buttonRect, new GUIContent("", isSaved ? "Saved" : "Save in play mode"));
+
+
+
+            var iconName = isSaved ? "Saved" : "Save";
+            var iconSize = 16;
+            var color = Greyscale(isDarkTheme ? .8f : .46f);
+            var colorHovered = Greyscale(isDarkTheme ? 1f : .2f);
+            var colorPressed = Greyscale(isDarkTheme ? .8f : .6f);
+
+
+
+
+            if (!IconButton(buttonRect, iconName, iconSize, color, colorHovered, colorPressed)) return true;
+
+            if (targets.Length > 1)
+                foreach (var target in targets)
+                    VInspectorClipboard.SaveComponent(target as Component);
+            else
+                VInspectorClipboard.SaveComponent(component);
+
+
+
+            return true;
+
+        }
 
 
 
@@ -1039,39 +1200,37 @@ namespace VInspector
             if (!data) return;
 
 
-            var itemsFromThisScene = data.items.Where(r => r.globalId.guid == scene.path.ToGuid()).ToList();
+            var bookmarksFromThisScene = data.bookmarks.Where(r => r.globalId.guid == scene.path.ToGuid()).ToList();
 
-            var objectsForTheseItems = itemsFromThisScene.Select(r => r.globalId).GetObjects();
+            var objectsForTheseBookmarks = bookmarksFromThisScene.Select(r => !Application.isPlaying ? r.globalId
+                                                                                                     : r.globalId.UnpackForPrefab()).GetObjects();
 
+            for (int i = 0; i < bookmarksFromThisScene.Count; i++)
+                bookmarksFromThisScene[i]._obj = objectsForTheseBookmarks[i];
 
-            for (int i = 0; i < itemsFromThisScene.Count; i++)
-                itemsFromThisScene[i]._obj = objectsForTheseItems[i];
-
-            for (int i = 0; i < itemsFromThisScene.Count; i++)
-                itemsFromThisScene[i]._name = itemsFromThisScene[i]._obj?.name ?? "";
+            for (int i = 0; i < bookmarksFromThisScene.Count; i++)
+                bookmarksFromThisScene[i]._name = bookmarksFromThisScene[i]._obj?.name ?? "";
 
         }
 
-        static void StashBookmarkObjects() // on playmode enter
+        static void StashBookmarkObjects() // on playmode enter before awake
         {
-            stashedBookmarkObjects_byItem.Clear();
+            stashedBookmarkObjects_byBookmark.Clear();
 
-            foreach (var item in data.items)
-                stashedBookmarkObjects_byItem[item] = item._obj;
+            foreach (var bookmark in data.bookmarks)
+                stashedBookmarkObjects_byBookmark[bookmark] = bookmark._obj;
 
         }
         static void UnstashBookmarkObjects() // on playmode exit
         {
-            foreach (var item in data.items)
-                if (stashedBookmarkObjects_byItem.TryGetValue(item, out var stashedObject))
+            foreach (var bookmark in data.bookmarks)
+                if (stashedBookmarkObjects_byBookmark.TryGetValue(bookmark, out var stashedObject))
                     if (stashedObject != null)
-                        item._obj = stashedObject;
+                        bookmark._obj = stashedObject;
 
         }
 
-        static Dictionary<Item, Object> stashedBookmarkObjects_byItem = new();
-
-
+        static Dictionary<Bookmark, Object> stashedBookmarkObjects_byBookmark = new();
 
 
 
@@ -1099,38 +1258,144 @@ namespace VInspector
                 LoadBookmarkObjectsForScene(EditorSceneManager.GetSceneAt(i));
 
         }
-        static void OnPlaymodeStateChanged(PlayModeStateChange state) //
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void OnPlaymodeEnter_beforeAwake()
         {
             if (!data) return;
 
+            StashBookmarkObjects();
+
+        }
+        static void OnPlaymodeExit(PlayModeStateChange state)
+        {
+            if (state != PlayModeStateChange.EnteredEditMode) return;
+            if (!data) return;
 
 
-            if (state == PlayModeStateChange.EnteredPlayMode)
-                StashBookmarkObjects();
-
-            if (state == PlayModeStateChange.EnteredEditMode)
-                UnstashBookmarkObjects();
+            UnstashBookmarkObjects();
 
             // scene objects can get recreated in playmode if the scene was reloaded
-            // in this case their respective items will be updated in OnSceneLoaded_inPlaymode to reference the recreated versions
-            // so we ensure that after playmode items reference the same objects as they did before playmode
+            // in this case their respective bookmarks will be updated in OnSceneLoaded_inPlaymode to reference the recreated versions
+            // so we ensure that after playmode bookmarks reference the same objects as they did before playmode
 
 
 
 
-            if (state == PlayModeStateChange.EnteredEditMode)
-                foreach (var item in data.items)
-                    if (item.globalId.guid == "00000000000000000000000000000000")
-                        if (item._obj is GameObject gameObject)
-                        {
-                            item.globalId = new GlobalID(item.globalId.ToString().Replace("00000000000000000000000000000000", gameObject.scene.path.ToGuid()));
-                            data.Dirty();
-                        }
+            foreach (var bookmark in data.bookmarks)
+                if (bookmark.globalId.guid == "00000000000000000000000000000000")
+                    if (bookmark._obj is GameObject gameObject)
+                    {
+                        bookmark.globalId = new GlobalID(bookmark.globalId.ToString().Replace("00000000000000000000000000000000", gameObject.scene.path.ToGuid()));
+                        data.Dirty();
+                    }
 
             // objects from DontDestroyOnLoad that were bookmarked in playmode have globalIds with blank scene guids
             // we fix this after playmode, when scene guids become available
 
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        public static bool HasVInspectorAttribtues(Type type)
+        {
+            if (typesWithVInspectorAttributes != null) return typesWithVInspectorAttributes.Contains(type);
+
+
+            typesWithVInspectorAttributes = new();
+
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<FoldoutAttribute>().Select(r => r.DeclaringType));
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<TabAttribute>().Select(r => r.DeclaringType));
+
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<VariantsAttribute>().Select(r => r.DeclaringType));
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<IfAttribute>().Select(r => r.DeclaringType));
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<ReadOnlyAttribute>().Select(r => r.DeclaringType));
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<ShowInInspectorAttribute>().Select(r => r.DeclaringType));
+
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<ButtonAttribute>().Select(r => r.DeclaringType));
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetMethodsWithAttribute<ButtonAttribute>().Select(r => r.DeclaringType));
+
+            typesWithVInspectorAttributes.UnionWith(TypeCache.GetMethodsWithAttribute<OnValueChangedAttribute>().Select(r => r.DeclaringType));
+
+            foreach (var r in typesWithVInspectorAttributes.ToHashSet())
+                typesWithVInspectorAttributes.UnionWith(TypeCache.GetTypesDerivedFrom(r));
+
+
+
+            return typesWithVInspectorAttributes.Contains(type);
+
+        }
+
+        static HashSet<Type> typesWithVInspectorAttributes = null;
+
+
+
+        public static bool HasUITKOnlyDrawers(SerializedObject serializedObject)
+        {
+            if (serializedObject.targetObject == null) return false;
+
+
+            var targetType = serializedObject.targetObject.GetType();
+
+            if (uitkUsage_byType.ContainsKey(targetType)) return uitkUsage_byType[targetType];
+
+
+
+
+            var maxSearchDepth = 1;
+
+            var curProperty = serializedObject.GetIterator();
+
+            while (curProperty.NextVisible(enterChildren: curProperty.depth < maxSearchDepth))
+            {
+                var handler = typeof(Editor).Assembly.GetType("UnityEditor.ScriptAttributeUtility").InvokeMethod("GetHandler", curProperty);
+
+                var propertyDrawer = handler.GetPropertyValue<PropertyDrawer>("propertyDrawer");
+
+                if (propertyDrawer == null) continue;
+
+
+                var hasUITKimplementation = propertyDrawer.CreatePropertyGUI(curProperty.Copy()) != null;
+                var hasIMGUIimplementation = propertyDrawer.GetType().GetMethod("OnGUI", new[] { typeof(Rect), typeof(SerializedProperty), typeof(GUIContent) }).DeclaringType == propertyDrawer.GetType();
+
+                if (hasUITKimplementation && !hasIMGUIimplementation)
+                    return uitkUsage_byType[targetType] = true;
+
+            }
+
+
+
+
+            return uitkUsage_byType[targetType] = false;
+
+        }
+
+        static Dictionary<Type, bool> uitkUsage_byType = new();
+
+
+
+        static void OnUndoRedo()
+        {
+            if (!valueChangedCallbacks_byUndoPosition.Any()) return;
+
+            if (valueChangedCallbacks_byUndoPosition.TryGetValue(EditorUtils.GetCurrendUndoGroupIndex(), out var callback))
+                callback.Invoke();
+
+        }
+
+        public static Dictionary<int, System.Action> valueChangedCallbacks_byUndoPosition = new();
 
 
 
@@ -1175,6 +1440,13 @@ namespace VInspector
                 EditorApplication.update -= UpdateComponentAnimations;
                 EditorApplication.update += UpdateComponentAnimations;
 
+                Editor.finishedDefaultHeaderGUI -= UpdateHeaderButtons;
+                Editor.finishedDefaultHeaderGUI += UpdateHeaderButtons;
+
+
+                Undo.undoRedoPerformed -= OnUndoRedo;
+                Undo.undoRedoPerformed += OnUndoRedo;
+
 
 
 
@@ -1185,13 +1457,11 @@ namespace VInspector
                 UnityEditor.SceneManagement.EditorSceneManager.sceneLoaded -= OnSceneLoaded_inPlaymode;
                 UnityEditor.SceneManagement.EditorSceneManager.sceneLoaded += OnSceneLoaded_inPlaymode;
 
-
-
-
-
-
                 var projectWasLoaded = typeof(EditorApplication).GetFieldValue<UnityEngine.Events.UnityAction>("projectWasLoaded");
                 typeof(EditorApplication).SetFieldValue("projectWasLoaded", (projectWasLoaded - OnProjectLoaded) + OnProjectLoaded);
+
+
+
 
 
                 var globalEventHandler = typeof(EditorApplication).GetFieldValue<EditorApplication.CallbackFunction>("globalEventHandler");
@@ -1201,17 +1471,17 @@ namespace VInspector
                 EditorApplication.quitting -= VInspectorState.Save;
                 EditorApplication.quitting += VInspectorState.Save;
 
-                EditorApplication.playModeStateChanged -= OnPlaymodeStateChanged;
-                EditorApplication.playModeStateChanged += OnPlaymodeStateChanged;
+                EditorApplication.playModeStateChanged -= OnPlaymodeExit;
+                EditorApplication.playModeStateChanged += OnPlaymodeExit;
 
-                EditorApplication.playModeStateChanged -= VInspectorComponentClipboard.OnPlaymodeStateChanged;
-                EditorApplication.playModeStateChanged += VInspectorComponentClipboard.OnPlaymodeStateChanged;
+                EditorApplication.playModeStateChanged -= VInspectorClipboard.OnPlaymodeStateChanged;
+                EditorApplication.playModeStateChanged += VInspectorClipboard.OnPlaymodeStateChanged;
 
 
             }
             void loadData()
             {
-                data = AssetDatabase.LoadAssetAtPath<VInspectorData>(EditorPrefs.GetString("vInspector-lastKnownDataPath-" + GetProjectId()));
+                data = AssetDatabase.LoadAssetAtPath<VInspectorData>(ProjectPrefs.GetString("vInspector-lastKnownDataPath"));
 
 
                 if (data) return;
@@ -1221,7 +1491,7 @@ namespace VInspector
 
                 if (!data) return;
 
-                EditorPrefs.SetString("vInspector-lastKnownDataPath-" + GetProjectId(), data.GetPath());
+                ProjectPrefs.SetString("vInspector-lastKnownDataPath", data.GetPath());
 
             }
             void loadDataDelayed()
@@ -1245,11 +1515,47 @@ namespace VInspector
                 EditorPrefs.DeleteKey("vInspector-pluginWasReenabled");
 
             }
+            void migrateHeaderButtonSettings()
+            {
+                if (EditorPrefs.HasKey("vInspector-headerButtonSettingsMigrated")) return;
+
+
+                var defaultButtonCount = EditorPrefs.GetInt("vInspector-componentButtons_defaultButtonsCount", 3);
+
+                VInspectorMenu.hideHelpButtonEnabled = defaultButtonCount <= 2;
+                VInspectorMenu.hidePresetsButtonEnabled = defaultButtonCount <= 1;
+
+
+                EditorPrefs.SetBool("vInspector-headerButtonSettingsMigrated", true);
+
+            }
+            void migrateItemsToBookmarks()
+            {
+                if (!data) return;
+                if (ProjectPrefs.HasKey("vInspector-itemsToBookmarksMigrated")) return;
+
+                ProjectPrefs.SetBool("vInspector-itemsToBookmarksMigrated", true);
+
+
+                var lines = System.IO.File.ReadAllLines(data.GetPath());
+
+                if (lines.Length < 14 || !lines[14].Contains("items:")) return;
+
+                lines[14] = lines[14].Replace("items", "bookmarks");
+
+
+                System.IO.File.WriteAllLines(data.GetPath(), lines);
+
+                AssetDatabase.ImportAsset(data.GetPath());
+
+            }
 
             subscribe();
             loadData();
             loadDataDelayed();
             callOnPluginReenabled();
+            migrateHeaderButtonSettings();
+            migrateItemsToBookmarks();
 
         }
 
@@ -1258,12 +1564,8 @@ namespace VInspector
 
 
 
-
         static IEnumerable<EditorWindow> allInspectors => _allInspectors ??= t_InspectorWindow.GetFieldValue<IList>("m_AllInspectors").Cast<EditorWindow>().Where(r => r.GetType() == t_InspectorWindow);
         static IEnumerable<EditorWindow> _allInspectors;
-
-
-
 
         static Type t_InspectorWindow = typeof(Editor).Assembly.GetType("UnityEditor.InspectorWindow");
         static Type t_PropertyEditor = typeof(Editor).Assembly.GetType("UnityEditor.PropertyEditor");
@@ -1279,7 +1581,7 @@ namespace VInspector
 
 
 
-        const string version = "2.0.7";
+        const string version = "2.0.10";
 
 
     }

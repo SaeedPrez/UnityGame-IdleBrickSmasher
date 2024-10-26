@@ -58,6 +58,17 @@ namespace VInspector
 
 
 
+    public class MinMaxSliderAttribute : PropertyAttribute
+    {
+        public float min;
+        public float max;
+
+        public MinMaxSliderAttribute(float min, float max) { this.min = min; this.max = max; }
+
+    }
+
+
+
     public abstract class IfAttribute : Attribute
     {
         public string variableName;
@@ -116,10 +127,10 @@ namespace VInspector
     [AttributeUsage(AttributeTargets.Method)]
     public class OnValueChangedAttribute : Attribute
     {
-        public string[] variableNames;
+        public string[] variableOrGroupNames;
 
-        public OnValueChangedAttribute(string variableName) => this.variableNames = new[] { variableName };
-        public OnValueChangedAttribute(params string[] variableNames) => this.variableNames = variableNames;
+        public OnValueChangedAttribute(string name) => this.variableOrGroupNames = new[] { name };
+        public OnValueChangedAttribute(params string[] names) => this.variableOrGroupNames = names;
 
     }
 

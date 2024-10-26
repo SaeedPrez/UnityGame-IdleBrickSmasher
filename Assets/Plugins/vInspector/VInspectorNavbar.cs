@@ -53,6 +53,26 @@ namespace VInspector
                 navbarRect.SetHeightFromBottom(1).MoveY(1).Draw(lineColor);
 
             }
+            void hiddenMenu()
+            {
+                if (!curEvent.holdingAlt) return;
+                if (!curEvent.isMouseUp) return;
+                if (curEvent.mouseButton != 1) return;
+                if (!navbarRect.IsHovered()) return;
+
+
+                var menu = new GenericMenu();
+
+                menu.AddDisabledItem(new GUIContent("vInspector hidden menu"));
+
+                menu.AddSeparator("");
+                menu.AddItem(new GUIContent("Select data"), false, () => Selection.activeObject = data);
+                menu.AddItem(new GUIContent("Disable attributes"), VInspectorMenu.attributesDisabled, () => VInspectorMenu.attributesDisabled = !VInspectorMenu.attributesDisabled);
+
+                menu.ShowAsContext();
+
+            }
+
 
             void name()
             {
@@ -84,12 +104,12 @@ namespace VInspector
             {
                 if (!curEvent.isRepaint) return;
                 if (!data) return;
-                if (lastItemX == default) return;
+                if (lastBookmarkX == default) return;
 
                 var backgroundColor = Greyscale(isDarkTheme ? .235f : .8f);
 
-                var curtainRect = navbarRect.AddHeightFromMid(-4).SetXMax(lastItemX).SetWidthFromRight(20);
-                var maskRect = navbarRect.AddHeightFromMid(-4).SetX(lastItemX).SetWidth(123);
+                var curtainRect = navbarRect.AddHeightFromMid(-4).SetXMax(lastBookmarkX).SetWidthFromRight(20);
+                var maskRect = navbarRect.AddHeightFromMid(-4).SetX(lastBookmarkX).SetWidth(123);
 
                 curtainRect.DrawCurtainLeft(backgroundColor);
                 maskRect.Draw(backgroundColor);
@@ -97,9 +117,13 @@ namespace VInspector
 
             }
 
-            void selectPrevButton()
+            void moveBackButton()
             {
                 var buttonRect = navbarRect.SetWidth(30).MoveX(4);
+
+                if (Application.unityVersion.StartsWith("6000"))
+                    buttonRect = buttonRect.MoveY(-.49f);
+
 
                 var iconName = "Chevron Left";
                 var iconSize = 14;
@@ -119,9 +143,13 @@ namespace VInspector
                 VInspectorSelectionHistory.instance.MoveBack();
 
             }
-            void selectNextButton()
+            void moveForwardButton()
             {
                 var buttonRect = navbarRect.SetWidth(30).MoveX(30).MoveX(1).AddWidthFromMid(-6);
+
+                if (Application.unityVersion.StartsWith("6000"))
+                    buttonRect = buttonRect.MoveY(-.49f);
+
 
                 var iconName = "Chevron Right";
                 var iconSize = 14;
@@ -187,17 +215,18 @@ namespace VInspector
 
             shadow();
             background();
+            hiddenMenu();
 
             name();
             nameCurtain();
 
-            selectPrevButton();
-            selectNextButton();
+            moveBackButton();
+            moveForwardButton();
 
             bookmarks();
 
 
-            if (draggingItem || animatingDroppedItem || animatingGaps || animatingTooltip)
+            if (draggingBookmark || animatingDroppedBookmark || animatingGaps || animatingTooltip)
                 window.Repaint();
 
         }
@@ -216,31 +245,31 @@ namespace VInspector
 
         public void BookmarksGUI()
         {
-            void item(Vector2 centerPosition, Item item)
+            void bookmark(Vector2 centerPosition, Bookmark bookmark)
             {
-                if (item == null) return;
+                if (bookmark == null) return;
                 if (curEvent.isLayout) return;
 
 
-                var itemRect = Rect.zero.SetSize(item.width, bookmarksRect.height).SetMidPos(centerPosition);
+                var bookmarkRect = Rect.zero.SetSize(bookmark.width, bookmarksRect.height).SetMidPos(centerPosition);
 
 
                 void shadow()
                 {
-                    if (!draggingItem) return;
-                    if (draggedItem != item) return;
+                    if (!draggingBookmark) return;
+                    if (draggedBookmark != bookmark) return;
 
-                    itemRect.SetSizeFromMid(item.width - 4, expandedItemWidth - 4).DrawBlurred(Greyscale(0, .3f), 15);
+                    bookmarkRect.SetSizeFromMid(bookmark.width - 4, expandedBookmarkWidth - 4).DrawBlurred(Greyscale(0, .3f), 15);
 
                 }
                 void background()
                 {
-                    if (!itemRect.IsHovered()) return;
-                    if (draggingItem && draggedItem != item) return;
+                    if (!bookmarkRect.IsHovered()) return;
+                    if (draggingBookmark && draggedBookmark != bookmark) return;
 
                     var backgroundColor = Greyscale(isDarkTheme ? .35f : .7f);
 
-                    var backgroundRect = itemRect.SetSizeFromMid(itemRect.width - 2, expandedItemWidth - 2);
+                    var backgroundRect = bookmarkRect.SetSizeFromMid(bookmarkRect.width - 2, expandedBookmarkWidth - 2);
 
                     backgroundRect.DrawRounded(backgroundColor, 4);
 
@@ -248,54 +277,54 @@ namespace VInspector
                 }
                 void icon()
                 {
-                    var iconRect = itemRect.SetSizeFromMid(16);
+                    var iconRect = bookmarkRect.SetSizeFromMid(16);
 
                     Texture iconTexture = null;
                     float opacity = 1f;
 
                     void getTexture_material()
                     {
-                        if (item.type != typeof(Material)) return;
+                        if (bookmark.type != typeof(Material)) return;
 
-                        iconTexture = item.isLoadable ? AssetPreview.GetAssetPreview(item.obj) ?? AssetPreview.GetMiniThumbnail(item.obj) : AssetPreview.GetMiniTypeThumbnail(item.type);
+                        iconTexture = bookmark.isLoadable ? AssetPreview.GetAssetPreview(bookmark.obj) ?? AssetPreview.GetMiniThumbnail(bookmark.obj) : AssetPreview.GetMiniTypeThumbnail(bookmark.type);
 
                     }
                     void getTexture_otherAsset()
                     {
-                        if (item.type == typeof(Material)) return;
-                        if (!item.isAsset) return;
+                        if (bookmark.type == typeof(Material)) return;
+                        if (!bookmark.isAsset) return;
 
-                        iconTexture = item.isLoadable ? AssetPreview.GetMiniThumbnail(item.obj) : AssetPreview.GetMiniTypeThumbnail(item.type);
+                        iconTexture = bookmark.isLoadable ? AssetPreview.GetMiniThumbnail(bookmark.obj) : AssetPreview.GetMiniTypeThumbnail(bookmark.type);
 
                     }
                     void getTexture_sceneGameObject()
                     {
-                        if (!item.isSceneGameObject) return;
+                        if (!bookmark.isSceneGameObject) return;
 
                         void getIconNameFromAssetPreview()
                         {
-                            if (!item.isLoadable) return;
+                            if (!bookmark.isLoadable) return;
 
-                            item.sceneGameObjectIconName = AssetPreview.GetMiniThumbnail(item.obj).name;
+                            bookmark.sceneGameObjectIconName = AssetPreview.GetMiniThumbnail(bookmark.obj).name;
 
                         }
                         void getIconNameFromVHierarchy()
                         {
-                            if (!item.isLoadable) return;
-                            if (item.obj is not GameObject gameObject) return;
+                            if (!bookmark.isLoadable) return;
+                            if (bookmark.obj is not GameObject gameObject) return;
                             if (mi_VHierarchy_GetIconName == null) return;
 
                             var iconNameFromVHierarchy = (string)mi_VHierarchy_GetIconName.Invoke(null, new object[] { gameObject });
 
                             if (!iconNameFromVHierarchy.IsNullOrEmpty())
-                                item.sceneGameObjectIconName = iconNameFromVHierarchy;
+                                bookmark.sceneGameObjectIconName = iconNameFromVHierarchy;
 
                         }
 
                         getIconNameFromAssetPreview();
                         getIconNameFromVHierarchy();
 
-                        iconTexture = EditorGUIUtility.IconContent(item.sceneGameObjectIconName.IsNullOrEmpty() ? "GameObject icon" : item.sceneGameObjectIconName).image;
+                        iconTexture = EditorGUIUtility.IconContent(bookmark.sceneGameObjectIconName.IsNullOrEmpty() ? "GameObject icon" : bookmark.sceneGameObjectIconName).image;
 
                     }
                     void set_opacity()
@@ -306,46 +335,26 @@ namespace VInspector
                         var opacityDragged = .75f;
                         var opacityDisabled = .4f;
 
-                        var isDisabled = !item.isLoadable;
+                        var isDisabled = !bookmark.isLoadable;
 
 
                         opacity = opacityNormal;
 
-                        if (draggingItem)
-                            opacity = item == draggedItem ? opacityDragged : opacityNormal;
+                        if (draggingBookmark)
+                            opacity = bookmark == draggedBookmark ? opacityDragged : opacityNormal;
 
-                        else if (item == pressedItem)
+                        else if (bookmark == pressedBookmark)
                             opacity = opacityPressed;
 
-                        else if (itemRect.IsHovered())
+                        else if (bookmarkRect.IsHovered())
                             opacity = opacityHovered;
 
                         if (isDisabled)
                             opacity = opacityDisabled;
 
                     }
-                    void drawTexture_material()
+                    void drawTexture()
                     {
-                        if (item.type != typeof(Material)) return;
-                        if (!iconTexture) return;
-
-
-                        if (!assetPreviewMaterial)
-                            assetPreviewMaterial = new Material(Shader.Find("Hidden/VInspectorAssetPreview"));
-
-
-                        SetGUIColor(Greyscale(1, opacity));
-
-                        assetPreviewMaterial.SetColor("_Color", GUI.color);
-
-                        EditorGUI.DrawPreviewTexture(iconRect, iconTexture, assetPreviewMaterial);
-
-                        ResetGUIColor();
-
-                    }
-                    void drawTexture_other()
-                    {
-                        if (item.type == typeof(Material)) return;
                         if (!iconTexture) return;
 
 
@@ -361,30 +370,29 @@ namespace VInspector
                     getTexture_otherAsset();
                     getTexture_sceneGameObject();
                     set_opacity();
-                    drawTexture_material();
-                    drawTexture_other();
+                    drawTexture();
 
                 }
                 void selectedIndicator()
                 {
-                    if (Selection.activeObject != item.obj) return;
+                    if (Selection.activeObject != bookmark.obj) return;
                     if (Selection.activeObject == null) return;
-                    if (draggingItem && draggedItem == item && centerPosition.y != bookmarksRect.center.y) return;
+                    if (draggingBookmark && draggedBookmark == bookmark && centerPosition.y != bookmarksRect.center.y) return;
 
                     var indicatorColor = Greyscale(isDarkTheme ? .75f : 1f);
 
-                    var rect = itemRect.SetHeightFromBottom(3).MoveY(2).SetWidthFromMid(3);
+                    var rect = bookmarkRect.SetHeightFromBottom(3).MoveY(2).SetWidthFromMid(3);
 
                     rect.DrawRounded(indicatorColor, 1);
 
                 }
                 void tooltip()
                 {
-                    if (item != (draggingItem ? (draggedItem) : (lastHoveredItem))) return;
+                    if (bookmark != (draggingBookmark ? (draggedBookmark) : (lastHoveredBookmark))) return;
                     if (tooltipOpacity == 0) return;
 
                     var fontSize = 11; // ,maybe 12
-                    var tooltipText = item.isDeleted ? "Deleted" : item.name;
+                    var tooltipText = bookmark.isDeleted ? "Deleted" : bookmark.name;
 
                     Rect tooltipRect;
 
@@ -452,35 +460,35 @@ namespace VInspector
                 }
                 void click()
                 {
-                    if (!itemRect.IsHovered()) return;
+                    if (!bookmarkRect.IsHovered()) return;
                     if (!curEvent.isMouseUp) return;
                     if (doubleclickUnhandled) return;
 
                     curEvent.Use();
 
 
-                    if (draggingItem) return;
+                    if (draggingBookmark) return;
                     if ((curEvent.mousePosition - mouseDownPosiion).magnitude > 2) return;
-                    if (!item.isLoadable) return;
+                    if (!bookmark.isLoadable) return;
 
-                    Selection.activeObject = item.obj;
+                    Selection.activeObject = bookmark.obj;
 
-                    lastClickedItem = item;
+                    lastClickedBookmark = bookmark;
 
                     hideTooltip = true;
 
                 }
                 void doubleclick()
                 {
-                    if (!itemRect.IsHovered()) return;
+                    if (!bookmarkRect.IsHovered()) return;
                     if (!curEvent.isMouseUp) return;
                     if (!doubleclickUnhandled) return;
 
                     void frameSceneGO()
                     {
-                        if (!item.isLoadable) return;
-                        if (!item.isSceneGameObject) return;
-                        if (item.obj is not GameObject go) return;
+                        if (!bookmark.isLoadable) return;
+                        if (!bookmark.isSceneGameObject) return;
+                        if (bookmark.obj is not GameObject go) return;
 
 
                         var sv = SceneView.lastActiveSceneView;
@@ -496,21 +504,21 @@ namespace VInspector
                     }
                     void loadSceneAndSelect()
                     {
-                        if (!item.isSceneGameObject) return;
-                        if (item.isLoadable) return;
-                        if (item.isDeleted) return;
+                        if (!bookmark.isSceneGameObject) return;
+                        if (bookmark.isLoadable) return;
+                        if (bookmark.isDeleted) return;
                         if (Application.isPlaying) return;
 
                         EditorSceneManager.SaveOpenScenes();
-                        EditorSceneManager.OpenScene(item.assetPath);
+                        EditorSceneManager.OpenScene(bookmark.assetPath);
 
-                        Selection.activeObject = item.obj;
+                        Selection.activeObject = bookmark.obj;
 
                     }
                     void openPrefab()
                     {
-                        if (!item.isLoadable) return;
-                        if (item.obj is not GameObject gameObject) return;
+                        if (!bookmark.isLoadable) return;
+                        if (bookmark.obj is not GameObject gameObject) return;
                         if (!AssetDatabase.Contains(gameObject)) return;
 
                         AssetDatabase.OpenAsset(gameObject);
@@ -526,7 +534,7 @@ namespace VInspector
                 }
 
 
-                itemRect.MarkInteractive();
+                bookmarkRect.MarkInteractive();
 
                 shadow();
                 background();
@@ -538,48 +546,48 @@ namespace VInspector
 
             }
 
-            void normalItem(int i)
+            void normalBookmark(int i)
             {
-                if (data.items[i] == droppedItem && animatingDroppedItem) return;
+                if (data.bookmarks[i] == droppedBookmark && animatingDroppedBookmark) return;
 
-                var centerX = GetItemCenterX(i);
+                var centerX = GetBookmarkCenterX(i);
                 var centerY = bookmarksRect.height / 2;
 
 
-                var minX = centerX - data.items[i].width / 2;
+                var minX = centerX - data.bookmarks[i].width / 2;
 
                 if (minX < bookmarksRect.x) return;
 
-                lastItemX = minX;
+                lastBookmarkX = minX;
 
 
-                item(new Vector2(centerX, centerY), data.items[i]);
-
-            }
-            void normalItems()
-            {
-                for (int i = 0; i < data.items.Count; i++)
-                    normalItem(i);
+                bookmark(new Vector2(centerX, centerY), data.bookmarks[i]);
 
             }
-            void draggedItem_()
+            void normalBookmarks()
             {
-                if (!draggingItem) return;
+                for (int i = 0; i < data.bookmarks.Count; i++)
+                    normalBookmark(i);
 
-                var centerX = curEvent.mousePosition.x + draggedItemHoldOffset.x;
+            }
+            void draggedBookmark_()
+            {
+                if (!draggingBookmark) return;
+
+                var centerX = curEvent.mousePosition.x + draggedBookmarkHoldOffset.x;
                 var centerY = bookmarksRect.IsHovered() ? bookmarksRect.height / 2 : curEvent.mousePosition.y;
 
-                item(new Vector2(centerX, centerY), draggedItem);
+                bookmark(new Vector2(centerX, centerY), draggedBookmark);
 
             }
-            void droppedItem_()
+            void droppedBookmark_()
             {
-                if (!animatingDroppedItem) return;
+                if (!animatingDroppedBookmark) return;
 
-                var centerX = droppedItemX;
+                var centerX = droppedBookmarkX;
                 var centerY = bookmarksRect.height / 2;
 
-                item(new Vector2(centerX, centerY), droppedItem);
+                bookmark(new Vector2(centerX, centerY), droppedBookmark);
 
             }
 
@@ -588,39 +596,39 @@ namespace VInspector
             BookmarksDragging();
             BookmarksAnimations();
 
-            normalItems();
-            draggedItem_();
-            droppedItem_();
+            normalBookmarks();
+            draggedBookmark_();
+            droppedBookmark_();
 
         }
 
-        float GetItemCenterX(int i, bool includeGaps = true)
+        float GetBookmarkCenterX(int i, bool includeGaps = true)
         {
             return bookmarksRect.xMax
-                 - data.items[i].width / 2
-                 - data.items.Take(i).Sum(r => r.width)
+                 - data.bookmarks[i].width / 2
+                 - data.bookmarks.Take(i).Sum(r => r.width)
                  - (includeGaps ? gaps.Take(i + 1).Sum() : 0);
 
         }
-        int GetItemIndex(float mouseX)
+        int GetBookmarkIndex(float mouseX)
         {
-            var curItemWidthSum = 0f;
+            var curBookmarkWidthSum = 0f;
 
-            for (int i = 0; i < data.items.Count; i++)
+            for (int i = 0; i < data.bookmarks.Count; i++)
             {
-                curItemWidthSum += data.items[i].width;
+                curBookmarkWidthSum += data.bookmarks[i].width;
 
-                if (bookmarksRect.xMax - curItemWidthSum < mouseX + .5f)
+                if (bookmarksRect.xMax - curBookmarkWidthSum < mouseX + .5f)
                     return i;
             }
 
-            return data.items.Count;
+            return data.bookmarks.Count;
 
         }
 
-        public static float expandedItemWidth = 24;
+        public static float expandedBookmarkWidth = 24;
 
-        public float lastItemX;
+        public float lastBookmarkX;
 
         public static bool repaintNeededAfterUndoRedo;
 
@@ -641,10 +649,10 @@ namespace VInspector
 
                 mouseDownPosiion = curEvent.mousePosition;
 
-                var pressedItemIndex = GetItemIndex(mouseDownPosiion.x);
+                var pressedBookmarkIndex = GetBookmarkIndex(mouseDownPosiion.x);
 
-                if (pressedItemIndex.IsInRangeOf(data.items))
-                    pressedItem = data.items[pressedItemIndex];
+                if (pressedBookmarkIndex.IsInRangeOf(data.bookmarks))
+                    pressedBookmark = data.bookmarks[pressedBookmarkIndex];
 
                 doubleclickUnhandled = curEvent.clickCount == 2;
 
@@ -656,17 +664,17 @@ namespace VInspector
                 if (!curEvent.isMouseUp) return;
 
                 mousePressed = false;
-                pressedItem = null;
+                pressedBookmark = null;
 
             }
             void hover()
             {
-                var hoveredItemIndex = GetItemIndex(curEvent.mousePosition.x);
+                var hoveredBookmarkIndex = GetBookmarkIndex(curEvent.mousePosition.x);
 
-                mouseHoversItem = bookmarksRect.IsHovered() && hoveredItemIndex.IsInRangeOf(data.items);
+                mouseHoversBookmark = bookmarksRect.IsHovered() && hoveredBookmarkIndex.IsInRangeOf(data.bookmarks);
 
-                if (mouseHoversItem)
-                    lastHoveredItem = data.items[hoveredItemIndex];
+                if (mouseHoversBookmark)
+                    lastHoveredBookmark = data.bookmarks[hoveredBookmarkIndex];
 
 
             }
@@ -677,14 +685,14 @@ namespace VInspector
 
         }
 
-        bool mouseHoversItem;
+        bool mouseHoversBookmark;
         bool mousePressed;
         bool doubleclickUnhandled;
 
         Vector2 mouseDownPosiion;
 
-        Item pressedItem;
-        Item lastHoveredItem;
+        Bookmark pressedBookmark;
+        Bookmark lastHoveredBookmark;
 
 
 
@@ -695,7 +703,7 @@ namespace VInspector
         {
             void initFromOutside()
             {
-                if (draggingItem) return;
+                if (draggingBookmark) return;
                 if (!bookmarksRect.IsHovered()) return;
                 if (!curEvent.isDragUpdate) return;
                 if (DragAndDrop.objectReferences.FirstOrDefault() is not Object draggedObject) return;
@@ -704,48 +712,48 @@ namespace VInspector
                 if (draggedObject is Component) return;
                 if (draggedObject is GameObject go && StageUtility.GetCurrentStage() is PrefabStage && !AssetDatabase.Contains(go)) return;
 
-                animatingDroppedItem = false;
+                animatingDroppedBookmark = false;
 
-                draggingItem = true;
-                draggingItemFromInside = false;
+                draggingBookmark = true;
+                draggingBookmarkFromInside = false;
 
-                draggedItem = new Item(draggedObject);
-                draggedItemHoldOffset = Vector2.zero;
+                draggedBookmark = new Bookmark(draggedObject);
+                draggedBookmarkHoldOffset = Vector2.zero;
 
             }
             void initFromInside()
             {
-                if (draggingItem) return;
+                if (draggingBookmark) return;
                 if (!mousePressed) return;
                 if ((curEvent.mousePosition - mouseDownPosiion).magnitude <= 2) return;
-                if (pressedItem == null) return;
+                if (pressedBookmark == null) return;
 
-                var i = GetItemIndex(mouseDownPosiion.x);
+                var i = GetBookmarkIndex(mouseDownPosiion.x);
 
-                if (i >= data.items.Count) return;
+                if (i >= data.bookmarks.Count) return;
                 if (i < 0) return;
 
 
-                animatingDroppedItem = false;
+                animatingDroppedBookmark = false;
 
-                draggingItem = true;
-                draggingItemFromInside = true;
+                draggingBookmark = true;
+                draggingBookmarkFromInside = true;
 
-                draggedItem = data.items[i];
-                draggedItemHoldOffset = new Vector2(GetItemCenterX(i) - mouseDownPosiion.x, bookmarksRect.center.y - mouseDownPosiion.y);
+                draggedBookmark = data.bookmarks[i];
+                draggedBookmarkHoldOffset = new Vector2(GetBookmarkCenterX(i) - mouseDownPosiion.x, bookmarksRect.center.y - mouseDownPosiion.y);
 
-                gaps[i] = draggedItem.width;
+                gaps[i] = draggedBookmark.width;
 
 
                 data.RecordUndo();
 
-                data.items.Remove(draggedItem);
+                data.bookmarks.Remove(draggedBookmark);
 
             }
 
             void acceptFromOutside()
             {
-                if (!draggingItem) return;
+                if (!draggingBookmark) return;
                 if (!curEvent.isDragPerform) return;
                 if (!bookmarksRect.IsHovered()) return;
 
@@ -762,7 +770,7 @@ namespace VInspector
             }
             void acceptFromInside()
             {
-                if (!draggingItem) return;
+                if (!draggingBookmark) return;
                 if (!curEvent.isMouseUp) return;
                 if (!bookmarksRect.IsHovered()) return;
 
@@ -779,54 +787,58 @@ namespace VInspector
             }
             void accept()
             {
-                draggingItem = false;
-                draggingItemFromInside = false;
+                draggingBookmark = false;
+                draggingBookmarkFromInside = false;
                 mousePressed = false;
 
-                data.items.AddAt(draggedItem, insertDraggedItemAtIndex);
+                data.bookmarks.AddAt(draggedBookmark, insertDraggedBookmarkAtIndex);
 
-                gaps[insertDraggedItemAtIndex] -= draggedItem.width;
-                gaps.AddAt(0, insertDraggedItemAtIndex);
+                gaps[insertDraggedBookmarkAtIndex] -= draggedBookmark.width;
+                gaps.AddAt(0, insertDraggedBookmarkAtIndex);
 
-                droppedItem = draggedItem;
+                droppedBookmark = draggedBookmark;
 
-                droppedItemX = curEvent.mousePosition.x + draggedItemHoldOffset.x;
-                droppedItemXDerivative = 0;
-                animatingDroppedItem = true;
+                droppedBookmarkX = curEvent.mousePosition.x + draggedBookmarkHoldOffset.x;
+                droppedBookmarkXDerivative = 0;
+                animatingDroppedBookmark = true;
 
-                draggedItem = null;
+                draggedBookmark = null;
 
                 EditorGUIUtility.hotControl = 0;
+
+                repaintNeededAfterUndoRedo = true;
 
             }
 
             void cancelFromOutside()
             {
-                if (!draggingItem) return;
-                if (draggingItemFromInside) return;
+                if (!draggingBookmark) return;
+                if (draggingBookmarkFromInside) return;
                 if (bookmarksRect.IsHovered()) return;
 
-                draggingItem = false;
+                draggingBookmark = false;
                 mousePressed = false;
 
             }
             void cancelFromInsideAndDelete()
             {
-                if (!draggingItem) return;
+                if (!draggingBookmark) return;
                 if (!curEvent.isMouseUp) return;
                 if (bookmarksRect.IsHovered()) return;
 
-                draggingItem = false;
+                draggingBookmark = false;
 
                 DragAndDrop.PrepareStartDrag(); // fixes phantom dragged component indicator after reordering bookmarks
 
                 data.Dirty();
 
+                repaintNeededAfterUndoRedo = true;
+
             }
 
             void update()
             {
-                if (!draggingItem) return;
+                if (!draggingBookmark) return;
 
                 DragAndDrop.visualMode = DragAndDropVisualMode.Generic;
 
@@ -834,7 +846,7 @@ namespace VInspector
 
 
 
-                insertDraggedItemAtIndex = GetItemIndex(curEvent.mousePosition.x + draggedItemHoldOffset.x);
+                insertDraggedBookmarkAtIndex = GetBookmarkIndex(curEvent.mousePosition.x + draggedBookmarkHoldOffset.x);
 
             }
 
@@ -853,15 +865,15 @@ namespace VInspector
 
         }
 
-        bool draggingItem;
-        bool draggingItemFromInside;
+        bool draggingBookmark;
+        bool draggingBookmarkFromInside;
 
-        int insertDraggedItemAtIndex;
+        int insertDraggedBookmarkAtIndex;
 
-        Vector2 draggedItemHoldOffset;
+        Vector2 draggedBookmarkHoldOffset;
 
-        Item draggedItem;
-        Item droppedItem;
+        Bookmark draggedBookmark;
+        Bookmark droppedBookmark;
 
 
 
@@ -874,15 +886,15 @@ namespace VInspector
 
             void gaps_()
             {
-                var makeSpaceForDraggedItem = draggingItem && bookmarksRect.IsHovered();
+                var makeSpaceForDraggedBookmark = draggingBookmark && bookmarksRect.IsHovered();
 
                 var lerpSpeed = 12;
 
                 for (int i = 0; i < gaps.Count; i++)
-                    if (makeSpaceForDraggedItem && i == insertDraggedItemAtIndex)
-                        gaps[i] = Lerp(gaps[i], draggedItem.width, lerpSpeed, editorDeltaTime);
+                    if (makeSpaceForDraggedBookmark && i == insertDraggedBookmarkAtIndex)
+                        gaps[i] = MathUtil.Lerp(gaps[i], draggedBookmark.width, lerpSpeed, editorDeltaTime);
                     else
-                        gaps[i] = Lerp(gaps[i], 0, lerpSpeed, editorDeltaTime);
+                        gaps[i] = MathUtil.Lerp(gaps[i], 0, lerpSpeed, editorDeltaTime);
 
 
 
@@ -896,32 +908,32 @@ namespace VInspector
 
 
             }
-            void droppedItem_()
+            void droppedBookmark_()
             {
-                if (!animatingDroppedItem) return;
+                if (!animatingDroppedBookmark) return;
 
                 var lerpSpeed = 8;
 
-                var targX = GetItemCenterX(data.items.IndexOf(droppedItem), includeGaps: true);
+                var targX = GetBookmarkCenterX(data.bookmarks.IndexOf(droppedBookmark), includeGaps: true);
 
-                SmoothDamp(ref droppedItemX, targX, lerpSpeed, ref droppedItemXDerivative, editorDeltaTime);
+                MathUtil.SmoothDamp(ref droppedBookmarkX, targX, lerpSpeed, ref droppedBookmarkXDerivative, editorDeltaTime);
 
-                if ((droppedItemX - targX).Abs() < .5f)
-                    animatingDroppedItem = false;
+                if ((droppedBookmarkX - targX).Abs() < .5f)
+                    animatingDroppedBookmark = false;
 
             }
             void tooltip()
             {
-                if (!mouseHoversItem || lastHoveredItem != lastClickedItem)
+                if (!mouseHoversBookmark || lastHoveredBookmark != lastClickedBookmark)
                     hideTooltip = false;
 
 
                 var lerpSpeed = UnityEditorInternal.InternalEditorUtility.isApplicationActive ? 15 : 12321;
 
-                if (mouseHoversItem && !draggingItem && !hideTooltip)
-                    SmoothDamp(ref tooltipOpacity, 1, lerpSpeed, ref tooltipOpacityDerivative, editorDeltaTime);
+                if (mouseHoversBookmark && !draggingBookmark && !hideTooltip)
+                    MathUtil.SmoothDamp(ref tooltipOpacity, 1, lerpSpeed, ref tooltipOpacityDerivative, editorDeltaTime);
                 else
-                    SmoothDamp(ref tooltipOpacity, 0, lerpSpeed, ref tooltipOpacityDerivative, editorDeltaTime);
+                    MathUtil.SmoothDamp(ref tooltipOpacity, 0, lerpSpeed, ref tooltipOpacityDerivative, editorDeltaTime);
 
 
                 if (tooltipOpacity > .99f)
@@ -936,18 +948,18 @@ namespace VInspector
             }
 
             gaps_();
-            droppedItem_();
+            droppedBookmark_();
             tooltip();
 
         }
 
-        float droppedItemX;
-        float droppedItemXDerivative;
+        float droppedBookmarkX;
+        float droppedBookmarkXDerivative;
 
         float tooltipOpacity;
         float tooltipOpacityDerivative;
 
-        bool animatingDroppedItem;
+        bool animatingDroppedBookmark;
         bool animatingGaps;
         bool animatingTooltip;
 
@@ -957,8 +969,8 @@ namespace VInspector
         {
             get
             {
-                while (_gaps.Count < data.items.Count + 1) _gaps.Add(0);
-                while (_gaps.Count > data.items.Count + 1) _gaps.RemoveLast();
+                while (_gaps.Count < data.bookmarks.Count + 1) _gaps.Add(0);
+                while (_gaps.Count > data.bookmarks.Count + 1) _gaps.RemoveLast();
 
                 return _gaps;
 
@@ -966,7 +978,7 @@ namespace VInspector
         }
         List<float> _gaps = new();
 
-        Item lastClickedItem;
+        Bookmark lastClickedBookmark;
 
 
 

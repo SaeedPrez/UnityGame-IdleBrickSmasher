@@ -27,9 +27,6 @@ namespace VInspector
 
                 Color backgroundColor;
 
-                float buttonMask_xMin;
-                float buttonMask_xMax;
-
                 void set_backgroundColor()
                 {
                     var hovered = EditorGUIUtility.isProSkin ? Greyscale(.28f) : Greyscale(.84f);
@@ -43,42 +40,32 @@ namespace VInspector
                 }
                 void set_buttonMaskSize()
                 {
-                    var defaultButtonCount = VInspectorMenu.componentButtons_defaultButtonsCount;
+                    buttonsList ??= typeof(EditorGUIUtility).GetMemberValue<IList>("s_EditorHeaderItemsMethods");
+
+                    var buttonsCount = 1 + buttonsList.Count;
+
+                    if (VInspectorMenu.playmodeSaveButtonEnabled && !Application.isPlaying)
+                        buttonsCount--;
 
 
-                    var customButtonCount = 0;
-
-                    if (VInspectorMenu.copyPasteButtonsEnabled)
-                        customButtonCount++;
-
-                    if (VInspectorMenu.saveInPlaymodeButtonEnabled && Application.isPlaying)
-                        customButtonCount++;
-
-
-                    if (VInspectorMenu.minimalModeEnabled && !headerRect.IsHovered())
-                        defaultButtonCount = customButtonCount = 0;
-
-
-                    buttonMask_xMax = headerRect.xMax - buttonsOffsetRight - defaultButtonCount * buttonSize;
-                    buttonMask_xMin = headerRect.xMax - buttonsOffsetRight - (defaultButtonCount + customButtonCount).Max(3) * buttonSize;
+                    buttonMaskRect = headerRect.AddHeightFromMid(-2).SetXMax(headerRect.xMax - 3).SetWidthFromRight(buttonsCount * 20);
 
                 }
-
 
                 void hideArrow()
                 {
                     if (headerRect.IsHovered()) return;
                     if (!VInspectorMenu.minimalModeEnabled) return;
 
-                    // headerRect.SetWidth(17).MoveX(3).AddHeightFromMid(-2).Draw(backgroundColor);
                     headerRect.SetWidth(17).MoveX(-2).AddHeightFromMid(-2).AddWidthFromRight(-4).Draw(backgroundColor);
 
                 }
-                void hideDefaultButtons_()
+                void hideButtons()
                 {
-                    var rect = headerRect.AddHeightFromMid(-2).SetX(buttonMask_xMin).SetXMax(buttonMask_xMax);
+                    if (headerRect.IsHovered()) return;
+                    if (!VInspectorMenu.minimalModeEnabled) return;
 
-                    rect.Draw(backgroundColor);
+                    buttonMaskRect.Draw(backgroundColor);
 
                 }
                 void hideScriptText()
@@ -90,7 +77,7 @@ namespace VInspector
 
                     var rect = headerRect.AddHeightFromMid(-2).SetWidth(60).MoveX(name.GetLabelWidth(fontSize: 12, isBold: true) + 60 - 3);
 
-                    rect.xMax = rect.xMax.Min(buttonMask_xMin).Max(rect.xMin);
+                    rect.xMax = rect.xMax.Min(buttonMaskRect.x).Max(rect.xMin);
 
 
                     rect.Draw(backgroundColor);
@@ -108,19 +95,18 @@ namespace VInspector
                 }
                 void nameCurtain()
                 {
-                    var rect = headerRect.AddHeightFromMid(-2).SetXMax(buttonMask_xMin + 2).SetWidthFromRight(18);
+                    var rect = headerRect.AddHeightFromMid(-2).SetXMax(buttonMaskRect.x + 2).SetWidthFromRight(18);
 
                     rect.DrawCurtainLeft(backgroundColor);
 
                 }
 
 
-
                 set_backgroundColor();
                 set_buttonMaskSize();
 
                 hideArrow();
-                hideDefaultButtons_();
+                hideButtons();
                 hideScriptText();
                 tintScriptIcon();
                 nameCurtain();
@@ -166,7 +152,7 @@ namespace VInspector
                     var script = MonoScript.FromMonoBehaviour(component as MonoBehaviour);
 
                     if (curEvent.clickCount == 1)
-                        PingObject(script);
+                        EditorUtils.PingObject(script);
 
                     mousePressedOnScriptIcon = false;
 
@@ -196,123 +182,14 @@ namespace VInspector
                 startDrag();
 
             }
-            void copyPasteButton()
-            {
-                if (VInspectorMenu.minimalModeEnabled && !headerRect.IsHovered()) return;
-                if (!VInspectorMenu.copyPasteButtonsEnabled) return;
 
-
-                var copiedData = VInspectorComponentClipboard.instance.copiedComponetDatas.FirstOrDefault(r => r.sourceComponent == component);
-                var pastableData = VInspectorComponentClipboard.instance.copiedComponetDatas.FirstOrDefault(r => r.sourceComponent.GetType() == component.GetType());
-
-                var isCopied = copiedData != null;
-                var canValuesBePasted = !isCopied && pastableData != null;
-
-
-
-                var buttonRect = headerRect.SetWidthFromRight(buttonSize).MoveX(-buttonsOffsetRight - VInspectorMenu.componentButtons_defaultButtonsCount * buttonSize);
-
-                var iconName = canValuesBePasted ? "Paste values" : isCopied ? "Copied" : "Copy";
-                var iconSize = 16;
-                var color = Greyscale(isDarkTheme ? .78f : .49f);
-                var colorHovered = Greyscale(isDarkTheme ? 1f : .2f);
-                var colorPressed = Greyscale(isDarkTheme ? .8f : .6f);
-                var colorDisabled = Greyscale(.52f);
-
-                deferredTooltips_byRect[buttonRect] = canValuesBePasted ? "Paste values" : isCopied ? "Copied" : "Copy component";
-
-
-
-                var disabled = editingMultiselection;
-
-                if (disabled) { IconButton(buttonRect, iconName, iconSize, colorDisabled, colorDisabled, colorDisabled); return; }
-
-
-
-                if (!IconButton(buttonRect, iconName, iconSize, color, colorHovered, colorPressed)) return;
-
-                if (canValuesBePasted)
-                    VInspectorComponentClipboard.PasteComponentValues(pastableData, component);
-                else
-                    VInspectorComponentClipboard.CopyComponent(component);
-
-            }
-            void saveInPlaymodeButton()
-            {
-                if (VInspectorMenu.minimalModeEnabled && !headerRect.IsHovered()) return;
-                if (!Application.isPlaying) return;
-                if (!VInspectorMenu.saveInPlaymodeButtonEnabled) return;
-
-
-                var savedData = VInspectorComponentClipboard.instance.savedComponentDatas.FirstOrDefault(r => r.sourceComponent == component);
-
-                var isSaved = savedData != null;
-
-
-
-                var buttonRect = headerRect.SetWidthFromRight(buttonSize).MoveX(-buttonsOffsetRight - (VInspectorMenu.componentButtons_defaultButtonsCount + (VInspectorMenu.copyPasteButtonsEnabled ? 1 : 0)) * buttonSize);
-
-                var iconName = isSaved ? "Saved" : "Save";
-                var iconSize = 16;
-                var color = Greyscale(isDarkTheme ? .8f : .46f);
-                var colorHovered = Greyscale(isDarkTheme ? 1f : .2f);
-                var colorPressed = Greyscale(isDarkTheme ? .8f : .6f);
-
-                deferredTooltips_byRect[buttonRect] = isSaved ? "Saved" : "Save in play mode";
-
-
-
-
-                if (!IconButton(buttonRect, iconName, iconSize, color, colorHovered, colorPressed)) return;
-
-                if (editingMultiselection)
-                    foreach (var component in multiselectedComponents)
-                        VInspectorComponentClipboard.SaveComponent(component);
-                else
-                    VInspectorComponentClipboard.SaveComponent(component);
-
-
-            }
-
-            void blockClicksOnDefaultButtons()
-            {
-                var buttonCount = VInspectorMenu.componentButtons_defaultButtonsCount;
-
-                if (VInspectorMenu.copyPasteButtonsEnabled)
-                    buttonCount++;
-
-                if (VInspectorMenu.saveInPlaymodeButtonEnabled && Application.isPlaying)
-                    buttonCount++;
-
-                if (buttonCount >= 3) return;
-
-
-
-                var blockRect_xMin = headerRect.xMax - buttonsOffsetRight - 3 * buttonSize;
-                var blockRect_xMax = headerRect.xMax - buttonsOffsetRight - buttonCount * buttonSize;
-
-                var blockRect = headerRect.AddHeightFromMid(-2).SetX(blockRect_xMin).SetXMax(blockRect_xMax);
-
-
-
-                SetGUIColor(Color.clear);
-
-                if (IconButton(blockRect, ""))
-                    if (curEvent.holdingShift)
-                        VInspector.CollapseOtherComponents(component, window);
-                    else
-                        VInspector.ToggleComponentExpanded(component, window);
-
-                ResetGUIColor();
-
-            }
             void expandWithAnimation()
             {
                 if (!mousePressedOnBackground) return;
                 if (!curEvent.isMouseUp) return;
                 if (curEvent.mouseButton != 0) return;
                 if (headerRect.SetWidth(16).MoveX(40).IsHovered()) return; // enabled toggle
-                if (headerRect.SetWidthFromRight(64).IsHovered()) return; // right buttons
+                if (buttonMaskRect.IsHovered()) return; // right buttons
 
 
                 if (curEvent.holdingShift)
@@ -359,7 +236,7 @@ namespace VInspector
 
             void set_mousePressedOnBackground()
             {
-                if (curEvent.isMouseDown)
+                if (curEvent.isMouseDown && !buttonMaskRect.IsHovered())
                 {
                     mousePressedOnBackground = true;
                     mousePressedOnBackground_initPos = curEvent.mousePosition;
@@ -381,19 +258,6 @@ namespace VInspector
 
                 if (headerRect.IsHovered())
                     VInspector.hoveredComponentHeader = this;
-
-            }
-
-            void deferredTooltips()
-            {
-                foreach (var kvp in deferredTooltips_byRect)
-                    GUI.Label(kvp.Key, new GUIContent("", kvp.Value));
-
-                deferredTooltips_byRect.Clear();
-
-                // tooltips should be drawn before defaultHeaderGUI to take precedence over default tooltips
-                // so in button functions we schedule them to be drawn first thing next repaint
-                // and here we do the drawing
 
             }
 
@@ -450,18 +314,11 @@ namespace VInspector
 
 
             if (curEvent.isRepaint)
-            {
-                deferredTooltips();
                 defaultHeaderGUI();
-            }
 
             masks();
 
             scriptIconClicks();
-            copyPasteButton();
-            saveInPlaymodeButton();
-
-            blockClicksOnDefaultButtons();
             expandWithAnimation();
             createComponentWindow();
 
@@ -469,22 +326,19 @@ namespace VInspector
             set_hoveredComponentHeader();
 
             if (!curEvent.isRepaint)
-            {
                 defaultHeaderGUI();
-                preventKeyboardFocus();
-            }
+
+            preventKeyboardFocus();
 
         }
 
-        public float buttonsOffsetRight = 3;
-        public float buttonSize = 20;
+        static IList buttonsList;
+        static Rect buttonMaskRect;
 
         public bool mousePressedOnBackground;
         public bool mousePressedOnScriptIcon;
         public Vector2 mousePressedOnBackground_initPos;
         public Vector2 mousePressedOnScriptIcon_initPos;
-
-        public Dictionary<Rect, string> deferredTooltips_byRect = new();
 
         public Rect headerRect
         {
@@ -517,21 +371,20 @@ namespace VInspector
             if (imguiContainer is VisualElement v && v.panel == null) { imguiContainer.onGUIHandler = defaultHeaderGUIAction; imguiContainer = null; }
             if (imguiContainer?.onGUIHandler.Method.DeclaringType == typeof(VInspectorComponentHeader)) return;
             if (imguiContainer?.onGUIHandler.Method.DeclaringType.FullName.StartsWith("Sisus") == true) return;
-
             if (typeof(ScriptableObject).IsAssignableFrom(component.GetType())) return;
             if (editor.GetPropertyValue("propertyViewer") is not EditorWindow window) return;
 
 
             this.window = window;
 
-            void fixWrongWindow_2022_3_26()
+            void fixWrongWindow()
             {
-                if (Application.unityVersion != "2022.3.26f1") return;
+                if (Application.unityVersion != "2022.3.26f1" && Application.unityVersion != "2023.2.20f1") return;
 
                 if (!window.hasFocus)
                     window = window.GetMemberValue("m_Parent")?.GetMemberValue<List<EditorWindow>>("m_Panes")?.FirstOrDefault(r => r.hasFocus) ?? window;
 
-                // in 2022.3.26 wrong inspector may be returned by propertyViewer when there are multiple inspectors
+                // in some versions wrong inspector may be returned by propertyViewer when there are multiple inspectors
                 // also the same instance of an editor may be used on all inspectors
                 // here we fix it for cases when multiple inspectors are in the same dock area
 
@@ -577,7 +430,7 @@ namespace VInspector
                 imguiContainer.onGUIHandler = OnGUI;
             }
 
-            fixWrongWindow_2022_3_26();
+            fixWrongWindow();
             findHeader(window.rootVisualElement);
             setupGUICallbacks();
 

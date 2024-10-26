@@ -9,8 +9,6 @@ namespace Prez.Utilities
 {
     public static class Helper
     {
-        private static readonly Dictionary<EStat, Dictionary<double, double>> _growthNumbers = new();
-        
         /// <summary>
         /// Formats a double number.
         /// </summary>
@@ -88,21 +86,7 @@ namespace Prez.Utilities
         /// <returns></returns>
         public static double CalculateExponentialGrowthCost(EStat stat, double baseCost, double growth, double level)
         {
-            if (!_growthNumbers.ContainsKey(stat))
-            {
-                _growthNumbers.Add(stat, new Dictionary<double, double>());
-                _growthNumbers[stat].Add(0, 0);
-            }
-
-            if (_growthNumbers[stat].ContainsKey(level))
-                return _growthNumbers[stat][level];
-
-            var lastLevel = _growthNumbers[stat].Keys.Max() + 1;
-            
-            for (var i = lastLevel; i <= level; i++)
-                _growthNumbers[stat].Add(i, Math.Round((_growthNumbers[stat][i - 1] + baseCost) * growth, 2));
-            
-            return _growthNumbers[stat][level];
+            return baseCost + Math.Pow(growth, level);
         }
     }
 }

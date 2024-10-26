@@ -28,26 +28,29 @@ namespace Prez.Data
         public double TimeCurrentLevel = 0d;
         public double TimeTotal = 0d;
 
-        private readonly float _experienceBase = 10f;
-        private readonly float _experienceGrowthPerLevel = 1.04f;
-        private readonly float _experienceGainedPerDamageBase = 0.17f;
-        private readonly float _experienceGainedPerHealthBase = 0.09f;
+        private readonly float _experienceBase = 20f;
+        private readonly float _experienceGrowthPerLevel = 1.07f;
+        private readonly float _experienceGainedPerBrickBase = 0.1f;
         public double ExperienceCurrent = 0d;
         public double ExperienceRequiredToLevel = 0d;
 
-        public double GetExperienceForBrickDamage(double damage)
+        private double GetExperienceForBrickDamage(DamageData data)
         {
-            return _experienceGainedPerDamageBase * damage;
-        }
+            if (!data.BrickDestroyed)
+                return 0;
 
-        public double GetExperienceForBrickDestroyed(double health)
-        {
-            return _experienceGainedPerHealthBase * health;
+            return _experienceGainedPerBrickBase * data.Brick.SpawnedRowNumber;
         }
-
+        
         public double GetExperienceNeededToLevel(double level)
         {
             return Helper.CalculateExponentialGrowthCost(EStat.Experience, _experienceBase, _experienceGrowthPerLevel, level);
+        }
+
+        public void AddBrickDamagedExperience(DamageData data)
+        {
+            data.Experience = GetExperienceForBrickDamage(data);
+            ExperienceCurrent += data.Experience;
         }
 
         #endregion
@@ -73,12 +76,12 @@ namespace Prez.Data
 
         public readonly float BrickNoiseScale = 4;
         private readonly float _brickNoiseSpawnThresholdBase = 0.3f;
-        private readonly int _brickMinimumSpawnBase = 3;
+        private readonly int _brickMinimumSpawnBase = 10;
         
-        private readonly float _brickHealthBase = 0.5f;
-        private readonly float _brickHealthGrowthPerLevel = 1.025f;
+        private readonly float _brickHealthBase = 2f;
+        private readonly float _brickHealthGrowthPerLevel = 1.02f;
 
-        private readonly float _brickRowSpawnCooldownBase = 10f;
+        private readonly float _brickRowSpawnCooldownBase = 8f;
 
         public int BrickNoiseSeed = 0;
         public double BrickNoiseOffsetY = 0;
@@ -109,7 +112,7 @@ namespace Prez.Data
 
         #endregion
 
-        #region Ball
+        #region Balls
 
         public List<BallData> Balls = new()
         {

@@ -13,7 +13,6 @@ namespace Prez.Core
     public class ExperienceManager : MonoBehaviour
     {
         [Tab("General")]
-        
         [SerializeField] private TMP_Text _levelValueUi;
         [SerializeField] private TMP_Text _levelExperienceValueUi;
         [SerializeField] private Image _levelIndicator;
@@ -42,16 +41,9 @@ namespace Prez.Core
         
         private void OnBrickDamaged(DamageData data)
         {
-            AddDamageExperience(data.Ball, data.Damage);
-            
-            if (data.BrickDestroyed)
-                AddDestroyExperience(data.Brick.MaxHealth);
+            AddBrickDamagedExperience(data);
         }
-
-        private void OnBrickDestroyed(Brick brick, double health)
-        {
-        }
-
+        
         private IEnumerator IncrementTime()
         {
             while (true)
@@ -64,32 +56,24 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Adds damage experience.
+        /// Adds brick damaged experience.
         /// </summary>
-        /// <param name="ball"></param>
-        /// <param name="damage"></param>
-        private void AddDamageExperience(Ball ball, double damage)
+        /// <param name="data"></param>
+        private void AddBrickDamagedExperience(DamageData data)
         {
-            var experience = GameManager.Data.GetExperienceForBrickDamage(damage);
+            GameManager.Data.AddBrickDamagedExperience(data);
+
+            if (data.Experience <= 0)
+                return;
+
+            // print($"Exp ({data.Brick.SpawnedRowNumber}) -> {data.Experience}");
             
-            GameManager.Data.ExperienceCurrent += experience;
-            UpdateExperienceUi();
             CheckLeveledUp();
+            UpdateExperienceUi();
         }
         
         /// <summary>
-        /// Adds brick destroyed experience.
-        /// </summary>
-        /// <param name="health"></param>
-        private void AddDestroyExperience(double health)
-        {
-            GameManager.Data.ExperienceCurrent += GameManager.Data.GetExperienceForBrickDestroyed(health);
-            UpdateExperienceUi();
-            CheckLeveledUp();
-        }
-
-        /// <summary>
-        /// Check if leveld up.
+        /// Check if leveled up.
         /// </summary>
         private void CheckLeveledUp()
         {
@@ -102,6 +86,8 @@ namespace Prez.Core
         /// </summary>
         private void LevelUp()
         {
+            // print($"LevelUp ({GameManager.Data.LevelCurrent}) -> {GameManager.Data.TimeCurrentLevel}");
+            
             GameManager.Data.LevelCurrent++;
             MessageManager.Queue($"Level {GameManager.Data.LevelCurrent}!");
             SetLevelExperience(true);
@@ -110,7 +96,7 @@ namespace Prez.Core
             GameManager.Data.TimeCurrentLevel = 0d;
             
             EventManager.I.TriggerLeveledUp(GameManager.Data.LevelCurrent);
-            UpdateExperienceUi();
+            // UpdateExperienceUi();
         }
         
         /// <summary>

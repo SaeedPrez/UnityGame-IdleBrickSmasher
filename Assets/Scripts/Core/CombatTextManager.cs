@@ -21,7 +21,7 @@ namespace Prez.Core
         private void OnBrickDamaged(DamageData data)
         {
             var combatText = _combatTextPool.GetPooledObject().GetComponent<CombatText>();
-            combatText.transform.position = data.Ball.transform.position;
+            combatText.transform.position = (data.Brick.transform.position + data.Ball.transform.position) / 2f;
             combatText.SetText(Helper.GetNumberAsString(data.DamageRaw));
             combatText.gameObject.SetActive(true);
         }

@@ -38,10 +38,10 @@ namespace VInspector
 
 
 
-        public SerializableDictionary<int, ItemState> itemStates_byItemId = new();
+        public SerializableDictionary<int, BookmarkState> bookmarkStates_byBookmarkId = new();
 
         [System.Serializable]
-        public class ItemState
+        public class BookmarkState
         {
             public string _name;
             public string sceneGameObjectIconName;
@@ -55,7 +55,7 @@ namespace VInspector
         public static void Clear()
         {
             instance.attributeStates_byScriptName.Clear();
-            instance.itemStates_byItemId.Clear();
+            instance.bookmarkStates_byBookmarkId.Clear();
 
         }
 

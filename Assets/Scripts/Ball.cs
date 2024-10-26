@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Prez.Core;
 using Prez.Data;
 using TMPro;
@@ -13,14 +15,18 @@ namespace Prez
     {
         [SerializeField] private TrailRenderer _trail;
         [SerializeField] private TMP_Text _ballIdUi;
+        [SerializeField] private float _dpsDuration;
     
         public bool IsPlayerBoostActive { get; private set; }
         public BallData Data { get; private set; }
+        public double Dps { get; private set; }
         
         private Rigidbody2D _rigidbody;
         private int _activePlayBoostHits;
         private Coroutine _ballVelocityCoroutine;
+        private Coroutine _ballDpsCoroutine;
         private float _lastHitAt;
+        private Dictionary<float, double> _damageHistory = new();
 
         private void Awake()
         {
@@ -31,12 +37,14 @@ namespace Prez
         private void OnEnable()
         {
             _ballVelocityCoroutine = StartCoroutine(RespawnBallIfStuck());
+            _ballDpsCoroutine = StartCoroutine(CalculateDps());
             _lastHitAt = Time.time;
         }
 
         private void OnDisable()
         {
             StopCoroutine(_ballVelocityCoroutine);
+            StopCoroutine(_ballDpsCoroutine);
         }
 
         private void OnCollisionEnter2D(Collision2D other)
@@ -101,7 +109,7 @@ namespace Prez
             yield return new WaitForSeconds(delay);
 
             // var speed = _rigidbody.linearVelocity.magnitude;
-            _rigidbody.linearVelocity = new Vector2(value, _rigidbody.linearVelocity.y).normalized * GameManager.Data.GetBallSpeed(this);
+            _rigidbody.linearVelocity = new Vector2(value, 1).normalized * GameManager.Data.GetBallSpeed(this);
         }
 
         /// <summary>
@@ -158,6 +166,7 @@ namespace Prez
             brick.TakeDamage(data);
             ReduceActivePlayBoostHits();
             Data.TotalDamage += damage;
+            AddDamageToHistory(damage);
         }
 
         #endregion
@@ -196,6 +205,39 @@ namespace Prez
             IsPlayerBoostActive = false;
             _trail.emitting = false;
             _activePlayBoostHits = 0;
+        }
+
+        #endregion
+
+        #region Dps
+
+        private void AddDamageToHistory(double damage)
+        {
+            var damageTime = Time.time;
+
+            if (_damageHistory.ContainsKey(damageTime))
+                damageTime += 0.001f;
+                
+            _damageHistory.Add(damageTime, damage);
+        }
+        
+        /// <summary>
+        /// Calculates the DPS based on damage done in the last 30 seconds.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator CalculateDps()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(3.37f);
+
+                var duration = Mathf.Min(_dpsDuration, Time.time);
+                
+                _damageHistory = _damageHistory.Where(x => x.Key >= Time.time - duration)
+                    .ToDictionary(x => x.Key, x => x.Value);
+
+                Dps = _damageHistory.Sum(x => x.Value) / duration;
+            }
         }
 
         #endregion

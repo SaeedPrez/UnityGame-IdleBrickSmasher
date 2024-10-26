@@ -40,9 +40,12 @@ namespace Prez.Core
         private void OnLeveledUp(int level)
         {
             var ballMenuRow = _ballMenuRows.FirstOrDefault(bmr => bmr.Ball.Data.UnlockLevel == level);
+
+            if (!ballMenuRow)
+                return;
             
-            if (ballMenuRow)
-                UnlockBallMenuRow(ballMenuRow);
+            UnlockBallMenuRow(ballMenuRow);
+            MessageManager.Queue($"Ball {ballMenuRow.Ball.Data.Id} unlocked!");
         }
 
         private void OnBallRequestRespawn(Ball ball)

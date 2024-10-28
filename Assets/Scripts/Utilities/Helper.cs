@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Prez.Core;
 using Prez.Enums;
 
@@ -9,6 +7,8 @@ namespace Prez.Utilities
 {
     public static class Helper
     {
+
+        
         /// <summary>
         /// Formats a double number.
         /// </summary>

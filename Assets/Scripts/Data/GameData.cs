@@ -28,8 +28,8 @@ namespace Prez.Data
         public double TimeCurrentLevel = 0d;
         public double TimeTotal = 0d;
 
-        private readonly float _experienceBase = 20f;
-        private readonly float _experienceGrowthPerLevel = 1.07f;
+        // private readonly float _experienceBase = 20f;
+        // private readonly float _experienceGrowthPerLevel = 1.07f;
         private readonly float _experienceGainedPerBrickBase = 0.1f;
         public double ExperienceCurrent = 0d;
         public double ExperienceRequiredToLevel = 0d;
@@ -42,9 +42,9 @@ namespace Prez.Data
             return _experienceGainedPerBrickBase * data.Brick.SpawnedRowNumber;
         }
         
-        public double GetExperienceNeededToLevel(double level)
+        public double GetExperienceNeededToLevel(int level)
         {
-            return Helper.CalculateExponentialGrowthCost(EStat.Experience, _experienceBase, _experienceGrowthPerLevel, level);
+            return Numbers.GetLevelExperience(level - 1);
         }
 
         public void AddBrickDamagedExperience(DamageData data)
@@ -78,10 +78,10 @@ namespace Prez.Data
         private readonly float _brickNoiseSpawnThresholdBase = 0.3f;
         private readonly int _brickMinimumSpawnBase = 10;
         
-        private readonly float _brickHealthBase = 2f;
-        private readonly float _brickHealthGrowthPerLevel = 1.02f;
+        private readonly float _brickHealthBase = 1f;
+        private readonly float _brickHealthGrowthPerLevel = 0.25f;
 
-        private readonly float _brickRowSpawnCooldownBase = 8f;
+        private readonly float _brickRowSpawnCooldownBase = 12f;
 
         public int BrickNoiseSeed = 0;
         public double BrickNoiseOffsetY = 0;
@@ -107,7 +107,7 @@ namespace Prez.Data
             if (level == -1d)
                 level = BrickRowLevel;
 
-            return Helper.CalculateExponentialGrowthCost(EStat.BrickHealth, _brickHealthBase, _brickHealthGrowthPerLevel, level);
+            return _brickHealthBase + _brickHealthGrowthPerLevel * level;
         }
 
         #endregion
@@ -190,9 +190,9 @@ namespace Prez.Data
 
         #region Ball Damage
 
-        private readonly float _ballDamageBase = 5f;
-        private readonly float _ballDamageGrowthPerLevel = 3.35f;
-        private readonly int _ballDamageMaxLevel = 100;
+        private readonly float _ballDamageBase = 2f;
+        private readonly float _ballDamageGrowthPerLevel = 2f;
+        private readonly int _ballDamageMaxLevel = 1000;
         private readonly float _ballDamageCostBase = 1.0f;
         private readonly float _ballDamageCostGrowthPerLevel = 0.25f;
         
@@ -201,7 +201,7 @@ namespace Prez.Data
             if (level == -1)
                 level = ball.Data.DamageLevel;
             
-            return _ballDamageBase + Math.Pow(level, _ballDamageGrowthPerLevel);
+            return _ballDamageBase + _ballDamageGrowthPerLevel * (level - 1);
         }
         
         public bool IsBallDamageMaxLevel(Ball ball)

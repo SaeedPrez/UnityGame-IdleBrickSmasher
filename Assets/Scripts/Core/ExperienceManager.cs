@@ -86,7 +86,7 @@ namespace Prez.Core
         /// </summary>
         private void LevelUp()
         {
-            // print($"LevelUp ({GameManager.Data.LevelCurrent}) -> {GameManager.Data.TimeCurrentLevel}");
+            print($"LevelUp ({GameManager.Data.LevelCurrent}) -> {GameManager.Data.TimeCurrentLevel}");
             
             GameManager.Data.LevelCurrent++;
             MessageManager.Queue($"Level {GameManager.Data.LevelCurrent}!");

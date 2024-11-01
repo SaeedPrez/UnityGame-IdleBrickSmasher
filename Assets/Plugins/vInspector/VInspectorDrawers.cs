@@ -1,19 +1,12 @@
 #if UNITY_EDITOR
-using System.Collections;
-using System.Linq;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UIElements;
-using UnityEditor.UIElements;
-using System.Reflection;
+using System.Linq;
 using UnityEditor;
 using UnityEditorInternal;
-using Type = System.Type;
-using Attribute = System.Attribute;
-using static VInspector.VInspectorState;
+using UnityEngine;
 using static VInspector.Libs.VUtils;
 using static VInspector.Libs.VGUI;
-
 
 
 namespace VInspector
@@ -21,6 +14,12 @@ namespace VInspector
     [CustomPropertyDrawer(typeof(SerializedDictionary<,>), true)]
     public class SerializedDictionaryDrawer : PropertyDrawer
     {
+        private SerializedProperty dividerPosProp;
+        private bool isDividerDragged;
+        private SerializedProperty kvpsProp;
+        private ReorderableList list;
+        private SerializedProperty prop;
+
         public override void OnGUI(Rect rect, SerializedProperty prop, GUIContent label)
         {
             var indentedRect = EditorGUI.IndentedRect(rect);
@@ -46,7 +45,6 @@ namespace VInspector
                     ResetGUIEnabled();
 
 
-
                     var triangleRect = rect.SetHeight(EditorGUIUtility.singleLineHeight);
 
                     SetGUIEnabled(true);
@@ -54,9 +52,8 @@ namespace VInspector
                     EditorGUI.Foldout(triangleRect, prop.isExpanded, "");
 
                     ResetGUIEnabled();
-
-
                 }
+
                 void label()
                 {
                     SetLabelBold();
@@ -69,12 +66,13 @@ namespace VInspector
                     ResetGUIEnabled();
                     ResetGUIColor();
                     ResetLabelStyle();
-
                 }
+
                 void count()
                 {
                     kvpsProp.arraySize = EditorGUI.DelayedIntField(headerRect.SetWidthFromRight(48 + EditorGUI.indentLevel * 15), kvpsProp.arraySize);
                 }
+
                 void repeatedKeysWarning()
                 {
                     if (!curEvent.isRepaint) return;
@@ -83,7 +81,7 @@ namespace VInspector
                     var hasRepeatedKeys = false;
                     var hasNullKeys = false;
 
-                    for (int i = 0; i < kvpsProp.arraySize; i++)
+                    for (var i = 0; i < kvpsProp.arraySize; i++)
                     {
                         hasRepeatedKeys |= kvpsProp.GetArrayElementAtIndex(i).FindPropertyRelative("isKeyRepeated").boolValue;
                         hasNullKeys |= kvpsProp.GetArrayElementAtIndex(i).FindPropertyRelative("isKeyNull").boolValue;
@@ -92,14 +90,12 @@ namespace VInspector
                     if (!hasRepeatedKeys && !hasNullKeys) return;
 
 
-
-                    var warningTextRect = headerRect.AddWidthFromRight(-prop.displayName.GetLabelWidth(isBold: true));
+                    var warningTextRect = headerRect.AddWidthFromRight(-prop.displayName.GetLabelWidth(true));
                     var warningIconRect = warningTextRect.SetHeightFromMid(20).SetWidth(20);
 
-                    var warningText = (hasRepeatedKeys && hasNullKeys) ? "Repeated and null keys"
-                                                     : hasRepeatedKeys ? "Repeated keys"
-                                                         : hasNullKeys ? "Null keys" : "";
-
+                    var warningText = hasRepeatedKeys && hasNullKeys ? "Repeated and null keys"
+                        : hasRepeatedKeys ? "Repeated keys"
+                        : hasNullKeys ? "Null keys" : "";
 
 
                     GUI.Label(warningIconRect, EditorGUIUtility.IconContent("Warning"));
@@ -110,15 +106,14 @@ namespace VInspector
                     GUI.Label(warningTextRect.MoveX(16), warningText);
 
                     ResetGUIColor();
-
                 }
 
                 foldout();
                 label();
                 count();
                 repeatedKeysWarning();
-
             }
+
             void list_()
             {
                 if (!prop.isExpanded) return;
@@ -133,7 +128,6 @@ namespace VInspector
 
             header();
             list_();
-
         }
 
         public override float GetPropertyHeight(SerializedProperty prop, GUIContent label)
@@ -151,7 +145,7 @@ namespace VInspector
             return height;
         }
 
-        float GetListElementHeight(int index)
+        private float GetListElementHeight(int index)
         {
             var kvpProp = kvpsProp.GetArrayElementAtIndex(index);
             var keyProp = kvpProp.FindPropertyRelative("Key");
@@ -166,14 +160,12 @@ namespace VInspector
                     height -= 10;
 
                 return height;
-
             }
 
             return Mathf.Max(propHeight(keyProp), propHeight(valueProp));
-
         }
 
-        void DrawListElement(Rect rect, int index, bool isActive, bool isFocused)
+        private void DrawListElement(Rect rect, int index, bool isActive, bool isFocused)
         {
             Rect keyRect;
             Rect valueRect;
@@ -185,7 +177,11 @@ namespace VInspector
 
             void drawProp(Rect rect, SerializedProperty prop)
             {
-                if (IsSingleLine(prop)) { EditorGUI.PropertyField(rect.SetHeight(EditorGUIUtility.singleLineHeight), prop, GUIContent.none); return; }
+                if (IsSingleLine(prop))
+                {
+                    EditorGUI.PropertyField(rect.SetHeight(EditorGUIUtility.singleLineHeight), prop, GUIContent.none);
+                    return;
+                }
 
 
                 prop.isExpanded = true;
@@ -199,10 +195,11 @@ namespace VInspector
                     EditorGUIUtility.labelWidth = 0;
                 }
                 else
+                {
                     EditorGUI.PropertyField(rect.SetPos(0, -20), prop, true);
+                }
 
                 GUI.EndGroup();
-
             }
 
             void rects()
@@ -216,13 +213,13 @@ namespace VInspector
                 keyRect = fullRect.SetWidth(fullRect.width * dividerPos - dividerWidh / 2);
                 valueRect = fullRect.SetWidthFromRight(fullRect.width * (1 - dividerPos) - dividerWidh / 2);
                 dividerRect = fullRect.MoveX(fullRect.width * dividerPos - dividerWidh / 2).SetWidth(dividerWidh).Resize(-1);
-
             }
+
             void key()
             {
                 drawProp(keyRect, keyProp);
-
             }
+
             void warning()
             {
                 var isKeyRepeated = kvpProp.FindPropertyRelative("isKeyRepeated").boolValue;
@@ -238,12 +235,13 @@ namespace VInspector
 
 
                 GUI.Label(warningRect, EditorGUIUtility.IconContent("Warning"));
-
             }
+
             void value()
             {
                 drawProp(valueRect, valueProp);
             }
+
             void divider()
             {
                 EditorGUIUtility.AddCursorRect(dividerRect, MouseCursor.ResizeHorizontal);
@@ -261,7 +259,6 @@ namespace VInspector
 
                 if (isDividerDragged && curEvent.isMouseDrag)
                     dividerPosProp.floatValue += curEvent.mouseDelta.x / rect.width;
-
             }
 
             rects();
@@ -269,14 +266,15 @@ namespace VInspector
             warning();
             value();
             divider();
-
         }
 
-        void DrawDictionaryIsEmpty(Rect rect) => GUI.Label(rect, "Dictionary is empty");
+        private void DrawDictionaryIsEmpty(Rect rect)
+        {
+            GUI.Label(rect, "Dictionary is empty");
+        }
 
 
-
-        IEnumerable<SerializedProperty> GetChildren(SerializedProperty prop, bool enterVisibleGrandchildren)
+        private IEnumerable<SerializedProperty> GetChildren(SerializedProperty prop, bool enterVisibleGrandchildren)
         {
             var startPath = prop.propertyPath;
 
@@ -287,11 +285,12 @@ namespace VInspector
                 yield return prop;
                 enterVisibleChildren = enterVisibleGrandchildren;
             }
-
         }
 
-        bool IsSingleLine(SerializedProperty prop) => prop.propertyType != SerializedPropertyType.Generic || !prop.hasVisibleChildren;
-
+        private bool IsSingleLine(SerializedProperty prop)
+        {
+            return prop.propertyType != SerializedPropertyType.Generic || !prop.hasVisibleChildren;
+        }
 
 
         public void SetupList(SerializedProperty prop)
@@ -300,14 +299,11 @@ namespace VInspector
 
             SetupProps(prop);
 
-            this.list = new ReorderableList(kvpsProp.serializedObject, kvpsProp, true, false, true, true);
-            this.list.drawElementCallback = DrawListElement;
-            this.list.elementHeightCallback = GetListElementHeight;
-            this.list.drawNoneElementCallback = DrawDictionaryIsEmpty;
-
+            list = new ReorderableList(kvpsProp.serializedObject, kvpsProp, true, false, true, true);
+            list.drawElementCallback = DrawListElement;
+            list.elementHeightCallback = GetListElementHeight;
+            list.drawNoneElementCallback = DrawDictionaryIsEmpty;
         }
-        ReorderableList list;
-        bool isDividerDragged;
 
 
         public void SetupProps(SerializedProperty prop)
@@ -315,15 +311,9 @@ namespace VInspector
             if (this.prop != null) return;
 
             this.prop = prop;
-            this.kvpsProp = prop.FindPropertyRelative("serializedKvps");
-            this.dividerPosProp = prop.FindPropertyRelative("dividerPos");
-
-
+            kvpsProp = prop.FindPropertyRelative("serializedKvps");
+            dividerPosProp = prop.FindPropertyRelative("dividerPos");
         }
-        SerializedProperty prop;
-        SerializedProperty kvpsProp;
-        SerializedProperty dividerPosProp;
-
     }
 
 
@@ -347,7 +337,6 @@ namespace VInspector
                 prop.SetBoxedValue(variants[0]);
 
             EditorGUI.EndProperty();
-
         }
     }
 
@@ -375,8 +364,6 @@ namespace VInspector
             var maxLimit = ((MinMaxSliderAttribute)attribute).max;
 
 
-
-
             EditorGUI.PrefixLabel(rect, label);
 
 
@@ -392,18 +379,16 @@ namespace VInspector
                 {
                     var abs = (maxLimit - minLimit).Abs();
 
-                    var decimals = abs > 190 ?
-                               0 : abs > 19 ?
-                               1 : abs > 1.9f ?
-                               2 :
-                               3;
+                    var decimals = abs > 190 ? 0 :
+                        abs > 19 ? 1 :
+                        abs > 1.9f ? 2 :
+                        3;
 
-                    min = (float)System.Math.Round(min, decimals);
-                    max = (float)System.Math.Round(max, decimals);
+                    min = (float)Math.Round(min, decimals);
+                    max = (float)Math.Round(max, decimals);
 
                     // same rounding logic as for [Range]
                 }
-
             }
 
             min = EditorGUI.DelayedFloatField(minFieldRect, min).Max(minLimit).Min(maxLimit);
@@ -415,10 +400,7 @@ namespace VInspector
                 prop.vector2Value = new Vector2(min, max);
 
             EditorGUI.EndProperty();
-
-
         }
     }
-
 }
 #endif

@@ -10,5 +10,6 @@
         public const string SaveGameName = "GameData";
 
         public const string Maxed = "Maxed";
+        public const string Opacity = "_Opacity";
     }
 }

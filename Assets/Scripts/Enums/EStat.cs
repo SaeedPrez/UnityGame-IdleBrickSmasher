@@ -9,6 +9,6 @@
         BallCriticalChance,
         BallCriticalDamage,
         BallActiveHits,
-        BallActiveDamage,
+        BallActiveDamage
     }
 }

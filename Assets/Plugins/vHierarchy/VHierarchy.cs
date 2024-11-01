@@ -2,16 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
-using UnityEditor;
-using UnityEditor.ShortcutManagement;
-using System.Reflection;
 using System.Linq;
-using UnityEngine.UIElements;
-using UnityEngine.SceneManagement;
+using UnityEditor;
+using UnityEditor.Callbacks;
 using UnityEditor.SceneManagement;
-using UnityEditor.IMGUI.Controls;
-using UnityEditor.Experimental.SceneManagement;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using Type = System.Type;
 using static VHierarchy.VHierarchyData;
 using static VHierarchy.VHierarchyCache;
@@ -19,12 +16,66 @@ using static VHierarchy.Libs.VUtils;
 using static VHierarchy.Libs.VGUI;
 
 
-
 namespace VHierarchy
 {
     public static class VHierarchy
     {
-        static void GameObjectRowGUI(GameObject go, Rect rowRect)
+        public const string version = "2.0.18";
+
+        private static readonly List<int> hierarchyLines_verticalGaps = new();
+        private static bool hierarchyLines_isFirstRowDrawn;
+        private static int hierarchyLines_prevRowDepth;
+
+        private static bool mousePressed;
+        private static GameObject hoveredGo;
+        private static Vector2 mouseDownPos;
+
+        private static Rect lastVisibleSelectedRowRect;
+
+        private static List<ExpandQueueEntry> expandQueue_toAnimate = new();
+        private static List<GameObject> expandQueue_toCollapseAfterAnimation = new();
+
+        private static List<int> expandedIds = new();
+
+        private static readonly Dictionary<Type, Texture> componentIcons_byType = new();
+
+        public static Dictionary<GameObject, GameObjectData> firstDataCacheLayer = new(); // cleared on data serialization callbacks, ie when data is added or removed
+
+        public static Dictionary<Scene, VHierarchyDataComponent> dataComponents_byScene = new();
+
+        private static bool wasAlt;
+
+        private static bool transformToolNeedsReset;
+        private static Tool previousTransformTool;
+
+        public static VHierarchyData data;
+        public static VHierarchyPalette palette;
+        private static EditorWindow _hierarchyWindow;
+
+
+        private static readonly Type t_SceneHierarchyWindow = typeof(Editor).Assembly.GetType("UnityEditor.SceneHierarchyWindow");
+        private static readonly Type t_Unsupported = typeof(Editor).Assembly.GetType("UnityEditor.Unsupported");
+
+        private static VHierarchyCache cache => VHierarchyCache.instance;
+
+
+        private static EditorWindow hierarchyWindow
+        {
+            get
+            {
+                if (_hierarchyWindow != null && _hierarchyWindow.GetType() != t_SceneHierarchyWindow) // happens on 2022.3.22f1 with enter playmode options on
+                    _hierarchyWindow = null;
+
+                if (_hierarchyWindow == null)
+                    _hierarchyWindow = Resources.FindObjectsOfTypeAll(t_SceneHierarchyWindow).FirstOrDefault() as EditorWindow;
+
+                return _hierarchyWindow;
+            }
+        }
+
+        private static object treeViewController => hierarchyWindow?.GetFieldValue("m_SceneHierarchy").GetFieldValue("m_TreeView"); // recreated on prefab mode enter/exit
+
+        private static void GameObjectRowGUI(GameObject go, Rect rowRect)
         {
             var fullRowRect = rowRect.SetX(32).SetXMax(rowRect.xMax + 16);
 
@@ -49,9 +100,9 @@ namespace VHierarchy
 
                     var dragging = dragSelectionList != null && dragSelectionList.Any();
 
-                    isRowSelected = dragging ? (dragSelectionList.Contains(go.GetInstanceID())) : Selection.Contains(go);
-
+                    isRowSelected = dragging ? dragSelectionList.Contains(go.GetInstanceID()) : Selection.Contains(go);
                 }
+
                 void set_isRowBeingRenamed()
                 {
                     if (!curEvent.isRepaint) return;
@@ -59,23 +110,23 @@ namespace VHierarchy
                     isRowBeingRenamed = EditorGUIUtility.editingTextField &&
                                         isRowSelected &&
                                         treeViewController?.GetMemberValue("state")?.GetMemberValue("renameOverlay")?.InvokeMethod<bool>("IsRenaming") == true;
-
                 }
+
                 void set_isTreeFocused()
                 {
                     if (!curEvent.isRepaint) return;
 
                     isTreeFocused = EditorWindow.focusedWindow == hierarchyWindow &&
                                     GUIUtility.keyboardControl == hierarchyWindow?.GetMemberValue("sceneHierarchy")?.GetMemberValue<int>("m_TreeViewKeyboardControlID");
-
                 }
+
                 void set_lastVisibleSelectedRowRect()
                 {
                     if (!Selection.gameObjects.Contains(go)) return;
 
                     lastVisibleSelectedRowRect = rowRect;
-
                 }
+
                 void set_mousePressed()
                 {
                     if (curEvent.isMouseDown && isRowHovered)
@@ -83,8 +134,8 @@ namespace VHierarchy
 
                     if (curEvent.isMouseUp || curEvent.isMouseLeaveWindow || curEvent.isDragPerform)
                         mousePressed = false;
-
                 }
+
                 void set_hoveredGo()
                 {
                     if (curEvent.isLayout)
@@ -92,7 +143,6 @@ namespace VHierarchy
 
                     if (curEvent.isRepaint && isRowHovered)
                         hoveredGo = go;
-
                 }
 
                 set_isRowSelected();
@@ -101,19 +151,23 @@ namespace VHierarchy
                 set_lastVisibleSelectedRowRect();
                 set_mousePressed();
                 set_hoveredGo();
-
             }
 
 
             void drawing()
             {
-                if (!curEvent.isRepaint) { hierarchyLines_isFirstRowDrawn = false; return; }
+                if (!curEvent.isRepaint)
+                {
+                    hierarchyLines_isFirstRowDrawn = false;
+                    return;
+                }
 
-                var goData = GetGameObjectData(go, createDataIfDoesntExist: false);
+                var goData = GetGameObjectData(go, false);
 
-                var showBackgroundColor = goData != null && goData.colorIndex.IsInRange(1, VHierarchyPalette.colorsCount);// && !(isRowSelected && isHierarchyFocused);
+                var showBackgroundColor = goData != null && goData.colorIndex.IsInRange(1, VHierarchyPalette.colorsCount); // && !(isRowSelected && isHierarchyFocused);
                 var showCustomIcon = goData != null && !goData.iconNameOrGuid.IsNullOrEmpty();
-                var showDefaultIcon = !showCustomIcon && (isRowBeingRenamed || (!VHierarchyMenu.minimalModeEnabled || (PrefabUtility.IsAddedGameObjectOverride(go) && PrefabUtility.IsPartOfPrefabInstance(go))));
+                var showDefaultIcon = !showCustomIcon && (isRowBeingRenamed || !VHierarchyMenu.minimalModeEnabled ||
+                                                          (PrefabUtility.IsAddedGameObjectOverride(go) && PrefabUtility.IsPartOfPrefabInstance(go)));
 
                 var makeTriangleBrighter = showBackgroundColor && goData.colorIndex > VHierarchyPalette.greyColorsCount && isDarkTheme;
                 var makeNameBrighter = showBackgroundColor && goData.colorIndex > VHierarchyPalette.greyColorsCount && isDarkTheme;
@@ -136,15 +190,15 @@ namespace VHierarchy
 
                     else
                         defaultBackground = normal;
-
                 }
+
                 void hideDefaultIcon()
                 {
                     if (showDefaultIcon) return;
 
                     rowRect.SetWidth(16).Draw(defaultBackground);
-
                 }
+
                 void hideName()
                 {
                     if (!showBackgroundColor && (showCustomIcon || showDefaultIcon)) return;
@@ -156,7 +210,6 @@ namespace VHierarchy
 #endif
 
                     nameRect.Draw(defaultBackground);
-
                 }
 
                 void backgroundColor()
@@ -165,7 +218,6 @@ namespace VHierarchy
 
 
                     var hasLeftGradient = go.transform.parent;
-
 
 
                     var colorRect = rowRect.AddWidthFromRight(28).AddWidth(16);
@@ -180,8 +232,6 @@ namespace VHierarchy
                         colorRect = colorRect.AddWidthFromRight(EditorGUIUtility.pixelsPerPoint >= 2 ? -2.5f : -3);
 
 
-
-
                     var leftGradientWith = go.transform.parent ? 22 : 0;
                     var rightGradientWidth = (fullRowRect.width * .77f).Min(colorRect.width - leftGradientWith);
 
@@ -189,8 +239,6 @@ namespace VHierarchy
                     var rightGradientRect = colorRect.SetWidthFromRight(rightGradientWidth);
 
                     var flatColorRect = colorRect.SetX(leftGradientRect.xMax).SetXMax(rightGradientRect.x);
-
-
 
 
                     var colorWithFlatness = palette ? palette.colors[goData.colorIndex - 1] : VHierarchyPalette.GetDefaultColor(goData.colorIndex - 1);
@@ -206,8 +254,6 @@ namespace VHierarchy
                         color *= 1.2f;
 
 
-
-
                     leftGradientRect.AddWidth(1).Draw(color.SetAlpha((flatness - .1f) / .9f));
                     leftGradientRect.AddWidth(1).DrawCurtainLeft(color);
 
@@ -215,9 +261,8 @@ namespace VHierarchy
 
                     rightGradientRect.Draw(color.MultiplyAlpha(flatness));
                     rightGradientRect.DrawCurtainRight(color);
-
-
                 }
+
                 void triangle()
                 {
                     if (!showBackgroundColor) return;
@@ -231,8 +276,8 @@ namespace VHierarchy
                     if (!makeTriangleBrighter) return;
 
                     GUI.DrawTexture(triangleRect, EditorIcons.GetIcon(IsExpanded(go) ? "IN_foldout_on" : "IN_foldout"));
-
                 }
+
                 void name()
                 {
                     if (!showBackgroundColor && (showCustomIcon || showDefaultIcon)) return;
@@ -257,14 +302,11 @@ namespace VHierarchy
                         nameRect = nameRect.MoveX(-2).MoveY(-.5f);
 
 
-
-                    var styleName = PrefabUtility.IsPartOfAnyPrefab(go) ?
-                        (go.activeInHierarchy ? "PR PrefabLabel" : "PR DisabledPrefabLabel") :
-                        (go.activeInHierarchy ? "TV Line" : "PR DisabledLabel");
+                    var styleName = PrefabUtility.IsPartOfAnyPrefab(go) ? go.activeInHierarchy ? "PR PrefabLabel" : "PR DisabledPrefabLabel" :
+                        go.activeInHierarchy ? "TV Line" : "PR DisabledLabel";
 
                     if (makeNameBrighter && go.activeInHierarchy)
                         styleName = "WhiteLabel";
-
 
 
                     if (makeNameBrighter)
@@ -274,8 +316,8 @@ namespace VHierarchy
 
                     if (makeNameBrighter)
                         ResetGUIColor();
-
                 }
+
                 void defaultIcon()
                 {
                     if (!showBackgroundColor) return;
@@ -291,8 +333,8 @@ namespace VHierarchy
                         GUI.DrawTexture(iconRect, EditorIcons.GetIcon("PrefabOverlayAdded Icon"));
 
                     ResetGUIColor();
-
                 }
+
                 void customIcon()
                 {
                     if (!showCustomIcon) return;
@@ -305,8 +347,8 @@ namespace VHierarchy
                     GUI.DrawTexture(iconRect, EditorIcons.GetIcon(iconNameOrPath) ?? Texture2D.blackTexture);
 
                     ResetGUIColor();
-
                 }
+
                 void hierarchyLines()
                 {
                     if (!VHierarchyMenu.hierarchyLinesEnabled) return;
@@ -323,8 +365,15 @@ namespace VHierarchy
 
                     var depth = ((rowRect.x - 60) / 14).RoundToInt();
 
-                    bool isLastChild(Transform transform) => transform.parent?.GetChild(transform.parent.childCount - 1) == transform;
-                    bool hasChilren(Transform transform) => transform.childCount > 0;
+                    bool isLastChild(Transform transform)
+                    {
+                        return transform.parent?.GetChild(transform.parent.childCount - 1) == transform;
+                    }
+
+                    bool hasChilren(Transform transform)
+                    {
+                        return transform.childCount > 0;
+                    }
 
                     void calcVerticalGaps_beforeFirstRowDrawn()
                     {
@@ -343,8 +392,8 @@ namespace VHierarchy
                             curTransform = curTransform.parent;
                             curDepth--;
                         }
-
                     }
+
                     void updateVerticalGaps_beforeNextRowDrawn()
                     {
                         if (isLastChild(go.transform))
@@ -352,30 +401,27 @@ namespace VHierarchy
 
                         if (depth < hierarchyLines_prevRowDepth)
                             hierarchyLines_verticalGaps.RemoveAll(r => r >= depth);
-
                     }
 
                     void drawVerticals()
                     {
-                        for (int i = 0; i < depth; i++)
+                        for (var i = 0; i < depth; i++)
                             if (!hierarchyLines_verticalGaps.Contains(i))
                                 rowRect.SetX(53 + i * 14 - lineThickness / 2)
-                                       .SetWidth(lineThickness)
-                                       .SetHeight(isLastChild(go.transform) && i == depth - 1 ? 8 + lineThickness / 2 : 16)
-                                       .Draw(Greyscale(lineContrast));
-
+                                    .SetWidth(lineThickness)
+                                    .SetHeight(isLastChild(go.transform) && i == depth - 1 ? 8 + lineThickness / 2 : 16)
+                                    .Draw(Greyscale(lineContrast));
                     }
+
                     void drawHorizontals()
                     {
                         if (depth == 0) return;
 
                         rowRect.MoveX(-21)
-                               .SetHeightFromMid(lineThickness)
-                               .SetWidth(hasChilren(go.transform) ? 7 : 17)
-                               .Draw(Greyscale(lineContrast));
-
+                            .SetHeightFromMid(lineThickness)
+                            .SetWidth(hasChilren(go.transform) ? 7 : 17)
+                            .Draw(Greyscale(lineContrast));
                     }
-
 
 
                     calcVerticalGaps_beforeFirstRowDrawn();
@@ -387,8 +433,8 @@ namespace VHierarchy
 
                     hierarchyLines_prevRowDepth = depth;
                     hierarchyLines_isFirstRowDrawn = true;
-
                 }
+
                 void zebraStriping()
                 {
                     if (!VHierarchyMenu.zebraStripingEnabled) return;
@@ -400,7 +446,6 @@ namespace VHierarchy
                     var t = rowRect.y.PingPong(16f) / 16f;
 
                     fullRowRect.Draw(Greyscale(isDarkTheme ? 1 : 0, contrast * t));
-
                 }
 
 
@@ -415,7 +460,6 @@ namespace VHierarchy
                 defaultIcon();
                 customIcon();
                 zebraStriping();
-
             }
 
             void componentMinimap()
@@ -441,12 +485,11 @@ namespace VHierarchy
 
                         if (!icon) return;
 
-                        SetGUIColor(Greyscale(1, isActive ? (isPressed ? pressedOpacity : activeOpacity) : normalOpacity));
+                        SetGUIColor(Greyscale(1, isActive ? isPressed ? pressedOpacity : activeOpacity : normalOpacity));
 
                         GUI.DrawTexture(buttonRect.SetSizeFromMid(12, 12), icon);
 
                         ResetGUIColor();
-
                     }
 
                     void mouseDown()
@@ -458,8 +501,8 @@ namespace VHierarchy
                         curEvent.Use();
 
                         mouseDownPos = curEvent.mousePosition;
-
                     }
+
                     void mouseUp()
                     {
                         if (!curEvent.holdingAlt) return;
@@ -468,10 +511,14 @@ namespace VHierarchy
 
                         curEvent.Use();
 
-                        if (VHierarchyComponentWindow.floatingInstance?.component == component) { VHierarchyComponentWindow.floatingInstance.Close(); return; }
+                        if (VHierarchyComponentWindow.floatingInstance?.component == component)
+                        {
+                            VHierarchyComponentWindow.floatingInstance.Close();
+                            return;
+                        }
 
 
-                        var position = EditorGUIUtility.GUIToScreenPoint(new Vector2(rowRect.xMax + 25, rowRect.y));
+                        var position = GUIUtility.GUIToScreenPoint(new Vector2(rowRect.xMax + 25, rowRect.y));
 
                         if (!VHierarchyComponentWindow.floatingInstance)
                             VHierarchyComponentWindow.CreateFloatingInstance(position);
@@ -480,7 +527,6 @@ namespace VHierarchy
                         VHierarchyComponentWindow.floatingInstance.Focus();
 
                         VHierarchyComponentWindow.floatingInstance.targetPosition = position;
-
                     }
 
 
@@ -491,7 +537,6 @@ namespace VHierarchy
 
                     mouseDown();
                     mouseUp();
-
                 }
 
                 void transformComponent()
@@ -501,8 +546,8 @@ namespace VHierarchy
                     if (!go.GetComponent<Transform>()) return;
 
                     componentButton(fullRowRect.SetWidth(13).MoveX(1.5f), go.GetComponent<Transform>());
-
                 }
+
                 void otherComponetns()
                 {
                     var buttonWidth = 13;
@@ -520,16 +565,13 @@ namespace VHierarchy
                         componentButton(buttonRect, component);
 
                         buttonRect = buttonRect.MoveX(-buttonWidth);
-
                     }
-
-
                 }
 
                 transformComponent();
                 otherComponetns();
-
             }
+
             void activationToggle()
             {
                 if (!VHierarchyMenu.activationToggleEnabled) return;
@@ -558,7 +600,6 @@ namespace VHierarchy
                     r.SetActive(newActiveSelf);
 
                 GUI.FocusControl(null);
-
             }
 
             void altDrag()
@@ -571,8 +612,8 @@ namespace VHierarchy
                     if (!rowRect.IsHovered()) return;
 
                     mouseDownPos = curEvent.mousePosition;
-
                 }
+
                 void mouseDrag()
                 {
                     if (!curEvent.isMouseDrag) return;
@@ -584,7 +625,6 @@ namespace VHierarchy
                     DragAndDrop.PrepareStartDrag();
                     DragAndDrop.objectReferences = new[] { go };
                     DragAndDrop.StartDrag(go.name);
-
                 }
 
                 mouseDown();
@@ -592,6 +632,7 @@ namespace VHierarchy
 
                 // altdrag has to be set up manually before altClick because altClick will use() mouseDown event to prevent selection change
             }
+
             void altClick()
             {
                 if (!isRowHovered) return;
@@ -603,8 +644,8 @@ namespace VHierarchy
                     if (!curEvent.isMouseDown) return;
 
                     curEvent.Use();
-
                 }
+
                 void mouseUp()
                 {
                     if (!curEvent.isMouseUp) return;
@@ -614,10 +655,14 @@ namespace VHierarchy
                     var gosToEdit = (editMultiSelection ? Selection.gameObjects : new[] { go }).ToList();
 
 
-                    if (VHierarchyPaletteWindow.instance && VHierarchyPaletteWindow.instance.gameObjects.SequenceEqual(gosToEdit)) { VHierarchyPaletteWindow.instance.Close(); return; }
+                    if (VHierarchyPaletteWindow.instance && VHierarchyPaletteWindow.instance.gameObjects.SequenceEqual(gosToEdit))
+                    {
+                        VHierarchyPaletteWindow.instance.Close();
+                        return;
+                    }
 
                     var openNearRect = editMultiSelection ? lastVisibleSelectedRowRect : rowRect;
-                    var position = EditorGUIUtility.GUIToScreenPoint(new Vector2(openNearRect.x - 14, openNearRect.y + 18));
+                    var position = GUIUtility.GUIToScreenPoint(new Vector2(openNearRect.x - 14, openNearRect.y + 18));
 
                     if (!VHierarchyPaletteWindow.instance)
                         VHierarchyPaletteWindow.CreateInstance(position);
@@ -629,12 +674,10 @@ namespace VHierarchy
 
                     if (editMultiSelection)
                         Selection.objects = null;
-
                 }
 
                 mouseDown();
                 mouseUp();
-
             }
 
 
@@ -647,25 +690,11 @@ namespace VHierarchy
 
             altDrag();
             altClick();
-
         }
 
-        static List<int> hierarchyLines_verticalGaps = new List<int>();
-        static bool hierarchyLines_isFirstRowDrawn;
-        static int hierarchyLines_prevRowDepth;
 
-        static bool mousePressed;
-        static GameObject hoveredGo;
-        static Vector2 mouseDownPos;
-
-        static Rect lastVisibleSelectedRowRect;
-
-
-
-
-        static void SceneRowGUI(Scene scene, Rect rowRect)
+        private static void SceneRowGUI(Scene scene, Rect rowRect)
         {
-
             void collapseAll()
             {
                 if (!VHierarchyMenu.collapseAllButtonEnabled) return;
@@ -700,11 +729,11 @@ namespace VHierarchy
 
                 expandQueue_toCollapseAfterAnimation = expandedChildren;
                 expandQueue_toAnimate = expandedRoots.Select(r => new ExpandQueueEntry { instanceId = r.GetInstanceID(), expand = false })
-                                                     .OrderBy(r => VisibleRowIndex(r.instanceId)).ToList();
+                    .OrderBy(r => VisibleRowIndex(r.instanceId)).ToList();
 
                 EditorApplication.RepaintHierarchyWindow();
-
             }
+
             void lighting()
             {
                 if (!VHierarchyMenu.editLightingButtonEnabled) return;
@@ -728,18 +757,16 @@ namespace VHierarchy
 
                 if (!clicked) return;
 
-                VHierarchyLightingWindow.CreateInstance(EditorGUIUtility.GUIToScreenPoint(curEvent.mousePosition) + new Vector2(8, -8));
+                VHierarchyLightingWindow.CreateInstance(GUIUtility.GUIToScreenPoint(curEvent.mousePosition) + new Vector2(8, -8));
 
                 VHierarchyLightingWindow.instance.Focus();
-
             }
 
             collapseAll();
             lighting();
-
         }
 
-        static void RowGUI(int instanceId, Rect rowRect)
+        private static void RowGUI(int instanceId, Rect rowRect)
         {
             if (EditorWindow.focusedWindow is EditorWindow focusedWindow)
                 if (focusedWindow.GetType() == t_SceneHierarchyWindow && focusedWindow != hierarchyWindow)
@@ -753,26 +780,24 @@ namespace VHierarchy
                 UpdateExpandedIdsList();
 
             if (EditorUtility.InstanceIDToObject(instanceId) is GameObject go)
+            {
                 GameObjectRowGUI(go, rowRect);
+            }
             else
             {
                 var iScene = -1;
 
-                for (int i = 0; i < EditorSceneManager.sceneCount; i++)
-                    if (EditorSceneManager.GetSceneAt(i).GetHashCode() == instanceId)
+                for (var i = 0; i < SceneManager.sceneCount; i++)
+                    if (SceneManager.GetSceneAt(i).GetHashCode() == instanceId)
                         iScene = i;
 
                 if (iScene != -1)
-                    SceneRowGUI(EditorSceneManager.GetSceneAt(iScene), rowRect);
+                    SceneRowGUI(SceneManager.GetSceneAt(iScene), rowRect);
             }
-
         }
 
 
-
-
-
-        static void CheckShortcuts() // globalEventHandler
+        private static void CheckShortcuts() // globalEventHandler
         {
             if (EditorWindow.mouseOverWindow?.GetType() != t_SceneHierarchyWindow) return;
             if (!curEvent.isKeyDown) return;
@@ -786,7 +811,6 @@ namespace VHierarchy
                 _hierarchyWindow = EditorWindow.mouseOverWindow;
 
                 UpdateExpandedIdsList();
-
             }
 
             void toggleExpanded()
@@ -808,8 +832,8 @@ namespace VHierarchy
                 SetExpandedWithAnimation(hoveredGo.GetInstanceID(), !expandedIds.Contains(hoveredGo.GetInstanceID()));
 
                 EditorApplication.RepaintHierarchyWindow();
-
             }
+
             void toggleActive()
             {
                 if (!hoveredGo) return;
@@ -828,8 +852,8 @@ namespace VHierarchy
                 }
 
                 curEvent.Use();
-
             }
+
             void delete()
             {
                 if (!hoveredGo) return;
@@ -844,9 +868,11 @@ namespace VHierarchy
 
                 curEvent.Use();
             }
+
             void collapseEverything()
             {
-                if (curEvent.modifiers != (EventModifiers.Shift | EventModifiers.Command) && curEvent.modifiers != (EventModifiers.Shift | EventModifiers.Control)) return;
+                if (curEvent.modifiers != (EventModifiers.Shift | EventModifiers.Command) &&
+                    curEvent.modifiers != (EventModifiers.Shift | EventModifiers.Control)) return;
                 if (!curEvent.isKeyDown || curEvent.keyCode != KeyCode.E) return;
                 if (!VHierarchyMenu.collapseEverythingEnabled) return;
 
@@ -864,11 +890,11 @@ namespace VHierarchy
 
                 expandQueue_toCollapseAfterAnimation = expandedChildren;
                 expandQueue_toAnimate = expandedRoots.Select(r => new ExpandQueueEntry { instanceId = r.GetInstanceID(), expand = false })
-                                                     .OrderBy(r => VisibleRowIndex(r.instanceId)).ToList();
+                    .OrderBy(r => VisibleRowIndex(r.instanceId)).ToList();
 
                 EditorApplication.RepaintHierarchyWindow();
-
             }
+
             void collapseEverythingElse()
             {
                 if (!hoveredGo) return;
@@ -894,13 +920,12 @@ namespace VHierarchy
 
 
                 expandQueue_toAnimate = toCollapse.Select(r => new ExpandQueueEntry { instanceId = r.GetInstanceID(), expand = false })
-                                                  .Append(new ExpandQueueEntry { instanceId = hoveredGo.GetInstanceID(), expand = true })
-                                                  .OrderBy(r => VisibleRowIndex(r.instanceId)).ToList();
+                    .Append(new ExpandQueueEntry { instanceId = hoveredGo.GetInstanceID(), expand = true })
+                    .OrderBy(r => VisibleRowIndex(r.instanceId)).ToList();
 
                 EditorApplication.RepaintHierarchyWindow();
-
-
             }
+
             void focus()
             {
                 if (!curEvent.isKeyDown) return;
@@ -919,7 +944,6 @@ namespace VHierarchy
                     (sv = SceneView.lastActiveSceneView ?? SceneView.sceneViews[0] as SceneView).Focus();
 
                 sv.Frame(hoveredGo.GetBounds(), false);
-
             }
 
 
@@ -931,12 +955,10 @@ namespace VHierarchy
             collapseEverything();
             collapseEverythingElse();
             focus();
-
         }
 
 
-
-        static void UpdateExpandQueue() // called from gui because reflected methods rely on event.current
+        private static void UpdateExpandQueue() // called from gui because reflected methods rely on event.current
         {
             if (treeViewController.GetPropertyValue<bool>("animatingExpansion")) return;
 
@@ -959,36 +981,43 @@ namespace VHierarchy
                 SetExpandedWithAnimation(iid, expand);
 
             expandQueue_toAnimate.RemoveAt(0);
-
         }
 
-        static List<ExpandQueueEntry> expandQueue_toAnimate = new List<ExpandQueueEntry>();
-        static List<GameObject> expandQueue_toCollapseAfterAnimation = new List<GameObject>();
 
-        struct ExpandQueueEntry { public int instanceId; public bool expand; }
-
-
-        static void UpdateExpandedIdsList() // delayCall loop
+        private static void UpdateExpandedIdsList() // delayCall loop
         {
-            expandedIds = hierarchyWindow?.GetFieldValue("m_SceneHierarchy")?.GetFieldValue("m_TreeViewState")?.GetPropertyValue<List<int>>("expandedIDs") ?? new List<int>();
+            expandedIds = hierarchyWindow?.GetFieldValue("m_SceneHierarchy")?.GetFieldValue("m_TreeViewState")?.GetPropertyValue<List<int>>("expandedIDs") ??
+                          new List<int>();
 
             EditorApplication.delayCall -= UpdateExpandedIdsList;
             EditorApplication.delayCall += UpdateExpandedIdsList;
-
         }
 
-        static List<int> expandedIds = new List<int>();
+        private static bool IsExpanded(GameObject go)
+        {
+            return expandedIds.Contains(go.GetInstanceID());
+        }
 
-        static bool IsExpanded(GameObject go) => expandedIds.Contains(go.GetInstanceID());
-        static bool IsVisible(GameObject go) => !go.transform.parent || (IsExpanded(go.transform.parent.gameObject) && IsVisible(go.transform.parent.gameObject));
+        private static bool IsVisible(GameObject go)
+        {
+            return !go.transform.parent || (IsExpanded(go.transform.parent.gameObject) && IsVisible(go.transform.parent.gameObject));
+        }
 
-        static void SetExpandedWithAnimation(int instanceId, bool expanded) => treeViewController.InvokeMethod("ChangeFoldingForSingleItem", instanceId, expanded);
-        static void SetExpanded(int instanceId, bool expanded) => treeViewController.GetPropertyValue("data").InvokeMethod("SetExpanded", instanceId, expanded); // static void SetExpanded(int instanceId, bool expanded) => hierarchyWindow.InvokeMethod("SetExpanded", instanceId, expanded);
-        static int VisibleRowIndex(int instanceId) => treeViewController.GetPropertyValue("data").InvokeMethod<int>("GetRow", instanceId);
+        private static void SetExpandedWithAnimation(int instanceId, bool expanded)
+        {
+            treeViewController.InvokeMethod("ChangeFoldingForSingleItem", instanceId, expanded);
+        }
 
+        private static void SetExpanded(int instanceId, bool expanded)
+        {
+            treeViewController.GetPropertyValue("data").InvokeMethod("SetExpanded", instanceId, expanded);
+            // static void SetExpanded(int instanceId, bool expanded) => hierarchyWindow.InvokeMethod("SetExpanded", instanceId, expanded);
+        }
 
-
-
+        private static int VisibleRowIndex(int instanceId)
+        {
+            return treeViewController.GetPropertyValue("data").InvokeMethod<int>("GetRow", instanceId);
+        }
 
 
         public static string GetComponentName(Component component)
@@ -1008,20 +1037,7 @@ namespace VHierarchy
                 componentIcons_byType[component.GetType()] = EditorGUIUtility.ObjectContent(component, component.GetType()).image;
 
             return componentIcons_byType[component.GetType()];
-
         }
-
-        static Dictionary<System.Type, Texture> componentIcons_byType = new Dictionary<Type, Texture>();
-
-
-
-
-
-
-
-
-
-
 
 
         public static GameObjectData GetGameObjectData(GameObject go, bool createDataIfDoesntExist)
@@ -1050,15 +1066,15 @@ namespace VHierarchy
 
                     if (dataComponents_byScene[go.scene])
                         sceneData = dataComponents_byScene[go.scene].sceneData;
-
                 }
+
                 void getSceneDataFromScriptableObject()
                 {
                     if (sceneData != null) return;
 
                     data.sceneDatas_byGuid.TryGetValue(originalSceneGuid, out sceneData);
-
                 }
+
                 void createSceneData()
                 {
                     if (sceneData != null) return;
@@ -1067,7 +1083,6 @@ namespace VHierarchy
                     sceneData = new SceneData();
 
                     data.sceneDatas_byGuid[originalSceneGuid] = sceneData;
-
                 }
 
                 void getSceneIdMap()
@@ -1075,8 +1090,8 @@ namespace VHierarchy
                     if (sceneData == null) return;
 
                     cache.sceneIdMaps_bySceneGuid.TryGetValue(originalSceneGuid, out sceneIdMap);
-
                 }
+
                 void createSceneIdMap()
                 {
                     if (sceneIdMap != null) return;
@@ -1086,8 +1101,8 @@ namespace VHierarchy
                     sceneIdMap = new SceneIdMap();
 
                     cache.sceneIdMaps_bySceneGuid[currentSceneGuid] = sceneIdMap;
-
                 }
+
                 void updateSceneIdMapAndOriginalSceneGuids()
                 {
                     if (sceneIdMap == null) return;
@@ -1102,27 +1117,27 @@ namespace VHierarchy
 
                     var globalIds = sceneData.goDatas_byGlobalId.Keys.ToList();
                     var instanceIds = globalIds.Select(r => Application.isPlaying ? r.UnpackForPrefab() : r)
-                                               .GetObjectInstanceIds();
+                        .GetObjectInstanceIds();
+
                     void clearSceneGuids()
                     {
                         foreach (var instanceId in sceneIdMap.globalIds_byInstanceId.Keys)
                             cache.originalSceneGuids_byInstanceId.Remove(instanceId);
-
                     }
+
                     void fillIdMap()
                     {
                         sceneIdMap.globalIds_byInstanceId = new SerializableDictionary<int, GlobalID>();
 
-                        for (int i = 0; i < instanceIds.Length; i++)
+                        for (var i = 0; i < instanceIds.Length; i++)
                             if (instanceIds[i] != 0)
                                 sceneIdMap.globalIds_byInstanceId[instanceIds[i]] = globalIds[i];
-
                     }
+
                     void fillSceneGuids()
                     {
-                        for (int i = 0; i < instanceIds.Length; i++)
+                        for (var i = 0; i < instanceIds.Length; i++)
                             cache.originalSceneGuids_byInstanceId[instanceIds[i]] = currentSceneGuid;
-
                     }
 
 
@@ -1132,7 +1147,6 @@ namespace VHierarchy
 
                     sceneIdMap.instanceIdsHash = curInstanceIdsHash;
                     sceneIdMap.globalIdsHash = curGlobalIdsHash;
-
                 }
 
                 void getGoData()
@@ -1142,8 +1156,8 @@ namespace VHierarchy
                     if (!sceneIdMap.globalIds_byInstanceId.TryGetValue(go.GetInstanceID(), out var globalId)) return;
 
                     sceneData.goDatas_byGlobalId.TryGetValue(globalId, out goData);
-
                 }
+
                 void moveGoDataToCurrentSceneGuid() // totest
                 {
                     if (goData == null) return;
@@ -1160,8 +1174,8 @@ namespace VHierarchy
 
                     originalSceneData.goDatas_byGlobalId.Remove(originalSceneData.goDatas_byGlobalId.First(r => r.Value == goData).Key);
                     currentSceneData.goDatas_byGlobalId[go.GetGlobalID()] = goData;
-
                 }
+
                 void createGoData()
                 {
                     if (goData != null) return;
@@ -1170,7 +1184,6 @@ namespace VHierarchy
                     goData = new GameObjectData();
 
                     sceneData.goDatas_byGlobalId[go.GetGlobalID()] = goData;
-
                 }
 
 
@@ -1185,8 +1198,8 @@ namespace VHierarchy
                 getGoData();
                 moveGoDataToCurrentSceneGuid();
                 createGoData();
-
             }
+
             void prefabObject()
             {
                 if (!(StageUtility.GetCurrentStage() is PrefabStage prefabStage)) return;
@@ -1198,15 +1211,14 @@ namespace VHierarchy
 
                 void calcGlobalId()
                 {
-
                     var rawGlobalId = go.GetGlobalID();
 
 
 #if UNITY_2023_2_OR_NEWER
-                    
+
                     var so = new SerializedObject(go);
 
-                    so.SetPropertyValue("inspectorMode", UnityEditor.InspectorMode.Debug);
+                    so.SetPropertyValue("inspectorMode", InspectorMode.Debug);
 
                     var rawFileId = so.FindProperty("m_LocalIdentfierInFile").longValue;
 
@@ -1214,17 +1226,15 @@ namespace VHierarchy
                         rawFileId = (long)t_Unsupported.InvokeMethod<ulong>("GetOrGenerateFileIDHint", go);
 
 #else
-
                     var rawFileId = rawGlobalId.fileId;
 #endif
 
                     // fixes fileId for prefab variants
                     // also works for getting prefab's unpacked fileId
-                    var fileId = ((long)rawFileId ^ (long)rawGlobalId.globalObjectId.targetPrefabId) & 0x7fffffffffffffff;
+                    var fileId = (rawFileId ^ (long)rawGlobalId.globalObjectId.targetPrefabId) & 0x7fffffffffffffff;
 
 
                     sourceGlobalId = new GlobalID($"GlobalObjectId_V1-1-{prefabGuid}-{fileId}-0");
-
                 }
 
 
@@ -1232,6 +1242,7 @@ namespace VHierarchy
                 {
                     data.sceneDatas_byGuid.TryGetValue(prefabGuid, out sceneData);
                 }
+
                 void createSceneData()
                 {
                     if (sceneData != null) return;
@@ -1240,7 +1251,6 @@ namespace VHierarchy
                     sceneData = new SceneData();
 
                     data.sceneDatas_byGuid[prefabGuid] = sceneData;
-
                 }
 
                 void getGoData()
@@ -1248,8 +1258,8 @@ namespace VHierarchy
                     if (sceneData == null) return;
 
                     sceneData.goDatas_byGlobalId.TryGetValue(sourceGlobalId, out goData);
-
                 }
+
                 void createGoData()
                 {
                     if (goData != null) return;
@@ -1258,7 +1268,6 @@ namespace VHierarchy
                     goData = new GameObjectData();
 
                     sceneData.goDatas_byGlobalId[sourceGlobalId] = goData;
-
                 }
 
 
@@ -1269,8 +1278,8 @@ namespace VHierarchy
 
                 getGoData();
                 createGoData();
-
             }
+
             void prefabInstance_editMode()
             {
                 if (!PrefabUtility.IsPartOfPrefabInstance(go)) return;
@@ -1297,13 +1306,14 @@ namespace VHierarchy
 
                             // wrapped in try-catch because GetCorrespondingObjectFromSource throws exceptions on broken prefabs
                         }
-                        catch { }
-
+                        catch
+                        {
+                        }
                 }
 
                 tryGetForSourceGo(PrefabUtility.GetCorrespondingObjectFromSource(go));
-
             }
+
             void prefabInstance_playmode()
             {
                 if (!Application.isPlaying) return;
@@ -1318,7 +1328,6 @@ namespace VHierarchy
                 data.sceneDatas_byGuid.TryGetValue(prefabGuid, out sceneData);
 
                 sceneData?.goDatas_byGlobalId.TryGetValue(globalId, out goData);
-
             }
 
             sceneObject();
@@ -1332,23 +1341,10 @@ namespace VHierarchy
             firstDataCacheLayer[go] = goData;
 
             return goData;
-
         }
 
-        public static Dictionary<GameObject, GameObjectData> firstDataCacheLayer = new Dictionary<GameObject, GameObjectData>(); // cleared on data serialization callbacks, ie when data is added or removed
 
-        public static Dictionary<Scene, VHierarchyDataComponent> dataComponents_byScene = new Dictionary<Scene, VHierarchyDataComponent>();
-
-        static VHierarchyCache cache => VHierarchyCache.instance;
-
-
-
-
-
-
-
-
-        static Texture2D GetIcon_forVTabs(GameObject gameObject)
+        private static Texture2D GetIcon_forVTabs(GameObject gameObject)
         {
             var goData = GetGameObjectData(gameObject, false);
 
@@ -1360,10 +1356,9 @@ namespace VHierarchy
                 return EditorIcons.GetIcon(iconNameOrPath);
 
             return null;
-
         }
 
-        static string GetIconName_forVFavorites(GameObject gameObject)
+        private static string GetIconName_forVFavorites(GameObject gameObject)
         {
             var goData = GetGameObjectData(gameObject, false);
 
@@ -1372,20 +1367,15 @@ namespace VHierarchy
             var iconNameOrPath = goData.iconNameOrGuid.Length == 32 ? goData.iconNameOrGuid.ToPath() : goData.iconNameOrGuid;
 
             return iconNameOrPath;
-
         }
-        static string GetIconName_forVInspector(GameObject gameObject)
+
+        private static string GetIconName_forVInspector(GameObject gameObject)
         {
             return GetIconName_forVFavorites(gameObject);
         }
 
 
-
-
-
-
-
-        static void RepaintOnAlt() // Update 
+        private static void RepaintOnAlt() // Update 
         {
             var lastEvent = typeof(Event).GetFieldValue<Event>("s_Current");
 
@@ -1394,15 +1384,10 @@ namespace VHierarchy
                     EditorApplication.RepaintHierarchyWindow();
 
             wasAlt = lastEvent.alt;
-
         }
 
-        static bool wasAlt;
 
-
-
-
-        static void SetPreviousTransformTool()
+        private static void SetPreviousTransformTool()
         {
             if (!transformToolNeedsReset) return;
 
@@ -1412,19 +1397,10 @@ namespace VHierarchy
 
             // E shortcut changes transform tool in 2022
             // here we undo this
-
         }
 
-        static bool transformToolNeedsReset;
-        static Tool previousTransformTool;
 
-
-
-
-
-
-
-        static void DuplicateSceneData(string originalSceneGuid, string duplicatedSceneGuid)
+        private static void DuplicateSceneData(string originalSceneGuid, string duplicatedSceneGuid)
         {
             var originalSceneData = data.sceneDatas_byGuid[originalSceneGuid];
             var duplicatedSceneData = data.sceneDatas_byGuid[duplicatedSceneGuid] = new SceneData();
@@ -1432,30 +1408,28 @@ namespace VHierarchy
             foreach (var kvp in originalSceneData.goDatas_byGlobalId)
             {
                 var duplicatedGlobalId = new GlobalID(kvp.Key.ToString().Replace(originalSceneGuid, duplicatedSceneGuid));
-                var duplicatedGoData = new GameObjectData() { colorIndex = kvp.Value.colorIndex, iconNameOrGuid = kvp.Value.iconNameOrGuid };
+                var duplicatedGoData = new GameObjectData { colorIndex = kvp.Value.colorIndex, iconNameOrGuid = kvp.Value.iconNameOrGuid };
 
                 duplicatedSceneData.goDatas_byGlobalId[duplicatedGlobalId] = duplicatedGoData;
-
             }
-
         }
 
-        static void OnSceneImported(string importedScenePath)
+        private static void OnSceneImported(string importedScenePath)
         {
             if (curEvent.commandName != "Duplicate" && curEvent.commandName != "Paste") return;
 
 
             var copiedAssets_paths = new List<string>();
 
-            var assetClipboard = typeof(Editor).Assembly.GetType("UnityEditor.AssetClipboardUtility").GetMemberValue("assetClipboard").InvokeMethod<IEnumerator>("GetEnumerator");
+            var assetClipboard = typeof(Editor).Assembly.GetType("UnityEditor.AssetClipboardUtility").GetMemberValue("assetClipboard")
+                .InvokeMethod<IEnumerator>("GetEnumerator");
 
             while (assetClipboard.MoveNext())
                 copiedAssets_paths.Add(assetClipboard.Current.GetMemberValue<GUID>("guid").ToString().ToPath());
 
 
-
             var originalScenePath = copiedAssets_paths.FirstOrDefault(r => File.Exists(r) && new FileInfo(r).Length
-                                                                                          == new FileInfo(importedScenePath).Length);
+                == new FileInfo(importedScenePath).Length);
             var originalSceneGuid = originalScenePath.ToGuid();
             var duplicatedSceneGuid = importedScenePath.ToGuid();
 
@@ -1463,33 +1437,11 @@ namespace VHierarchy
             if (data.sceneDatas_byGuid.ContainsKey(duplicatedSceneGuid)) return;
 
             DuplicateSceneData(originalSceneGuid, duplicatedSceneGuid);
-
         }
-
-        class SceneImportDetector : AssetPostprocessor
-        {
-            // scene data duplication won't work on earlier versions anyway
-#if UNITY_2021_2_OR_NEWER 
-            static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths, bool didDomainReload)
-            {
-                if (!data) return;
-
-                foreach (var r in importedAssets)
-                    if (r.EndsWith(".unity"))
-                        OnSceneImported(r);
-
-            }
-#endif
-        }
-
-
-
-
-
 
 
         [InitializeOnLoadMethod]
-        static void Init()
+        private static void Init()
         {
             if (VHierarchyMenu.pluginDisabled) return;
 
@@ -1507,10 +1459,10 @@ namespace VHierarchy
                 var globalEventHandler = typeof(EditorApplication).GetFieldValue<EditorApplication.CallbackFunction>("globalEventHandler");
                 typeof(EditorApplication).SetFieldValue("globalEventHandler", CheckShortcuts + (globalEventHandler - CheckShortcuts));
 
-                var projectWasLoaded = typeof(EditorApplication).GetFieldValue<UnityEngine.Events.UnityAction>("projectWasLoaded");
-                typeof(EditorApplication).SetFieldValue("projectWasLoaded", (projectWasLoaded - ClearCacheOnProjectLoaded) + ClearCacheOnProjectLoaded);
-
+                var projectWasLoaded = typeof(EditorApplication).GetFieldValue<UnityAction>("projectWasLoaded");
+                typeof(EditorApplication).SetFieldValue("projectWasLoaded", projectWasLoaded - ClearCacheOnProjectLoaded + ClearCacheOnProjectLoaded);
             }
+
             void loadData()
             {
                 data = AssetDatabase.LoadAssetAtPath<VHierarchyData>(EditorPrefs.GetString("vHierarchy-lastKnownDataPath-" + GetProjectId()));
@@ -1524,8 +1476,8 @@ namespace VHierarchy
                 if (!data) return;
 
                 EditorPrefs.SetString("vHierarchy-lastKnownDataPath-" + GetProjectId(), data.GetPath());
-
             }
+
             void loadPalette()
             {
                 palette = AssetDatabase.LoadAssetAtPath<VHierarchyPalette>(EditorPrefs.GetString("vHierarchy-lastKnownPalettePath-" + GetProjectId()));
@@ -1533,14 +1485,15 @@ namespace VHierarchy
 
                 if (palette) return;
 
-                palette = AssetDatabase.FindAssets("t:VHierarchyPalette").Select(guid => AssetDatabase.LoadAssetAtPath<VHierarchyPalette>(guid.ToPath())).FirstOrDefault();
+                palette = AssetDatabase.FindAssets("t:VHierarchyPalette").Select(guid => AssetDatabase.LoadAssetAtPath<VHierarchyPalette>(guid.ToPath()))
+                    .FirstOrDefault();
 
 
                 if (!palette) return;
 
                 EditorPrefs.SetString("vHierarchy-lastKnownPalettePath-" + GetProjectId(), palette.GetPath());
-
             }
+
             void loadDataAndPaletteDelayed()
             {
                 if (!data)
@@ -1553,8 +1506,8 @@ namespace VHierarchy
                 // and if current AssetDatabase state doesn't contain the data - it won't be loaded during Init()
                 // so here we schedule an additional, delayed attempt to load the data
                 // this addresses reports of data loss when trying to load it on a new machine
-
             }
+
             void migrateDataFromV1()
             {
                 if (!data) return;
@@ -1562,7 +1515,7 @@ namespace VHierarchy
 
                 EditorPrefs.SetBool("vHierarchy-dataMigrationFromV1Attempted-" + GetProjectId(), true);
 
-                var lines = System.IO.File.ReadAllLines(data.GetPath());
+                var lines = File.ReadAllLines(data.GetPath());
 
                 if (lines.Length < 15 || !lines[14].Contains("sceneDatasByGuid")) return;
 
@@ -1574,7 +1527,7 @@ namespace VHierarchy
 
                 void parseSceneGuids()
                 {
-                    for (int i = 16; i < lines.Length; i++)
+                    for (var i = 16; i < lines.Length; i++)
                     {
                         if (lines[i].Contains("values:")) break;
 
@@ -1584,16 +1537,15 @@ namespace VHierarchy
                             sceneGuids.Add(lines[i].Substring(startIndex));
                         else
                             sceneGuids.Add("");
-
                     }
-
                 }
+
                 void parseGlobalIdLists_andCountGoDatasByInstanceId()
                 {
                     var parsingGlobalIdList = false;
                     var parsingGlobalIdListAtIndex = -1;
 
-                    for (int i = 0; i < lines.Length; i++)
+                    for (var i = 0; i < lines.Length; i++)
                     {
                         var line = lines[i];
 
@@ -1605,8 +1557,8 @@ namespace VHierarchy
                             parsingGlobalIdListAtIndex++;
 
                             globalIdLists.Add(new List<string>());
-
                         }
+
                         void parse()
                         {
                             if (!parsingGlobalIdList) return;
@@ -1618,8 +1570,8 @@ namespace VHierarchy
                                 globalIdLists[parsingGlobalIdListAtIndex].Add(line.Substring(startIndex));
                             else
                                 globalIdLists[parsingGlobalIdListAtIndex].Add("");
-
                         }
+
                         void stopParsing_andCountDatasByInstanceId()
                         {
                             if (!line.Contains("goDatasByInstanceId")) return;
@@ -1632,21 +1584,17 @@ namespace VHierarchy
                             var goDatasByInstanceId_count = (goDatasByInstanceId_keysLine.Length - 14) / 8;
 
                             goDatasByInstanceIdCounts.Add(goDatasByInstanceId_count);
-
-
                         }
 
                         startParsing();
                         parse();
                         stopParsing_andCountDatasByInstanceId();
-
                     }
-
                 }
+
                 void parseSceneDatas()
                 {
                     var firstLineIndexOfFirstSceneData = 17 + sceneGuids.Count;
-
 
 
                     void parseSceneData(int sceneDataIndex)
@@ -1655,7 +1603,6 @@ namespace VHierarchy
 
                         var globalIds = globalIdLists[sceneDataIndex];
                         var firstLineIndex = getFirstLineIndex(sceneDataIndex);
-
 
 
                         void parseGoData(int iGoData)
@@ -1675,16 +1622,13 @@ namespace VHierarchy
                                 goData.iconNameOrGuid = iconLine.Substring(16);
 
 
-
                             var globalIdString = globalIdLists[sceneDataIndex][iGoData];
 
                             var globalId = new GlobalID(globalIdString);
 
 
-
                             sceneData.goDatas_byGlobalId[globalId] = goData;
                             // sceneData.goDatas_byGlobalId.Add(globalId, goData);
-
                         }
 
                         int getColorLineIndex(int goDataIndex)
@@ -1699,22 +1643,23 @@ namespace VHierarchy
                             index += goDataIndex * 2;
 
                             return index;
-
                         }
-                        int getIconLineIndex(int goDataIndex) => getColorLineIndex(goDataIndex) + 1;
+
+                        int getIconLineIndex(int goDataIndex)
+                        {
+                            return getColorLineIndex(goDataIndex) + 1;
+                        }
 
 
-
-                        for (int i = 0; i < globalIds.Count; i++)
+                        for (var i = 0; i < globalIds.Count; i++)
                             parseGoData(i);
 
                         sceneDatas.Add(sceneData);
-
                     }
 
                     int getSceneDataLength(int sceneDataIndex)
                     {
-                        int length = 0;
+                        var length = 0;
 
                         length += 1; // - goDatasByGlobalId:
 
@@ -1723,7 +1668,6 @@ namespace VHierarchy
 
                         length += 1; // - values:
                         length += globalIdLists[sceneDataIndex].Count * 2;
-
 
 
                         length += 1; // - goDatasByInstanceId:
@@ -1735,46 +1679,42 @@ namespace VHierarchy
 
 
                         return length;
-
                     }
+
                     int getFirstLineIndex(int sceneDataIndex)
                     {
                         var index = firstLineIndexOfFirstSceneData;
 
-                        for (int i = 0; i < sceneDataIndex; i++)
+                        for (var i = 0; i < sceneDataIndex; i++)
                             index += getSceneDataLength(i);
 
                         return index;
-
                     }
 
 
-
-                    for (int i = 0; i < sceneGuids.Count; i++)
+                    for (var i = 0; i < sceneGuids.Count; i++)
                         parseSceneData(i);
-
                 }
 
                 void remapColorIndexes()
                 {
                     foreach (var sceneData in sceneDatas)
-                        foreach (var goData in sceneData.goDatas_byGlobalId.Values)
-                            if (goData.colorIndex == 7)
-                                goData.colorIndex = 1;
-                            else if (goData.colorIndex == 8)
-                                goData.colorIndex = 2;
-                            else if (goData.colorIndex >= 2)
-                                goData.colorIndex += 2;
-
+                    foreach (var goData in sceneData.goDatas_byGlobalId.Values)
+                        if (goData.colorIndex == 7)
+                            goData.colorIndex = 1;
+                        else if (goData.colorIndex == 8)
+                            goData.colorIndex = 2;
+                        else if (goData.colorIndex >= 2)
+                            goData.colorIndex += 2;
                 }
+
                 void setSceneDatasToData()
                 {
-                    for (int i = 0; i < sceneDatas.Count; i++)
+                    for (var i = 0; i < sceneDatas.Count; i++)
                         data.sceneDatas_byGuid[sceneGuids[i]] = sceneDatas[i];
 
                     data.Dirty();
                     data.Save();
-
                 }
 
 
@@ -1786,10 +1726,10 @@ namespace VHierarchy
 
                     remapColorIndexes();
                     setSceneDatasToData();
-
                 }
-                catch { }
-
+                catch
+                {
+                }
             }
 
             subscribe();
@@ -1799,56 +1739,41 @@ namespace VHierarchy
             migrateDataFromV1();
 
             UpdateExpandedIdsList();
-
         }
 
-        public static VHierarchyData data;
-        public static VHierarchyPalette palette;
 
-
-
-        [UnityEditor.Callbacks.PostProcessBuild]
-        public static void ClearCacheAfterBuild(BuildTarget _, string __) => VHierarchyCache.Clear();
-
-        static void ClearCacheOnProjectLoaded() => VHierarchyCache.Clear();
-
-
-
-
-
-
-
-
-        static EditorWindow hierarchyWindow
+        [PostProcessBuild]
+        public static void ClearCacheAfterBuild(BuildTarget _, string __)
         {
-            get
-            {
-                if (_hierarchyWindow != null && _hierarchyWindow.GetType() != t_SceneHierarchyWindow) // happens on 2022.3.22f1 with enter playmode options on
-                    _hierarchyWindow = null;
-
-                if (_hierarchyWindow == null)
-                    _hierarchyWindow = Resources.FindObjectsOfTypeAll(t_SceneHierarchyWindow).FirstOrDefault() as EditorWindow;
-
-                return _hierarchyWindow;
-
-            }
+            Clear();
         }
-        static EditorWindow _hierarchyWindow;
 
-        static object treeViewController => hierarchyWindow?.GetFieldValue("m_SceneHierarchy").GetFieldValue("m_TreeView"); // recreated on prefab mode enter/exit
+        private static void ClearCacheOnProjectLoaded()
+        {
+            Clear();
+        }
 
+        private struct ExpandQueueEntry
+        {
+            public int instanceId;
+            public bool expand;
+        }
 
-        static Type t_SceneHierarchyWindow = typeof(Editor).Assembly.GetType("UnityEditor.SceneHierarchyWindow");
-        static Type t_Unsupported = typeof(Editor).Assembly.GetType("UnityEditor.Unsupported");
+        private class SceneImportDetector : AssetPostprocessor
+        {
+            // scene data duplication won't work on earlier versions anyway
+#if UNITY_2021_2_OR_NEWER
+            private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths,
+                bool didDomainReload)
+            {
+                if (!data) return;
 
-
-
-
-
-        public const string version = "2.0.18";
-
+                foreach (var r in importedAssets)
+                    if (r.EndsWith(".unity"))
+                        OnSceneImported(r);
+            }
+#endif
+        }
     }
 }
 #endif
-
-

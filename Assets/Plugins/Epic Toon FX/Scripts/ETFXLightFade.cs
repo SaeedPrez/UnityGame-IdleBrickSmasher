@@ -4,23 +4,25 @@ namespace EpicToonFX
 {
     public class ETFXLightFade : MonoBehaviour
     {
-        public enum OnLifeEnd { DoNothing, Disable, Destroy }
+        public enum OnLifeEnd
+        {
+            DoNothing,
+            Disable,
+            Destroy
+        }
 
-        [Header("Seconds to dim the light")]
-        public float life = 0.2f;
+        [Header("Seconds to dim the light")] public float life = 0.2f;
+
         public OnLifeEnd onLifeEnd = OnLifeEnd.Destroy;
+        private float initIntensity;
 
         private Light li;
-        private float initIntensity;
 
         // Use this for initialization
         private void Start()
         {
             li = GetComponent<Light>();
-            if (li != null)
-            {
-                initIntensity = li.intensity;
-            }
+            if (li != null) initIntensity = li.intensity;
         }
 
         // Update is called once per frame
@@ -30,7 +32,6 @@ namespace EpicToonFX
             {
                 li.intensity -= initIntensity * (Time.deltaTime / life);
                 if (li.intensity <= 0f)
-                {
                     switch (onLifeEnd)
                     {
                         case OnLifeEnd.DoNothing:
@@ -43,7 +44,6 @@ namespace EpicToonFX
                             Destroy(li);
                             break;
                     }
-                }
             }
         }
     }

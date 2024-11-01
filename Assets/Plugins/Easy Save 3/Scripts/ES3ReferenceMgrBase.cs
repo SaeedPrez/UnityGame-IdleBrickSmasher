@@ -1,37 +1,38 @@
-using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
+using Random = System.Random;
 
 namespace ES3Internal
 {
-    [System.Serializable]
+    [Serializable]
     [DisallowMultipleComponent]
     public abstract class ES3ReferenceMgrBase : MonoBehaviour
     {
-        internal object _lock = new object();
+        internal object _lock = new();
 
         public const string referencePropertyName = "_ES3Ref";
-        private static ES3ReferenceMgrBase _current = null;
-        private static HashSet<ES3ReferenceMgrBase> mgrs = new HashSet<ES3ReferenceMgrBase>();
+        private static ES3ReferenceMgrBase _current;
+        private static HashSet<ES3ReferenceMgrBase> mgrs = new();
 #if UNITY_EDITOR
-        protected static bool isEnteringPlayMode = false;
-        static readonly HideFlags[] invalidHideFlags = new HideFlags[] { HideFlags.DontSave, HideFlags.DontSaveInBuild, HideFlags.DontSaveInEditor, HideFlags.HideAndDontSave };
+        protected static bool isEnteringPlayMode;
+        private static readonly HideFlags[] invalidHideFlags = { HideFlags.DontSave, HideFlags.DontSaveInBuild, HideFlags.DontSaveInEditor, HideFlags.HideAndDontSave };
 #endif
 
 #if !UNITY_EDITOR
         [NonSerialized]
 #endif
-        public List<UnityEngine.Object> excludeObjects = new List<UnityEngine.Object>();
+        public List<Object> excludeObjects = new();
 
-        private static System.Random rng;
+        private static Random rng;
 
-        [HideInInspector]
-        public bool openPrefabs = false; // Whether the prefab list should be open in the Editor.
+        [HideInInspector] public bool openPrefabs; // Whether the prefab list should be open in the Editor.
 
-        public List<ES3Prefab> prefabs = new List<ES3Prefab>();
+        public List<ES3Prefab> prefabs = new();
 
         public static ES3ReferenceMgrBase Current
         {
@@ -40,10 +41,11 @@ namespace ES3Internal
                 // If the reference manager hasn't been assigned, or we've got a reference to a manager in a different scene which isn't marked as DontDestroyOnLoad, look for this scene's manager.
                 if (_current == null /*|| (_current.gameObject.scene.buildIndex != -1 && _current.gameObject.scene != SceneManager.GetActiveScene())*/)
                 {
-                    ES3ReferenceMgrBase mgr = GetManagerFromScene(SceneManager.GetActiveScene());
+                    var mgr = GetManagerFromScene(SceneManager.GetActiveScene());
                     if (mgr != null)
                         mgrs.Add(_current = mgr);
                 }
+
                 return _current;
             }
         }
@@ -74,28 +76,25 @@ namespace ES3Internal
 
                 // First, look for Easy Save 3 Manager in the top-level.
                 foreach (var root in roots)
-                {
                     if (root.name == "Easy Save 3 Manager")
                     {
                         var mgr = root.GetComponent<ES3ReferenceMgr>();
-                        if(mgr != null)
+                        if (mgr != null)
                             return mgr;
                     }
-                }
 
                 // If the user has moved or renamed the Easy Save 3 Manager, we need to perform a deep search.
                 foreach (var root in roots)
                 {
                     var mgr = root.GetComponentInChildren<ES3ReferenceMgr>();
-                    if(mgr != null)
+                    if (mgr != null)
                         return mgr;
                 }
             }
 
             // If we can't find a manager in this scene (for example we're in DontDestroyOnLoad), find a manager in any scene.
             if (getAnyManagerIfNotInScene)
-            {
-                for (int i = 0; i < SceneManager.sceneCount; i++)
+                for (var i = 0; i < SceneManager.sceneCount; i++)
                 {
                     var loadedScene = SceneManager.GetSceneAt(i);
 
@@ -104,20 +103,20 @@ namespace ES3Internal
                         var mgr = GetManagerFromScene(loadedScene, false);
                         if (mgr != null)
                         {
-                            ES3Debug.LogWarning($"The reference you're trying to save does not exist in any scene, or the scene it belongs to does not contain an Easy Save 3 Manager. Using the reference manager from scene {loadedScene.name} instead. This may cause unexpected behaviour or leak memory in some situations.");
+                            ES3Debug.LogWarning(
+                                $"The reference you're trying to save does not exist in any scene, or the scene it belongs to does not contain an Easy Save 3 Manager. Using the reference manager from scene {loadedScene.name} instead. This may cause unexpected behaviour or leak memory in some situations.");
                             return mgr;
                         }
                     }
                 }
-            }
+
             return null;
         }
 
-        public bool IsInitialised { get { return idRef.Count > 0; } }
+        public bool IsInitialised => idRef.Count > 0;
 
-        [SerializeField]
-        public ES3IdRefDictionary idRef = new ES3IdRefDictionary();
-        private ES3RefIdDictionary _refId = null;
+        [SerializeField] public ES3IdRefDictionary idRef = new();
+        private ES3RefIdDictionary _refId;
 
         public ES3RefIdDictionary refId
         {
@@ -131,21 +130,13 @@ namespace ES3Internal
                         if (kvp.Value != null)
                             _refId[kvp.Value] = kvp.Key;
                 }
+
                 return _refId;
             }
-            set
-            {
-                _refId = value;
-            }
+            set => _refId = value;
         }
 
-        public ES3GlobalReferences GlobalReferences
-        {
-            get
-            {
-                return ES3GlobalReferences.Instance;
-            }
-        }
+        public ES3GlobalReferences GlobalReferences => ES3GlobalReferences.Instance;
 
         // Reset static variables to handle disabled domain reloading.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -165,7 +156,7 @@ namespace ES3Internal
             {
                 var existing = _current;
 
-                /* We intentionally use Current rather than _current here, as _current may contain a reference to a manager in another scene, 
+                /* We intentionally use Current rather than _current here, as _current may contain a reference to a manager in another scene,
                  * but Current only returns the Manager for the active scene. */
                 if (Current != null)
                 {
@@ -177,7 +168,10 @@ namespace ES3Internal
                 }
             }
             else
+            {
                 _current = this;
+            }
+
             mgrs.Add(this);
         }
 
@@ -195,7 +189,7 @@ namespace ES3Internal
                 Add(kvp.Value, kvp.Key);
         }
 
-        public long Get(UnityEngine.Object obj)
+        public long Get(Object obj)
         {
             if (!mgrs.Contains(this))
                 mgrs.Add(this);
@@ -212,10 +206,11 @@ namespace ES3Internal
                 if (mgr.refId.TryGetValue(obj, out id))
                     return id;
             }
+
             return -1;
         }
 
-        internal UnityEngine.Object Get(long id, Type type, bool suppressWarnings = false)
+        internal Object Get(long id, Type type, bool suppressWarnings = false)
         {
             if (!mgrs.Contains(this))
                 mgrs.Add(this);
@@ -228,7 +223,7 @@ namespace ES3Internal
                 if (id == -1)
                     return null;
 
-                UnityEngine.Object obj;
+                Object obj;
                 if (mgr.idRef.TryGetValue(id, out obj))
                 {
                     if (obj == null) // If obj has been marked as destroyed but not yet destroyed, don't return it.
@@ -245,14 +240,20 @@ namespace ES3Internal
             }
 
             if (type != null)
-                ES3Debug.LogWarning("Reference for " + type + " with ID " + id + " could not be found in Easy Save's reference manager. See <a href=\"https://docs.moodkie.com/easy-save-3/es3-guides/saving-and-loading-references/#reference-could-not-be-found-warning\">the Saving and Loading References guide</a> for more information.", this);
+                ES3Debug.LogWarning(
+                    "Reference for " + type + " with ID " + id +
+                    " could not be found in Easy Save's reference manager. See <a href=\"https://docs.moodkie.com/easy-save-3/es3-guides/saving-and-loading-references/#reference-could-not-be-found-warning\">the Saving and Loading References guide</a> for more information.",
+                    this);
             else
-                ES3Debug.LogWarning("Reference with ID " + id + " could not be found in Easy Save's reference manager. See <a href=\"https://docs.moodkie.com/easy-save-3/es3-guides/saving-and-loading-references/#reference-could-not-be-found-warning\">the Saving and Loading References guide</a> for more information.", this);
+                ES3Debug.LogWarning(
+                    "Reference with ID " + id +
+                    " could not be found in Easy Save's reference manager. See <a href=\"https://docs.moodkie.com/easy-save-3/es3-guides/saving-and-loading-references/#reference-could-not-be-found-warning\">the Saving and Loading References guide</a> for more information.",
+                    this);
 
             return null;
         }
 
-        public UnityEngine.Object Get(long id, bool suppressWarnings = false)
+        public Object Get(long id, bool suppressWarnings = false)
         {
             return Get(id, null, suppressWarnings);
         }
@@ -271,8 +272,12 @@ namespace ES3Internal
                     if (prefab != null && prefab.prefabId == id)
                         return prefab;
             }
+
             if (!suppressWarnings)
-                ES3Debug.LogWarning("Prefab with ID " + id + " could not be found in Easy Save's reference manager. Try pressing the Refresh References button on the ES3ReferenceMgr Component of the Easy Save 3 Manager in your scene, or exit play mode and right-click the prefab and select Easy Save 3 > Add Reference(s) to Manager.", this);
+                ES3Debug.LogWarning(
+                    "Prefab with ID " + id +
+                    " could not be found in Easy Save's reference manager. Try pressing the Refresh References button on the ES3ReferenceMgr Component of the Easy Save 3 Manager in your scene, or exit play mode and right-click the prefab and select Easy Save 3 > Add Reference(s) to Manager.",
+                    this);
             return null;
         }
 
@@ -290,12 +295,16 @@ namespace ES3Internal
                     if (prefab == prefabToFind)
                         return prefab.prefabId;
             }
+
             if (!suppressWarnings)
-                ES3Debug.LogWarning("Prefab with name " + prefabToFind.name + " could not be found in Easy Save's reference manager. Try pressing the Refresh References button on the ES3ReferenceMgr Component of the Easy Save 3 Manager in your scene, or exit play mode and right-click the prefab and select Easy Save 3 > Add Reference(s) to Manager.", prefabToFind);
+                ES3Debug.LogWarning(
+                    "Prefab with name " + prefabToFind.name +
+                    " could not be found in Easy Save's reference manager. Try pressing the Refresh References button on the ES3ReferenceMgr Component of the Easy Save 3 Manager in your scene, or exit play mode and right-click the prefab and select Easy Save 3 > Add Reference(s) to Manager.",
+                    prefabToFind);
             return -1;
         }
 
-        public long Add(UnityEngine.Object obj)
+        public long Add(Object obj)
         {
             if (obj == null)
                 return -1;
@@ -326,7 +335,7 @@ namespace ES3Internal
             }
         }
 
-        public long Add(UnityEngine.Object obj, long id)
+        public long Add(Object obj, long id)
         {
             if (obj == null)
                 return -1;
@@ -344,6 +353,7 @@ namespace ES3Internal
                 if (obj != null)
                     refId[obj] = id;
             }
+
             return id;
         }
 
@@ -354,10 +364,11 @@ namespace ES3Internal
                 prefabs.Add(prefab);
                 return true;
             }
+
             return false;
         }
 
-        public void Remove(UnityEngine.Object obj)
+        public void Remove(Object obj)
         {
             if (!mgrs.Contains(this))
                 mgrs.Add(this);
@@ -424,7 +435,7 @@ namespace ES3Internal
             }
         }
 
-        public bool Contains(UnityEngine.Object obj)
+        public bool Contains(Object obj)
         {
             return refId.ContainsKey(obj);
         }
@@ -444,13 +455,13 @@ namespace ES3Internal
         internal static long GetNewRefID()
         {
             if (rng == null)
-                rng = new System.Random();
+                rng = new Random();
 
-            byte[] buf = new byte[8];
+            var buf = new byte[8];
             rng.NextBytes(buf);
-            long longRand = BitConverter.ToInt64(buf, 0);
+            var longRand = BitConverter.ToInt64(buf, 0);
 
-            return (System.Math.Abs(longRand % (long.MaxValue - 0)) + 0);
+            return Math.Abs(longRand % (long.MaxValue - 0)) + 0;
         }
 
         /*#if UNITY_EDITOR
@@ -697,14 +708,15 @@ namespace ES3Internal
                 }
         #endif*/
 
-        internal static bool CanBeSaved(UnityEngine.Object obj)
+        internal static bool CanBeSaved(Object obj)
         {
 #if UNITY_EDITOR
             if (obj == null)
                 return true;
 
             foreach (var flag in invalidHideFlags)
-                if ((obj.hideFlags & flag) != 0 && obj.hideFlags != HideFlags.HideInHierarchy && obj.hideFlags != HideFlags.HideInInspector && obj.hideFlags != HideFlags.NotEditable)
+                if ((obj.hideFlags & flag) != 0 && obj.hideFlags != HideFlags.HideInHierarchy && obj.hideFlags != HideFlags.HideInInspector &&
+                    obj.hideFlags != HideFlags.NotEditable)
                     if (!(obj is Mesh || obj is Material))
                         return false;
 
@@ -716,25 +728,25 @@ namespace ES3Internal
         }
     }
 
-    [System.Serializable]
-    public class ES3IdRefDictionary : ES3SerializableDictionary<long, UnityEngine.Object>
+    [Serializable]
+    public class ES3IdRefDictionary : ES3SerializableDictionary<long, Object>
     {
         protected override bool KeysAreEqual(long a, long b)
         {
             return a == b;
         }
 
-        protected override bool ValuesAreEqual(UnityEngine.Object a, UnityEngine.Object b)
+        protected override bool ValuesAreEqual(Object a, Object b)
         {
             return a == b;
         }
     }
 
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Serializable]
-    public class ES3RefIdDictionary : ES3SerializableDictionary<UnityEngine.Object, long>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [Serializable]
+    public class ES3RefIdDictionary : ES3SerializableDictionary<Object, long>
     {
-        protected override bool KeysAreEqual(UnityEngine.Object a, UnityEngine.Object b)
+        protected override bool KeysAreEqual(Object a, Object b)
         {
             return a == b;
         }

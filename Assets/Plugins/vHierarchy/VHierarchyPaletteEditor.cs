@@ -1,19 +1,11 @@
 #if UNITY_EDITOR
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor;
-using UnityEditor.ShortcutManagement;
-using System.Reflection;
 using System.Linq;
-using UnityEditorInternal;
-using UnityEngine.UIElements;
-using UnityEngine.SceneManagement;
-using UnityEditor.SceneManagement;
+using UnityEditor;
+using UnityEngine;
 using static VHierarchy.Libs.VUtils;
 using static VHierarchy.Libs.VGUI;
 using static VHierarchy.VHierarchyPalette;
-
 
 
 namespace VHierarchy
@@ -21,6 +13,57 @@ namespace VHierarchy
     [CustomEditor(typeof(VHierarchyPalette))]
     public class VHierarchyPaletteEditor : Editor
     {
+        private EditorWindow colorPicker;
+        private IconRow crossIconAnimationSourceRow;
+        private float crossIconAnimationT = 1;
+
+        private float crossIconY = 51;
+
+        private float deltaTime;
+
+        private IconRow draggedRow;
+        private float draggedRowHoldOffset;
+        private float draggedRowY;
+        private bool draggingRow;
+        private int draggingRowFromIndex;
+
+        private float firstRowY = 51;
+
+        private IconRow hoveredRow;
+        private EditorWindow iconPicker;
+        private int insertDraggedRowAtIndex;
+        private double lastLayoutTime;
+
+        private bool pickingColor;
+        private int pickingColorAtIndex;
+
+        private bool pickingIcon;
+        private int pickingIconAtIndex;
+        private IconRow pickingIconAtRow;
+
+        private IconRow prevFirstEnabledRow;
+
+        private readonly List<float> rowGaps = new();
+        private readonly float rowSpacing = 1;
+
+        private float iconSize => 18;
+        private float iconSpacing => 2;
+        private float cellSize => iconSize + iconSpacing;
+        private float rowsOffsetX => 14;
+        private float iconsOffsetX => 27;
+
+        private Color hoveredRowBackground => Greyscale(isDarkTheme ? 1 : 0, .05f);
+        private Color draggedRowBackground => Greyscale(isDarkTheme ? .3f : .9f);
+        private Color pickingBackground => Greyscale(1, .17f);
+        private Color disabledRowTint => Greyscale(1, .45f);
+
+        private float rowWidth => cellSize * Mathf.Max(palette.colors.Count, palette.iconRows.Max(r => r.iconCount + 1)) + 55;
+        private bool animatingCrossIcon => crossIconAnimationT != 1;
+        private IconRow curFirstEnabledRow => palette.iconRows.FirstOrDefault(r => r.enabled);
+
+
+        private VHierarchyPalette palette => target as VHierarchyPalette;
+
         public override void OnInspectorGUI()
         {
             void colors()
@@ -34,8 +77,8 @@ namespace VHierarchy
                     if (draggingRow) return;
 
                     rowRect.Draw(hoveredRowBackground);
-
                 }
+
                 void toggle()
                 {
                     var toggleRect = rowRect.SetWidth(16).MoveX(5);
@@ -50,8 +93,8 @@ namespace VHierarchy
 
                     if (prevEnabled != newEnabled)
                         palette.Dirty();
-
                 }
+
                 void crossIcon()
                 {
                     var crossIconRect = rowRect.SetX(rowsOffsetX + iconsOffsetX + iconSpacing / 2).SetWidth(iconSize).SetHeightFromMid(iconSize);
@@ -63,8 +106,8 @@ namespace VHierarchy
 
                     ResetGUIColor();
                     ResetLabelStyle();
-
                 }
+
                 void color(int i)
                 {
                     var cellRect = rowRect.MoveX(iconsOffsetX + (i + 1) * cellSize).SetWidth(cellSize).SetHeightFromMid(cellSize);
@@ -75,20 +118,20 @@ namespace VHierarchy
                         if (i != pickingColorAtIndex) return;
 
                         cellRect.DrawWithRoundedCorners(pickingBackground, 2);
-
                     }
+
                     void color()
                     {
                         var tint = palette.colorsEnabled ? Color.white : disabledRowTint;
 
-                        var brightness = i < VHierarchyPalette.greyColorsCount ? 1.02f : 1.35f;
-                        var outlineColor = i < VHierarchyPalette.greyColorsCount ? Greyscale(.0f, .4f) : Greyscale(.15f, .2f);
+                        var brightness = i < greyColorsCount ? 1.02f : 1.35f;
+                        var outlineColor = i < greyColorsCount ? Greyscale(.0f, .4f) : Greyscale(.15f, .2f);
 
                         cellRect.Resize(3).DrawWithRoundedCorners(outlineColor * tint, 4);
                         cellRect.Resize(4).DrawWithRoundedCorners(palette.colors[i].SetAlpha(1) * brightness * tint, 3);
                         cellRect.Resize(4).AddWidthFromRight(-2).DrawCurtainLeft(GUIColors.windowBackground.SetAlpha((1 - palette.colors[i].a) * .5f));
-
                     }
+
                     void startPickingColorButton()
                     {
                         if (!palette.colorsEnabled) return;
@@ -102,28 +145,32 @@ namespace VHierarchy
 
                         if (!clicked) return;
 
-                        colorPicker = OpenColorPicker((c) => { palette.RecordUndo(); palette.Dirty(); palette.colors[i] = c; }, palette.colors[i], true, false);
+                        colorPicker = OpenColorPicker(c =>
+                        {
+                            palette.RecordUndo();
+                            palette.Dirty();
+                            palette.colors[i] = c;
+                        }, palette.colors[i]);
 
-                        colorPicker.MoveTo(EditorGUIUtility.GUIToScreenPoint(cellRect.Move(-3, 50).position));
+                        colorPicker.MoveTo(GUIUtility.GUIToScreenPoint(cellRect.Move(-3, 50).position));
 
                         pickingColor = true;
                         pickingColorAtIndex = i;
-
                     }
+
                     void updatePickingColor()
                     {
                         if (!pickingColor) return;
 
                         EditorApplication.RepaintHierarchyWindow();
-
                     }
+
                     void stopPickingColor()
                     {
                         if (!pickingColor) return;
                         if (colorPicker) return;
 
                         pickingColor = false;
-
                     }
 
 
@@ -134,19 +181,18 @@ namespace VHierarchy
                     startPickingColorButton();
                     updatePickingColor();
                     stopPickingColor();
-
                 }
 
                 backgroundHovered();
                 toggle();
                 crossIcon();
 
-                for (int i = 0; i < palette.colors.Count; i++)
+                for (var i = 0; i < palette.colors.Count; i++)
                     color(i);
 
                 Space(rowSpacing - 2);
-
             }
+
             void icons()
             {
                 void row(Rect rowRect, IconRow row)
@@ -160,13 +206,13 @@ namespace VHierarchy
                     {
                         iconPicker = OpenObjectPicker<Texture2D>(AssetDatabase.LoadAssetAtPath<Texture2D>(row.customIcons[i].ToPath()), controlID: 123);
 
-                        iconPicker.MoveTo(EditorGUIUtility.GUIToScreenPoint(cellRect.Move(-3, 50).position));
+                        iconPicker.MoveTo(GUIUtility.GUIToScreenPoint(cellRect.Move(-3, 50).position));
 
                         pickingIcon = true;
                         pickingIconAtIndex = i;
                         pickingIconAtRow = row;
-
                     }
+
                     void updatePickingIcon()
                     {
                         if (!pickingIcon) return;
@@ -178,8 +224,8 @@ namespace VHierarchy
                         palette.Dirty();
 
                         row.customIcons[pickingIconAtIndex] = (EditorGUIUtility.GetObjectPickerObject() as Texture2D).GetPath().ToGuid();
-
                     }
+
                     void stopPickingIcon()
                     {
                         if (!pickingIcon) return;
@@ -191,8 +237,8 @@ namespace VHierarchy
                                 row.customIcons.RemoveAt(pickingIconAtIndex);
 
                         pickingIcon = false;
-
                     }
+
                     void dragndrop()
                     {
                         if (!rowRect.IsHovered()) return;
@@ -201,7 +247,7 @@ namespace VHierarchy
                             DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
 
                         if (!curEvent.isDragPerform) return;
-                        if (!(DragAndDrop.objectReferences.Any(r => r is Texture2D))) return;
+                        if (!DragAndDrop.objectReferences.Any(r => r is Texture2D)) return;
 
                         DragAndDrop.AcceptDrag();
 
@@ -210,7 +256,6 @@ namespace VHierarchy
 
                         foreach (var icon in DragAndDrop.objectReferences.Where(r => r is Texture2D))
                             row.customIcons.Add(icon.GetPath().ToGuid());
-
                     }
 
                     void calcSpaceForCrossIcon()
@@ -220,7 +265,6 @@ namespace VHierarchy
 
                         if (row == crossIconAnimationSourceRow)
                             spaceForCrossIcon = (1 - crossIconAnimationT) * cellSize;
-
                     }
 
                     void backgroundHovered()
@@ -231,16 +275,16 @@ namespace VHierarchy
                         if (draggingRow) return;
 
                         rowRect.Draw(hoveredRowBackground);
-
                     }
+
                     void backgroundDragged()
                     {
                         if (!isDraggedRow) return;
 
                         rowRect.DrawBlurred(Greyscale(0, .3f), 12);
                         rowRect.Draw(draggedRowBackground);
-
                     }
+
                     void toggle()
                     {
                         var prevEnabled = row.enabled;
@@ -253,8 +297,8 @@ namespace VHierarchy
 
                         if (prevEnabled != newEnabled)
                             palette.Dirty();
-
                     }
+
                     void addIconButton()
                     {
                         if (!row.isCustom) return;
@@ -262,13 +306,11 @@ namespace VHierarchy
                         var cellRect = rowRect.MoveX(iconsOffsetX + row.customIcons.Count * cellSize + spaceForCrossIcon).SetWidth(cellSize).SetHeightFromMid(cellSize);
 
 
-
                         SetGUIColor(Greyscale(1, row.enabled ? 1 : .5f));
 
                         var clicked = GUI.Button(cellRect.Resize(1), "");
 
                         ResetGUIColor();
-
 
 
                         SetGUIColor(Greyscale(1, row.enabled ? 1 : .5f));
@@ -280,7 +322,6 @@ namespace VHierarchy
                         ResetGUIColor();
 
 
-
                         if (!clicked) return;
 
                         palette.RecordUndo();
@@ -288,8 +329,8 @@ namespace VHierarchy
                         row.customIcons.Add(null);
 
                         startPickingIcon(row.customIcons.Count - 1, cellRect);
-
                     }
+
                     void icon(int i)
                     {
                         var cellRect = rowRect.MoveX(iconsOffsetX + spaceForCrossIcon + i * cellSize).SetWidth(cellSize).SetHeightFromMid(cellSize);
@@ -302,8 +343,8 @@ namespace VHierarchy
                             if (i != pickingIconAtIndex) return;
 
                             cellRect.Resize(1).DrawWithRoundedCorners(pickingBackground, 2);
-
                         }
+
                         void drawBuiltin()
                         {
                             if (isCustomIcon) return;
@@ -315,8 +356,8 @@ namespace VHierarchy
 
                             ResetLabelStyle();
                             ResetGUIColor();
-
                         }
+
                         void drawCustom()
                         {
                             if (!isCustomIcon) return;
@@ -328,8 +369,8 @@ namespace VHierarchy
                             GUI.DrawTexture(cellRect.SetSizeFromMid(iconSize), texture);
 
                             ResetGUIColor();
-
                         }
+
                         void editCustomButton()
                         {
                             if (!isCustomIcon) return;
@@ -341,18 +382,24 @@ namespace VHierarchy
                             GUI.Label(cellRect.Resize(.5f), EditorGUIUtility.IconContent("Preset.Context"));
 
 
-
                             if (!clicked) return;
 
-                            GenericMenu menu = new GenericMenu();
+                            var menu = new GenericMenu();
 
-                            menu.AddItem(new GUIContent("Replace icon"), false, () => { palette.RecordUndo(); palette.Dirty(); startPickingIcon(i, cellRect.MoveY(75)); });
-                            menu.AddItem(new GUIContent("Remove icon"), false, () => { palette.RecordUndo(); row.customIcons.RemoveAt(i); palette.Dirty(); });
+                            menu.AddItem(new GUIContent("Replace icon"), false, () =>
+                            {
+                                palette.RecordUndo();
+                                palette.Dirty();
+                                startPickingIcon(i, cellRect.MoveY(75));
+                            });
+                            menu.AddItem(new GUIContent("Remove icon"), false, () =>
+                            {
+                                palette.RecordUndo();
+                                row.customIcons.RemoveAt(i);
+                                palette.Dirty();
+                            });
 
                             menu.ShowAsContext();
-
-
-
                         }
 
                         cellRect.MarkInteractive();
@@ -361,7 +408,6 @@ namespace VHierarchy
                         drawBuiltin();
                         drawCustom();
                         editCustomButton();
-
                     }
 
 
@@ -377,9 +423,8 @@ namespace VHierarchy
                     toggle();
                     addIconButton();
 
-                    for (int i = 0; i < row.iconCount; i++)
+                    for (var i = 0; i < row.iconCount; i++)
                         icon(i);
-
                 }
 
                 void updateRowsCount()
@@ -388,8 +433,8 @@ namespace VHierarchy
 
                     if (!palette.iconRows.Last().isEmpty)
                         palette.iconRows.Add(new IconRow());
-
                 }
+
                 void updateRowGapsCount()
                 {
                     while (rowGaps.Count < palette.iconRows.Count)
@@ -397,7 +442,6 @@ namespace VHierarchy
 
                     while (rowGaps.Count > palette.iconRows.Count)
                         rowGaps.RemoveLast();
-
                 }
 
                 void normalRow(int i)
@@ -417,8 +461,8 @@ namespace VHierarchy
 
 
                     row(rowRect, palette.iconRows[i]);
-
                 }
+
                 void draggedRow_()
                 {
                     if (!draggingRow) return;
@@ -428,8 +472,8 @@ namespace VHierarchy
                     var rowRect = Rect.zero.SetPos(rowsOffsetX, draggedRowY).SetSize(rowWidth, cellSize);
 
                     row(rowRect, draggedRow);
-
                 }
+
                 void crossIcon()
                 {
                     if (!palette.iconRows.Any(r => r.enabled)) return;
@@ -441,7 +485,6 @@ namespace VHierarchy
                     GUI.Label(rect, EditorGUIUtility.IconContent("CrossIcon"));
 
                     ResetLabelStyle();
-
                 }
 
 
@@ -452,15 +495,14 @@ namespace VHierarchy
                 if (curEvent.isRepaint)
                     hoveredRow = null;
 
-                for (int i = 0; i < palette.iconRows.Count; i++)
+                for (var i = 0; i < palette.iconRows.Count; i++)
                     normalRow(i);
 
                 crossIcon();
 
                 draggedRow_();
-
-
             }
+
             void tutor()
             {
                 SetGUIEnabled(false);
@@ -479,7 +521,6 @@ namespace VHierarchy
 
 
                 ResetGUIEnabled();
-
             }
 
 
@@ -500,42 +541,10 @@ namespace VHierarchy
 
             if (draggingRow || animatingCrossIcon)
                 Repaint();
-
         }
 
-        float iconSize => 18;
-        float iconSpacing => 2;
-        float cellSize => iconSize + iconSpacing;
-        float rowSpacing = 1;
-        float rowsOffsetX => 14;
-        float iconsOffsetX => 27;
 
-        Color hoveredRowBackground => Greyscale(isDarkTheme ? 1 : 0, .05f);
-        Color draggedRowBackground => Greyscale(isDarkTheme ? .3f : .9f);
-        Color pickingBackground => Greyscale(1, .17f);
-        Color disabledRowTint => Greyscale(1, .45f);
-
-        float rowWidth => cellSize * Mathf.Max(palette.colors.Count, palette.iconRows.Max(r => r.iconCount + 1)) + 55;
-
-        bool pickingColor;
-        int pickingColorAtIndex;
-        EditorWindow colorPicker;
-
-        bool pickingIcon;
-        int pickingIconAtIndex;
-        IconRow pickingIconAtRow;
-        EditorWindow iconPicker;
-
-        IconRow hoveredRow;
-
-        float firstRowY = 51;
-
-
-
-
-
-
-        void UpdateAnimations()
+        private void UpdateAnimations()
         {
             void calcDeltaTime()
             {
@@ -547,7 +556,6 @@ namespace VHierarchy
                     deltaTime = .0166f;
 
                 lastLayoutTime = EditorApplication.timeSinceStartup;
-
             }
 
             void lerpRowGaps()
@@ -556,16 +564,14 @@ namespace VHierarchy
 
                 var lerpSpeed = draggingRow ? 12 : 12321;
 
-                for (int i = 0; i < rowGaps.Count; i++)
-                    rowGaps[i] = Lerp(rowGaps[i], draggingRow && i == insertDraggedRowAtIndex ? 1 : 0, lerpSpeed, deltaTime);// todo deltatime
+                for (var i = 0; i < rowGaps.Count; i++)
+                    rowGaps[i] = Lerp(rowGaps[i], draggingRow && i == insertDraggedRowAtIndex ? 1 : 0, lerpSpeed, deltaTime); // todo deltatime
 
-                for (int i = 0; i < rowGaps.Count; i++)
+                for (var i = 0; i < rowGaps.Count; i++)
                     if (rowGaps[i].Approx(0))
                         rowGaps[i] = 0;
                     else if (rowGaps[i].Approx(1))
                         rowGaps[i] = 1;
-
-
             }
 
             void lerpCrossIconAnimationT()
@@ -575,38 +581,43 @@ namespace VHierarchy
                 var lerpSpeed = 12;
 
                 Lerp(ref crossIconAnimationT, 1, lerpSpeed, deltaTime);
-
             }
+
             void startCrossIconAnimation()
             {
-                if (prevFirstEnabledRow == null) { prevFirstEnabledRow = curFirstEnabledRow; return; }
+                if (prevFirstEnabledRow == null)
+                {
+                    prevFirstEnabledRow = curFirstEnabledRow;
+                    return;
+                }
+
                 if (prevFirstEnabledRow == curFirstEnabledRow) return;
 
                 crossIconAnimationT = 0;
                 crossIconAnimationSourceRow = prevFirstEnabledRow;
 
                 prevFirstEnabledRow = curFirstEnabledRow;
-
             }
+
             void stopCrossIconAnimation()
             {
                 if (!crossIconAnimationT.Approx(1)) return;
 
                 crossIconAnimationT = 1;
                 crossIconAnimationSourceRow = null;
-
             }
+
             void calcCrossIconY()
             {
                 var indexOfFirstEnabled = palette.iconRows.IndexOfFirst(r => r.enabled);
                 var yOfFirstEnabled = firstRowY + indexOfFirstEnabled * (cellSize + rowSpacing);
-                for (int i = 0; i < indexOfFirstEnabled + 1; i++)
+                for (var i = 0; i < indexOfFirstEnabled + 1; i++)
                     yOfFirstEnabled += rowGaps[i] * (cellSize + rowSpacing);
 
 
                 var indexOfSourceRow = palette.iconRows.IndexOf(crossIconAnimationSourceRow);
                 var yOfSourceRow = firstRowY + indexOfSourceRow * (cellSize + rowSpacing);
-                for (int i = 0; i < indexOfSourceRow + 1; i++)
+                for (var i = 0; i < indexOfSourceRow + 1; i++)
                     yOfSourceRow += rowGaps[i] * (cellSize + rowSpacing);
 
                 if (crossIconAnimationSourceRow == draggedRow)
@@ -615,8 +626,7 @@ namespace VHierarchy
 
                 crossIconY = Lerp(yOfSourceRow, yOfFirstEnabled, crossIconAnimationT);
 
-                if (indexOfFirstEnabled == indexOfSourceRow) { crossIconAnimationT = 1; }
-
+                if (indexOfFirstEnabled == indexOfSourceRow) crossIconAnimationT = 1;
             }
 
 
@@ -628,28 +638,10 @@ namespace VHierarchy
             startCrossIconAnimation();
             stopCrossIconAnimation();
             calcCrossIconY();
-
         }
 
-        List<float> rowGaps = new List<float>();
 
-        float deltaTime;
-        double lastLayoutTime;
-
-        float crossIconY = 51;
-        float crossIconAnimationT = 1;
-        IconRow crossIconAnimationSourceRow;
-        bool animatingCrossIcon => crossIconAnimationT != 1;
-
-        IconRow prevFirstEnabledRow;
-        IconRow curFirstEnabledRow => palette.iconRows.FirstOrDefault(r => r.enabled);
-
-
-
-
-
-
-        void UpdateDragging()
+        private void UpdateDragging()
         {
             void startDragging()
             {
@@ -667,17 +659,17 @@ namespace VHierarchy
 
                 palette.iconRows.Remove(hoveredRow);
                 rowGaps[draggingRowFromIndex] = 1;
-
             }
+
             void updateDragging()
             {
                 if (!draggingRow) return;
 
                 insertDraggedRowAtIndex = ((curEvent.mousePosition.y - firstRowY) / (cellSize + rowSpacing)).FloorToInt().Clamp(0, palette.iconRows.Count - 1);
 
-                EditorGUIUtility.hotControl = EditorGUIUtility.GetControlID(FocusType.Passive);
-
+                GUIUtility.hotControl = GUIUtility.GetControlID(FocusType.Passive);
             }
+
             void stopDragging()
             {
                 if (!draggingRow) return;
@@ -693,31 +685,14 @@ namespace VHierarchy
                 draggingRow = false;
                 draggedRow = null;
 
-                EditorGUIUtility.hotControl = 0;
-
+                GUIUtility.hotControl = 0;
             }
 
 
             startDragging();
             updateDragging();
             stopDragging();
-
         }
-
-        IconRow draggedRow;
-        bool draggingRow;
-        int draggingRowFromIndex;
-        float draggedRowHoldOffset;
-        float draggedRowY;
-        int insertDraggedRowAtIndex;
-
-
-
-
-
-
-        VHierarchyPalette palette => target as VHierarchyPalette;
-
     }
 }
 #endif

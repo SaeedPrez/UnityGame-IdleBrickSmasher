@@ -1,28 +1,28 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor;
+﻿using System;
 using ES3Internal;
-using UnityEngine.SceneManagement;
+using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace ES3Editor
 {
-	[System.Serializable]
-	public class AutoSaveWindow : SubWindow
-	{
-		public bool showAdvancedSettings = false;
+    [Serializable]
+    public class AutoSaveWindow : SubWindow
+    {
+        public bool showAdvancedSettings;
 
-		public ES3AutoSaveMgr mgr = null;
+        public ES3AutoSaveMgr mgr;
 
-        private HierarchyItem[] hierarchy = null;
-        public HierarchyItem selected = null;
+        private HierarchyItem[] hierarchy;
 
         private Vector2 hierarchyScrollPosition = Vector2.zero;
 
         private bool sceneOpen = true;
 
         private string searchTerm = "";
+        public HierarchyItem selected = null;
 
         public AutoSaveWindow(EditorWindow window) : base("Auto Save", window)
         {
@@ -36,19 +36,19 @@ namespace ES3Editor
         }
 
         public override void OnGUI()
-		{
-			Init();
+        {
+            Init();
 
-			if(mgr == null)
-			{
+            if (mgr == null)
+            {
                 EditorGUILayout.Space();
                 if (GUILayout.Button("Enable Auto Save for this scene"))
                     mgr = ES3Postprocessor.AddManagerToScene().GetComponent<ES3AutoSaveMgr>();
                 else
                     return;
-			}
+            }
 
-			var style = EditorStyle.Get;
+            var style = EditorStyle.Get;
 
             using (var changeCheck = new EditorGUI.ChangeCheckScope())
             {
@@ -78,6 +78,7 @@ namespace ES3Editor
                         sceneOpen = true;
                         OnFocus();
                     }
+
                     if (GUILayout.Button("Prefabs", sceneOpen ? style.menuButton : style.menuButtonSelected))
                     {
                         sceneOpen = false;
@@ -89,7 +90,9 @@ namespace ES3Editor
 
                 if (hierarchy == null || hierarchy.Length == 0)
                 {
-                    EditorGUILayout.LabelField("Right-click a prefab and select 'Easy Save 3 > Enable Easy Save for Scene' to enable Auto Save for it.\n\nYour scene will also need to reference this prefab for it to be recognised.", style.area);
+                    EditorGUILayout.LabelField(
+                        "Right-click a prefab and select 'Easy Save 3 > Enable Easy Save for Scene' to enable Auto Save for it.\n\nYour scene will also need to reference this prefab for it to be recognised.",
+                        style.area);
                     return;
                 }
 
@@ -123,13 +126,14 @@ namespace ES3Editor
                         if (go != null)
                             go.DrawHierarchy(searchTerm.ToLowerInvariant());
                 }
+
                 if (changeCheck.changed)
                     EditorUtility.SetDirty(mgr);
             }
         }
 
-		public void Init()
-		{
+        public void Init()
+        {
             if (mgr == null)
                 foreach (var thisMgr in Resources.FindObjectsOfTypeAll<ES3AutoSaveMgr>())
                     if (thisMgr != null && thisMgr.gameObject.scene == SceneManager.GetActiveScene())
@@ -141,43 +145,47 @@ namespace ES3Editor
 
         public override void OnFocus()
         {
-
             GameObject[] parentObjects;
             if (sceneOpen)
-                parentObjects = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+            {
+                parentObjects = SceneManager.GetActiveScene().GetRootGameObjects();
+            }
             else // Prefabs
             {
-                var mgr = ES3ReferenceMgr.GetManagerFromScene(SceneManager.GetActiveScene(), false);
+                var mgr = ES3ReferenceMgrBase.GetManagerFromScene(SceneManager.GetActiveScene(), false);
                 var prefabs = mgr.prefabs;
                 parentObjects = new GameObject[prefabs.Count];
-                for (int i = 0; i < prefabs.Count; i++)
-                    if(prefabs[i] != null)
+                for (var i = 0; i < prefabs.Count; i++)
+                    if (prefabs[i] != null)
                         parentObjects[i] = prefabs[i].gameObject;
             }
+
             hierarchy = new HierarchyItem[parentObjects.Length];
-            for (int i = 0; i < parentObjects.Length; i++)
-                if(parentObjects[i] != null)
+            for (var i = 0; i < parentObjects.Length; i++)
+                if (parentObjects[i] != null)
                     hierarchy[i] = new HierarchyItem(parentObjects[i].transform, null, this);
         }
 
         public class HierarchyItem
         {
             private ES3AutoSave autoSave;
-            private Transform t;
-            private Component[] components = null;
+
             // Immediate children of this GameObject
-            private HierarchyItem[] children = new HierarchyItem[0];
-            private bool showComponents = false;
+            private readonly HierarchyItem[] children = new HierarchyItem[0];
+            private readonly Component[] components;
+            private bool showComponents;
+
+            private readonly Transform t;
             //private AutoSaveWindow window;
 
             public HierarchyItem(Transform t, HierarchyItem parent, AutoSaveWindow window)
             {
-                this.autoSave = t.GetComponent<ES3AutoSave>();
+                autoSave = t.GetComponent<ES3AutoSave>();
                 this.t = t;
-                this.components = t.GetComponents<Component>();
+                components = t.GetComponents<Component>();
 
                 children = new HierarchyItem[t.childCount];
-                for (int i = 0; i < t.childCount; i++)
+                for (var i = 0; i < t.childCount; i++)
                     children[i] = new HierarchyItem(t.GetChild(i), this, window);
 
                 //this.window = window;
@@ -192,6 +200,7 @@ namespace ES3Editor
                         autoSave.componentsToSave.AddRange(autoSave.componentsToSave);
                         Object.DestroyImmediate(this.autoSave);
                     }
+
                     this.autoSave = autoSave;
                 }
 
@@ -201,12 +210,12 @@ namespace ES3Editor
 
             public void DrawHierarchy(string searchTerm)
             {
-                bool containsSearchTerm = false;
+                var containsSearchTerm = false;
 
                 if (t != null)
                 {
                     // Filter by tag if it's prefixed by "tag:"
-                    if (searchTerm.StartsWith("tag:") && t.tag.ToLowerInvariant().Contains(searchTerm.Remove(0,4)))
+                    if (searchTerm.StartsWith("tag:") && t.tag.ToLowerInvariant().Contains(searchTerm.Remove(0, 4)))
                         containsSearchTerm = true;
                     // Else filter by name
                     else
@@ -222,7 +231,7 @@ namespace ES3Editor
                         else
                             saveIcon = new GUIContent(t.name, EditorStyle.Get.saveIconUnselected, "No Components on this GameObject will be saved");
 
-                        GUIStyle style = GUI.skin.GetStyle("Foldout");
+                        var style = GUI.skin.GetStyle("Foldout");
                         if (Selection.activeTransform == t)
                         {
                             style = new GUIStyle(style);
@@ -237,6 +246,7 @@ namespace ES3Editor
                                 EditorGUIUtility.PingObject(t.gameObject);
                             DrawComponents();
                         }
+
                         showComponents = open;
 
                         EditorGUI.indentLevel += 1;
@@ -260,23 +270,23 @@ namespace ES3Editor
                 {
                     bool toggle;
                     toggle = EditorGUILayout.ToggleLeft("active", autoSave != null ? autoSave.saveActive : false);
-                    if ((autoSave = (toggle && autoSave == null) ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
+                    if ((autoSave = toggle && autoSave == null ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
                         ApplyBool("saveActive", toggle);
 
                     toggle = EditorGUILayout.ToggleLeft("hideFlags", autoSave != null ? autoSave.saveHideFlags : false);
-                    if ((autoSave = (toggle && autoSave == null) ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
+                    if ((autoSave = toggle && autoSave == null ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
                         ApplyBool("saveHideFlags", toggle);
 
                     toggle = EditorGUILayout.ToggleLeft("layer", autoSave != null ? autoSave.saveLayer : false);
-                    if ((autoSave = (toggle && autoSave == null) ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
+                    if ((autoSave = toggle && autoSave == null ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
                         ApplyBool("saveLayer", toggle);
 
                     toggle = EditorGUILayout.ToggleLeft("name", autoSave != null ? autoSave.saveName : false);
-                    if ((autoSave = (toggle && autoSave == null) ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
+                    if ((autoSave = toggle && autoSave == null ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
                         ApplyBool("saveName", toggle);
 
                     toggle = EditorGUILayout.ToggleLeft("tag", autoSave != null ? autoSave.saveTag : false);
-                    if ((autoSave = (toggle && autoSave == null) ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
+                    if ((autoSave = toggle && autoSave == null ? t.gameObject.AddComponent<ES3AutoSave>() : autoSave) != null)
                         ApplyBool("saveTag", toggle);
 
                     foreach (var component in components)
@@ -286,7 +296,7 @@ namespace ES3Editor
 
                         using (var horizontalScope = new EditorGUILayout.HorizontalScope())
                         {
-                            bool saveComponent = false;
+                            var saveComponent = false;
                             if (autoSave != null)
                                 saveComponent = autoSave.componentsToSave.Contains(component);
 
@@ -301,6 +311,7 @@ namespace ES3Editor
                                     so.FindProperty("saveChildren").boolValue = false;
                                     so.ApplyModifiedProperties();
                                 }
+
                                 // If we've unchecked the box, remove the Component from the array.
                                 if (newValue == false)
                                 {
@@ -320,6 +331,7 @@ namespace ES3Editor
                                     so.ApplyModifiedProperties();
                                 }
                             }
+
                             if (GUILayout.Button(EditorGUIUtility.IconContent("_Popup"), new GUIStyle("Label")))
                                 ES3Window.InitAndShowTypes(component.GetType());
                         }
@@ -333,11 +345,13 @@ namespace ES3Editor
                         PrefabUtility.RecordPrefabInstancePropertyModifications(autoSave.gameObject);
                 }*/
 
-                if (autoSave != null && (autoSave.componentsToSave == null || autoSave.componentsToSave.Count == 0) && !autoSave.saveActive && !autoSave.saveChildren && !autoSave.saveHideFlags && !autoSave.saveLayer && !autoSave.saveName && !autoSave.saveTag)
+                if (autoSave != null && (autoSave.componentsToSave == null || autoSave.componentsToSave.Count == 0) && !autoSave.saveActive && !autoSave.saveChildren &&
+                    !autoSave.saveHideFlags && !autoSave.saveLayer && !autoSave.saveName && !autoSave.saveTag)
                 {
                     Undo.DestroyObjectImmediate(autoSave);
                     autoSave = null;
                 }
+
                 EditorGUI.indentLevel -= 3;
             }
 
@@ -365,5 +379,4 @@ namespace ES3Editor
             }
         }
     }
-
 }

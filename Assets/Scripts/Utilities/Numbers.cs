@@ -2,7 +2,7 @@
 {
     public static class Numbers
     {
-        private static double[] _levelExperience =
+        private static readonly double[] _levelExperience =
         {
             10.00,
             20.00,
@@ -1003,7 +1003,7 @@
             91500140000.00,
             93226560000.00,
             94952970000.00,
-            96852030000.00,
+            96852030000.00
         };
 
         public static double GetLevelExperience(int level)

@@ -4,14 +4,14 @@ namespace Prez.Data
 {
     public class DamageData
     {
-        public Brick Brick;
+        public bool ActiveHit;
         public Ball Ball;
-        public Vector3 Point;
+        public Brick Brick;
+        public bool BrickDestroyed;
+        public bool CriticalHit;
         public double Damage;
         public double DamageRaw;
-        public bool CriticalHit;
-        public bool ActiveHit;
-        public bool BrickDestroyed;
         public double Experience;
+        public Vector3 Point;
     }
 }

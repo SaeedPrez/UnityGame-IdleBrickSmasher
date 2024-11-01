@@ -17,6 +17,24 @@ namespace Prez.Core
         [SerializeField] private MenuBase _more;
         [SerializeField] private Button _moreButton;
 
+        private void Start()
+        {
+            _balls.gameObject.SetActive(true);
+            _balls.Hide(true);
+
+            _player.gameObject.SetActive(true);
+            _player.Hide(true);
+
+            _level.gameObject.SetActive(true);
+            _level.Hide(true);
+
+            _more.gameObject.SetActive(true);
+            _more.Hide(true);
+
+            _settings.gameObject.SetActive(true);
+            _settings.Hide(true);
+        }
+
         private void OnEnable()
         {
             _ballsButton.onClick.AddListener(OnBallsButtonPressed);
@@ -35,50 +53,38 @@ namespace Prez.Core
             _settingsButton.onClick.RemoveListener(OnSettingsButtonPressed);
         }
 
-        private void Start()
-        {
-            _balls.gameObject.SetActive(true);
-            _balls.Hide(true);
-
-            _player.gameObject.SetActive(true);
-            _player.Hide(true);
-            
-            _level.gameObject.SetActive(true);
-            _level.Hide(true);
-            
-            _more.gameObject.SetActive(true);
-            _more.Hide(true);
-            
-            _settings.gameObject.SetActive(true);
-            _settings.Hide(true);
-        }
-
         private void OnBallsButtonPressed()
         {
             if (_balls.gameObject.activeInHierarchy)
+            {
                 _balls.Hide();
+            }
             else
             {
                 CloseAllMenus();
                 _balls.Show();
             }
         }
-        
+
         private void OnPlayerButtonPressed()
         {
             if (_player.gameObject.activeInHierarchy)
+            {
                 _player.Hide();
+            }
             else
             {
                 CloseAllMenus();
                 _player.Show();
             }
         }
-        
+
         private void OnLevelButtonPressed()
         {
             if (_level.gameObject.activeInHierarchy)
+            {
                 _level.Hide();
+            }
             else
             {
                 CloseAllMenus();
@@ -89,7 +95,9 @@ namespace Prez.Core
         private void OnMoreButtonPressed()
         {
             if (_more.gameObject.activeInHierarchy)
+            {
                 _more.Hide();
+            }
             else
             {
                 CloseAllMenus();
@@ -104,18 +112,18 @@ namespace Prez.Core
             else
                 _settings.Show();
         }
-        
+
         private void CloseAllMenus()
         {
             if (_balls.gameObject.activeInHierarchy)
                 _balls.Hide();
-            
+
             if (_player.gameObject.activeInHierarchy)
                 _player.Hide();
-            
+
             if (_level.gameObject.activeInHierarchy)
                 _level.Hide();
-            
+
             if (_more.gameObject.activeInHierarchy)
                 _more.Hide();
         }

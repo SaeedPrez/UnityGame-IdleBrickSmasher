@@ -19,7 +19,7 @@ namespace Prez.Core
             _input.Player.Move.canceled += OnPlayerMovePerformed;
             _input.Player.BallAction1.performed += OnPlayerBallAction1Performed;
         }
-        
+
         private void OnDisable()
         {
             _input.Player.Disable();
@@ -27,16 +27,15 @@ namespace Prez.Core
             _input.Player.Move.canceled -= OnPlayerMovePerformed;
             _input.Player.BallAction1.performed -= OnPlayerBallAction1Performed;
         }
-        
+
         private void OnPlayerMovePerformed(InputAction.CallbackContext context)
         {
             EventManager.I.TriggerPlayerInput(context.ReadValue<Vector2>());
         }
-        
+
         private void OnPlayerBallAction1Performed(InputAction.CallbackContext context)
         {
             EventManager.I.TriggerPlayerBallAction1();
         }
-
     }
 }

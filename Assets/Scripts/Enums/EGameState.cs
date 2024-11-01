@@ -6,6 +6,6 @@
         Loading,
         Loaded,
         Playing,
-        Paused,
+        Paused
     }
 }

@@ -1,20 +1,11 @@
 #if UNITY_EDITOR
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor;
-using UnityEditor.ShortcutManagement;
-using System.Reflection;
 using System.Linq;
-using UnityEngine.UIElements;
-using UnityEngine.SceneManagement;
+using UnityEditor;
 using UnityEditor.SceneManagement;
-using UnityEditor.Experimental.SceneManagement;
-using Type = System.Type;
+using UnityEngine;
 using static VHierarchy.VHierarchyData;
 using static VHierarchy.Libs.VUtils;
 using static VHierarchy.Libs.VGUI;
-
 
 
 namespace VHierarchy
@@ -22,12 +13,15 @@ namespace VHierarchy
     [ExecuteInEditMode]
     public abstract class VHierarchyDataComponent : MonoBehaviour, ISerializationCallbackReceiver
     {
+        public SceneData sceneData;
+
         public void Awake()
         {
             void register()
             {
                 VHierarchy.dataComponents_byScene[gameObject.scene] = this;
             }
+
             void handleSceneDuplication()
             {
                 if (sceneData == null) return;
@@ -51,24 +45,26 @@ namespace VHierarchy
 
                 EditorSceneManager.MarkSceneDirty(gameObject.scene);
                 EditorSceneManager.SaveScene(gameObject.scene);
-
             }
 
             register();
             handleSceneDuplication();
-
         }
 
-        public SceneData sceneData;
 
+        public void OnBeforeSerialize()
+        {
+            VHierarchy.firstDataCacheLayer.Clear();
+        }
 
-        public void OnBeforeSerialize() => VHierarchy.firstDataCacheLayer.Clear();
-        public void OnAfterDeserialize() => VHierarchy.firstDataCacheLayer.Clear();
-
+        public void OnAfterDeserialize()
+        {
+            VHierarchy.firstDataCacheLayer.Clear();
+        }
 
 
         [CustomEditor(typeof(VHierarchyDataComponent), true)]
-        class Editor : UnityEditor.Editor
+        private class Editor : UnityEditor.Editor
         {
             public override void OnInspectorGUI()
             {
@@ -86,10 +82,8 @@ namespace VHierarchy
 
                 EndIndent(10);
                 ResetGUIEnabled();
-
             }
         }
-
     }
 }
 #endif

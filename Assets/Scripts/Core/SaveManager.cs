@@ -11,13 +11,13 @@ namespace Prez.Core
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
         }
-        
+
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
             SaveGameData();
         }
-        
+
         private void OnGameStateChanged(EGameState state)
         {
             if (state is EGameState.Loading)
@@ -25,7 +25,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Loads or creates game data.
+        ///     Loads or creates game data.
         /// </summary>
         private void LoadOrCreateGameData()
         {
@@ -36,7 +36,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Loads game data.
+        ///     Loads game data.
         /// </summary>
         private void LoadGameData()
         {
@@ -46,7 +46,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Creates a new game data.
+        ///     Creates a new game data.
         /// </summary>
         private void CreateGameData()
         {
@@ -55,12 +55,12 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Saves game data.
+        ///     Saves game data.
         /// </summary>
         private void SaveGameData()
         {
             GameManager.Data.GameDataSavedAt = DateTime.UtcNow;
-            
+
             // TODO: Improve
             GameManager.Data.BrickNoiseOffsetY -= 21;
 
@@ -71,7 +71,7 @@ namespace Prez.Core
 
             if (GameManager.Data.BrickRowLevel < 1)
                 GameManager.Data.BrickRowLevel = 1;
-            
+
             ES3.Save(Constants.SaveGameName, GameManager.Data);
             EventManager.I.TriggerGameDataSaved(GameManager.Data);
         }

@@ -1,41 +1,75 @@
 #if UNITY_EDITOR
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using UnityEditor;
-using UnityEditor.ShortcutManagement;
-using System.Reflection;
-using System.Linq;
-using UnityEngine.UIElements;
-using UnityEngine.SceneManagement;
-using UnityEditor.SceneManagement;
-using Type = System.Type;
-using static VHierarchy.VHierarchyData;
+using UnityEngine;
 using static VHierarchy.Libs.VUtils;
 using static VHierarchy.Libs.VGUI;
-
 
 
 namespace VHierarchy
 {
     public class VHierarchyComponentWindow : EditorWindow
     {
-        void OnGUI()
+        public static VHierarchyComponentWindow floatingInstance;
+
+        public Vector2 targetPosition;
+        public Vector2 currentPosition;
+
+        public bool isResizingHorizontally;
+        public bool isResizingVertically;
+        public Vector2 resizeStartMousePos;
+        public Vector2 resizeStartWindowSize;
+
+        public float scrollPosition;
+
+        public float targetHeight;
+        public float maxHeight;
+        public float prevHeight;
+
+        public bool isPinned;
+
+        public Component component;
+        public Editor editor;
+        private float deltaTime;
+        private Vector2 dragStartMousePos;
+        private Vector2 dragStartWindowPos;
+
+        private bool isDragged;
+        private double lastLayoutTime;
+        private Vector2 positionDeriv;
+
+        public static float minWidth => 300;
+
+        private void OnDestroy()
         {
-            if (!component) { Close(); return; } // todo script components break on playmode
+            editor?.DestroyImmediate();
+
+            editor = null;
+            component = null;
+
+            EditorPrefs.SetFloat("vHierarchy-componentWindowWidth", position.width);
+        }
+
+        private void OnGUI()
+        {
+            if (!component)
+            {
+                Close();
+                return;
+            } // todo script components break on playmode
 
 
             void background()
             {
                 position.SetPos(0, 0).Draw(GUIColors.windowBackground);
             }
+
             void outline()
             {
                 if (Application.platform == RuntimePlatform.OSXEditor) return;
 
                 position.SetPos(0, 0).DrawOutline(Greyscale(.1f));
-
             }
+
             void header()
             {
                 var headerRect = ExpandWidthLabelRect(18).Resize(-1).AddWidthFromMid(6);
@@ -55,7 +89,7 @@ namespace VHierarchy
 
                     isDragged = true;
 
-                    dragStartMousePos = EditorGUIUtility.GUIToScreenPoint(curEvent.mousePosition);
+                    dragStartMousePos = GUIUtility.GUIToScreenPoint(curEvent.mousePosition);
                     dragStartWindowPos = position.position;
 
 
@@ -65,23 +99,22 @@ namespace VHierarchy
                         floatingInstance = null;
 
                     EditorApplication.RepaintHierarchyWindow();
-
-
                 }
+
                 void updateDragging()
                 {
                     if (!isDragged) return;
 
 
-                    var draggedPosition = dragStartWindowPos + EditorGUIUtility.GUIToScreenPoint(curEvent.mousePosition) - dragStartMousePos;
+                    var draggedPosition = dragStartWindowPos + GUIUtility.GUIToScreenPoint(curEvent.mousePosition) - dragStartMousePos;
 
                     if (!curEvent.isRepaint)
                         position = position.SetPos(draggedPosition);
 
 
-                    EditorGUIUtility.hotControl = EditorGUIUtility.GetControlID(FocusType.Passive);
-
+                    GUIUtility.hotControl = GUIUtility.GetControlID(FocusType.Passive);
                 }
+
                 void stopDragging()
                 {
                     if (!isDragged) return;
@@ -90,8 +123,7 @@ namespace VHierarchy
 
                     isDragged = false;
 
-                    EditorGUIUtility.hotControl = 0;
-
+                    GUIUtility.hotControl = 0;
                 }
 
                 void background()
@@ -99,15 +131,15 @@ namespace VHierarchy
                     headerRect.Draw(backgroundColor);
 
                     headerRect.SetHeightFromBottom(1).Draw(isDarkTheme ? Greyscale(.2f) : Greyscale(.7f));
-
                 }
+
                 void icon()
                 {
                     var iconRect = headerRect.SetWidth(20).MoveX(14).MoveY(-1);
 
                     GUI.Label(iconRect, VHierarchy.GetComponentIcon(component));
-
                 }
+
                 void toggle()
                 {
                     var toggleRect = headerRect.MoveX(36).SetSize(20, 20);
@@ -128,8 +160,8 @@ namespace VHierarchy
 
                     component.RecordUndo();
                     pi_enabled.SetValue(component, !enabled);
-
                 }
+
                 void name()
                 {
                     var nameRect = headerRect.MoveX(54).MoveY(-1);
@@ -145,8 +177,8 @@ namespace VHierarchy
                     GUI.Label(nameRect, s);
 
                     ResetLabelStyle();
-
                 }
+
                 void nameCurtain()
                 {
                     var flatColorRect = headerRect.SetX(pinButtonRect.x + 3).SetXMax(headerRect.xMax);
@@ -154,8 +186,8 @@ namespace VHierarchy
 
                     flatColorRect.Draw(backgroundColor);
                     gradientRect.DrawCurtainLeft(backgroundColor);
-
                 }
+
                 void pinButton()
                 {
                     if (!isPinned && closeButtonRect.IsHovered()) return;
@@ -164,7 +196,6 @@ namespace VHierarchy
                     var normalColor = isDarkTheme ? Greyscale(.65f) : Greyscale(.8f);
                     var hoveredColor = isDarkTheme ? Greyscale(.9f) : normalColor;
                     var activeColor = Color.white;
-
 
 
                     SetGUIColor(isPinned ? activeColor : pinButtonRect.IsHovered() ? hoveredColor : normalColor);
@@ -192,12 +223,10 @@ namespace VHierarchy
                         floatingInstance = this;
 
                     EditorApplication.RepaintHierarchyWindow();
-
-
                 }
+
                 void closeButton()
                 {
-
                     SetGUIColor(Color.clear);
 
                     if (GUI.Button(closeButtonRect, ""))
@@ -227,7 +256,6 @@ namespace VHierarchy
                         GUI.Label(escRect, "Esc");
 
                     ResetGUIEnabled();
-
                 }
 
                 startDragging();
@@ -241,11 +269,11 @@ namespace VHierarchy
                 nameCurtain();
                 pinButton();
                 closeButton();
-
             }
+
             void body()
             {
-                EditorGUIUtility.labelWidth = (this.position.width * .4f).Max(120);
+                EditorGUIUtility.labelWidth = (position.width * .4f).Max(120);
 
 
                 scrollPosition = EditorGUILayout.BeginScrollView(Vector2.up * scrollPosition).y;
@@ -262,13 +290,11 @@ namespace VHierarchy
 
 
                 EditorGUIUtility.labelWidth = 0;
-
             }
 
             void updateHeight()
             {
-
-                ExpandWidthLabelRect(height: -5);
+                ExpandWidthLabelRect(-5);
 
                 if (!curEvent.isRepaint) return;
                 if (isResizingVertically) return;
@@ -280,8 +306,8 @@ namespace VHierarchy
 
 
                 prevHeight = position.height;
-
             }
+
             void updatePosition()
             {
                 if (!curEvent.isLayout) return;
@@ -294,15 +320,15 @@ namespace VHierarchy
                         deltaTime = .0166f;
 
                     lastLayoutTime = EditorApplication.timeSinceStartup;
-
                 }
+
                 void resetCurPos()
                 {
                     if (currentPosition != default && !isPinned) return;
 
                     currentPosition = position.position; // position.position is always int, which can't be used for lerping
-
                 }
+
                 void lerpCurPos()
                 {
                     if (isPinned) return;
@@ -311,22 +337,21 @@ namespace VHierarchy
 
                     SmoothDamp(ref currentPosition, targetPosition, speed, ref positionDeriv, deltaTime);
                     // Lerp(ref currentPosition, targetPosition, speed, deltaTime);
-
                 }
+
                 void setCurPos()
                 {
                     if (isPinned) return;
 
                     position = position.SetPos(currentPosition);
-
                 }
 
                 calcDeltaTime();
                 resetCurPos();
                 lerpCurPos();
                 setCurPos();
-
             }
+
             void closeOnEscape()
             {
                 if (!curEvent.isKeyDown) return;
@@ -339,7 +364,7 @@ namespace VHierarchy
             {
                 var showingScrollbar = targetHeight > maxHeight;
 
-                var resizeArea = this.position.SetPos(0, 0).SetWidthFromRight(showingScrollbar ? 3 : 5).AddHeightFromBottom(-20);
+                var resizeArea = position.SetPos(0, 0).SetWidthFromRight(showingScrollbar ? 3 : 5).AddHeightFromBottom(-20);
 
                 void startResize()
                 {
@@ -351,9 +376,9 @@ namespace VHierarchy
                     isResizingHorizontally = true;
 
                     resizeStartMousePos = curEvent.mousePosition_screenSpace;
-                    resizeStartWindowSize = this.position.size;
-
+                    resizeStartWindowSize = position.size;
                 }
+
                 void updateResize()
                 {
                     if (!isResizingHorizontally) return;
@@ -367,10 +392,10 @@ namespace VHierarchy
                         position = position.SetWidth(width);
 
 
-                    EditorGUIUtility.hotControl = EditorGUIUtility.GetControlID(FocusType.Passive);
+                    GUIUtility.hotControl = GUIUtility.GetControlID(FocusType.Passive);
                     // GUI.focused
-
                 }
+
                 void stopResize()
                 {
                     if (!isResizingHorizontally) return;
@@ -378,8 +403,7 @@ namespace VHierarchy
 
                     isResizingHorizontally = false;
 
-                    EditorGUIUtility.hotControl = 0;
-
+                    GUIUtility.hotControl = 0;
                 }
 
 
@@ -388,11 +412,11 @@ namespace VHierarchy
                 startResize();
                 updateResize();
                 stopResize();
-
             }
+
             void verticalResize()
             {
-                var resizeArea = this.position.SetPos(0, 0).SetHeightFromBottom(5);
+                var resizeArea = position.SetPos(0, 0).SetHeightFromBottom(5);
 
                 void startResize()
                 {
@@ -404,9 +428,9 @@ namespace VHierarchy
                     isResizingVertically = true;
 
                     resizeStartMousePos = curEvent.mousePosition_screenSpace;
-                    resizeStartWindowSize = this.position.size;
-
+                    resizeStartWindowSize = position.size;
                 }
+
                 void updateResize()
                 {
                     if (!isResizingVertically) return;
@@ -422,10 +446,10 @@ namespace VHierarchy
                     maxHeight = height;
 
 
-                    EditorGUIUtility.hotControl = EditorGUIUtility.GetControlID(FocusType.Passive);
+                    GUIUtility.hotControl = GUIUtility.GetControlID(FocusType.Passive);
                     // GUI.focused
-
                 }
+
                 void stopResize()
                 {
                     if (!isResizingVertically) return;
@@ -433,8 +457,7 @@ namespace VHierarchy
 
                     isResizingVertically = false;
 
-                    EditorGUIUtility.hotControl = 0;
-
+                    GUIUtility.hotControl = 0;
                 }
 
 
@@ -443,7 +466,6 @@ namespace VHierarchy
                 startResize();
                 updateResize();
                 stopResize();
-
             }
 
 
@@ -467,54 +489,26 @@ namespace VHierarchy
 
             if (!isPinned)
                 Repaint();
-
         }
 
-        public Vector2 targetPosition;
-        public Vector2 currentPosition;
-        Vector2 positionDeriv;
-        float deltaTime;
-        double lastLayoutTime;
 
-        bool isDragged;
-        Vector2 dragStartMousePos;
-        Vector2 dragStartWindowPos;
-
-        public bool isResizingHorizontally;
-        public bool isResizingVertically;
-        public Vector2 resizeStartMousePos;
-        public Vector2 resizeStartWindowSize;
-
-        public float scrollPosition;
-
-        public float targetHeight;
-        public float maxHeight;
-        public float prevHeight;
-
-
-
-
-
-        void OnLostFocus()
+        private void OnLostFocus()
         {
             if (isPinned) return;
 
-            if (curEvent.holdingAlt && EditorWindow.focusedWindow.GetType().Name == "SceneHierarchyWindow")
+            if (curEvent.holdingAlt && focusedWindow.GetType().Name == "SceneHierarchyWindow")
                 CloseNextFrameIfNotRefocused();
             else
                 Close();
-
         }
 
-        void CloseNextFrameIfNotRefocused()
+        private void CloseNextFrameIfNotRefocused()
         {
-            EditorApplication.delayCall += () => { if (EditorWindow.focusedWindow != this) Close(); };
+            EditorApplication.delayCall += () =>
+            {
+                if (focusedWindow != this) Close();
+            };
         }
-
-        public bool isPinned;
-
-
-
 
 
         public void Init(Component component)
@@ -523,31 +517,13 @@ namespace VHierarchy
                 editor.DestroyImmediate();
 
             this.component = component;
-            this.editor = Editor.CreateEditor(component);
-
+            editor = Editor.CreateEditor(component);
         }
-
-        void OnDestroy()
-        {
-            editor?.DestroyImmediate();
-
-            editor = null;
-            component = null;
-
-            EditorPrefs.SetFloat("vHierarchy-componentWindowWidth", position.width);
-
-        }
-
-        public Component component;
-        public Editor editor;
-
-
-
 
 
         public static void CreateFloatingInstance(Vector2 position)
         {
-            floatingInstance = ScriptableObject.CreateInstance<VHierarchyComponentWindow>();
+            floatingInstance = CreateInstance<VHierarchyComponentWindow>();
 
             floatingInstance.ShowPopup();
 
@@ -563,13 +539,7 @@ namespace VHierarchy
             floatingInstance.prevHeight = floatingInstance.position.height;
 
             floatingInstance.targetPosition = position;
-
         }
-
-        public static VHierarchyComponentWindow floatingInstance;
-
-        public static float minWidth => 300;
-
     }
 }
 #endif

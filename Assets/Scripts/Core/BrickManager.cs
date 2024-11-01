@@ -13,39 +13,23 @@ namespace Prez.Core
 {
     public class BrickManager : MonoBehaviour
     {
-        [Tab("Pools")]
-        [SerializeField] private ObjectPool _brickPool;
+        [Tab("Pools")] [SerializeField] private ObjectPool _brickPool;
+
         [SerializeField] private ObjectPool _brickDestroyEffectsPool;
         [SerializeField] private ObjectPool _brickHitEffectsPool;
-        
-        [Tab("Grid")]
-        [SerializeField] private Vector2 _brickSize;
+
+        [Tab("Grid")] [SerializeField] private Vector2 _brickSize;
+
         [SerializeField] private Vector2 _gridStart;
         [SerializeField] private Vector2 _gridEnd;
 
-        [Tab("Other")] 
-        [SerializeField] private Image _cooldownIndicatorImage;
-        
-        [Tab("Debug")]
-        [SerializeField] private Image _debugImage;
-        
-        private readonly List<Brick> _bricks = new();
-        private Vector2Int _gridSize;
-        private Coroutine _autoSpawnCoroutine;
+        [Tab("Other")] [SerializeField] private Image _cooldownIndicatorImage;
 
-        private void OnEnable()
-        {
-            EventManager.I.OnGameStateChanged += OnGameStateChanged;
-            EventManager.I.OnBallCollidedWithBrick += OnBallCollidedWithBrick;
-            EventManager.I.OnBrickDamaged += OnBrickDamaged;
-        }
-        
-        private void OnDisable()
-        {
-            EventManager.I.OnGameStateChanged -= OnGameStateChanged;
-            EventManager.I.OnBallCollidedWithBrick -= OnBallCollidedWithBrick;
-            EventManager.I.OnBrickDamaged -= OnBrickDamaged;
-        }
+        [Tab("Debug")] [SerializeField] private Image _debugImage;
+
+        private readonly List<Brick> _bricks = new();
+        private Coroutine _autoSpawnCoroutine;
+        private Vector2Int _gridSize;
 
         private void Update()
         {
@@ -54,6 +38,20 @@ namespace Prez.Core
                 MoveBricksDown();
                 SpawnBrickRow();
             }
+        }
+
+        private void OnEnable()
+        {
+            EventManager.I.OnGameStateChanged += OnGameStateChanged;
+            EventManager.I.OnBallCollidedWithBrick += OnBallCollidedWithBrick;
+            EventManager.I.OnBrickDamaged += OnBrickDamaged;
+        }
+
+        private void OnDisable()
+        {
+            EventManager.I.OnGameStateChanged -= OnGameStateChanged;
+            EventManager.I.OnBallCollidedWithBrick -= OnBallCollidedWithBrick;
+            EventManager.I.OnBrickDamaged -= OnBrickDamaged;
         }
 
         private void OnGameStateChanged(EGameState state)
@@ -66,18 +64,18 @@ namespace Prez.Core
         {
             SpawnBrickHitEffect(brick, point);
         }
-        
+
         private void OnBrickDamaged(DamageData data)
         {
             if (!data.BrickDestroyed)
                 return;
-            
+
             DestroyBrick(data.Brick);
             StartCoroutine(SpawnBricksAtThreshold());
         }
 
         /// <summary>
-        /// Sets up a new game.
+        ///     Sets up a new game.
         /// </summary>
         private IEnumerator SetupNewGame()
         {
@@ -88,8 +86,8 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Sets a random noise seed
-        /// if there is not a seed available.
+        ///     Sets a random noise seed
+        ///     if there is not a seed available.
         /// </summary>
         private void SetRandomNoiseSeed()
         {
@@ -98,10 +96,10 @@ namespace Prez.Core
 
             GameManager.Data.BrickNoiseSeed = Random.Range(1000, 999999);
         }
-        
+
         /// <summary>
-        /// Calculates the grid size
-        /// based on start and end positions.
+        ///     Calculates the grid size
+        ///     based on start and end positions.
         /// </summary>
         private void CalculateGridSize()
         {
@@ -110,7 +108,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Fills the grid with bricks.
+        ///     Fills the grid with bricks.
         /// </summary>
         private IEnumerator FillGrid()
         {
@@ -123,7 +121,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Automatically spawns new bricks after some time.
+        ///     Automatically spawns new bricks after some time.
         /// </summary>
         /// <returns></returns>
         private IEnumerator AutoSpawnBricks()
@@ -131,22 +129,22 @@ namespace Prez.Core
             while (true)
             {
                 var cooldown = GameManager.Data.GetBrickSpawnCooldown();
-                
+
                 _cooldownIndicatorImage.DOKill();
                 _cooldownIndicatorImage.fillAmount = 1f;
                 _cooldownIndicatorImage.DOFillAmount(0, cooldown)
                     .SetEase(Ease.Linear);
 
                 yield return new WaitForSeconds(cooldown + 0.01f);
-                
+
                 MoveBricksDown();
                 SpawnBrickRow();
             }
         }
 
         /// <summary>
-        /// Spawn bricks if number of bricks
-        /// are lower than the threshold.
+        ///     Spawn bricks if number of bricks
+        ///     are lower than the threshold.
         /// </summary>
         private IEnumerator SpawnBricksAtThreshold()
         {
@@ -154,18 +152,18 @@ namespace Prez.Core
             {
                 if (_bricks.Any(b => b.GridPosition.y == 0))
                     MoveBricksDown();
-    
+
                 SpawnBrickRow();
 
                 StopCoroutine(_autoSpawnCoroutine);
                 _autoSpawnCoroutine = StartCoroutine(AutoSpawnBricks());
-                
+
                 yield return new WaitForSeconds(0.1f);
             }
         }
-        
+
         /// <summary>
-        /// Spawns a row of bricks at given grid row.
+        ///     Spawns a row of bricks at given grid row.
         /// </summary>
         private void SpawnBrickRow()
         {
@@ -173,33 +171,31 @@ namespace Prez.Core
                 return;
 
             var bricksSpawned = false;
-            
+
             var y = (int)GameManager.Data.BrickNoiseOffsetY++;
-            
+
             for (var x = 0; x <= _gridSize.x; x++)
-            {
                 if (ShouldSpawnBrick(x, y))
                 {
                     SpawnBrick(x);
                     bricksSpawned = true;
                 }
-            }
-            
+
             if (bricksSpawned)
                 GameManager.Data.BrickRowLevel++;
         }
 
         /// <summary>
-        /// Spawns a brick at given grid position.
+        ///     Spawns a brick at given grid position.
         /// </summary>
         /// <param name="gridX"></param>
         private void SpawnBrick(int gridX)
         {
             var gridY = 0;
-            
+
             if (_bricks.Any(b => b.GridPosition == new Vector2Int(gridX, gridY)))
                 return;
-            
+
             var brick = _brickPool.GetPooledObject().GetComponent<Brick>();
             var gridPosition = new Vector2Int(gridX, gridY);
             brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
@@ -210,7 +206,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Checks if the noise value is over the threshold.
+        ///     Checks if the noise value is over the threshold.
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
@@ -221,7 +217,7 @@ namespace Prez.Core
             var yCoords = y / (float)_gridSize.y * GameManager.Data.BrickNoiseScale + GameManager.Data.BrickNoiseSeed;
 
             var noise = Mathf.PerlinNoise(xCoords, yCoords);
-            
+
             // var noise = Mathf.PerlinNoise(x / (float)_gridSize.x * GameManager.Data.BrickNoiseScale, 
             //     y / GameManager.Data.BrickRowsSpawned * GameManager.Data.BrickNoiseScale);
 
@@ -229,47 +225,45 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Moves all bricks down.
-        /// Does not go past the grid row limits.
+        ///     Moves all bricks down.
+        ///     Does not go past the grid row limits.
         /// </summary>
         private void MoveBricksDown()
         {
-            for (var y = _gridSize.y - 1; y >= 0 ; y--)
+            for (var y = _gridSize.y - 1; y >= 0; y--)
+            for (var x = _gridSize.x; x >= 0; x--)
             {
-                for (var x = _gridSize.x; x >= 0; x--)
-                {
-                    var brick = _bricks.FirstOrDefault(b => b.GridPosition == new Vector2Int(x, y));
-                    
-                    if (!brick || !brick.IsActive) 
-                        continue;
-                    
-                    var gridPosition = brick.GridPosition + Vector2Int.up;
-                    var brickBelow = _bricks.FirstOrDefault(b => b.GridPosition == gridPosition);
-                    
-                    if (brickBelow && brickBelow.IsActive)
-                        continue;
-                    
-                    brick.MoveDown(GridToWorldPosition(gridPosition));
-                }
+                var brick = _bricks.FirstOrDefault(b => b.GridPosition == new Vector2Int(x, y));
+
+                if (!brick || !brick.IsActive)
+                    continue;
+
+                var gridPosition = brick.GridPosition + Vector2Int.up;
+                var brickBelow = _bricks.FirstOrDefault(b => b.GridPosition == gridPosition);
+
+                if (brickBelow && brickBelow.IsActive)
+                    continue;
+
+                brick.MoveDown(GridToWorldPosition(gridPosition));
             }
         }
 
         /// <summary>
-        /// Destroys the given brick.
+        ///     Destroys the given brick.
         /// </summary>
         /// <param name="brick"></param>
         private void DestroyBrick(Brick brick)
         {
             SpawnBrickDestroyedEffect(brick);
-            
+
             if (_bricks.Contains(brick))
                 _bricks.Remove(brick);
-            
+
             _brickPool.ReleasePooledObject(brick.gameObject);
         }
 
         /// <summary>
-        /// Spawns a brick hit effect.
+        ///     Spawns a brick hit effect.
         /// </summary>
         /// <param name="brick"></param>
         /// <param name="point"></param>
@@ -281,9 +275,9 @@ namespace Prez.Core
             main.startColor = brick.FillColor;
             effect.gameObject.SetActive(true);
         }
-        
+
         /// <summary>
-        /// Spawns a brick destroy effect.
+        ///     Spawns a brick destroy effect.
         /// </summary>
         /// <param name="brick"></param>
         private void SpawnBrickDestroyedEffect(Brick brick)
@@ -296,7 +290,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Calculates the world position of provided grid position.
+        ///     Calculates the world position of provided grid position.
         /// </summary>
         /// <param name="gridPosition"></param>
         /// <returns></returns>
@@ -307,7 +301,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Debug mode
+        ///     Debug mode
         /// </summary>
         [Tab("Debug")]
         [Button("Toggle noise image")]
@@ -319,25 +313,21 @@ namespace Prez.Core
                 _debugImage.gameObject.SetActive(false);
                 return;
             }
-            else
-            {
-                _debugImage.gameObject.SetActive(true);
-            
-                var texture = new Texture2D(_gridSize.x, _gridSize.y);
 
-                for (var y = 0; y < _gridSize.y; y++)
-                {
-                    for (var x = 0; x < _gridSize.x; x++)
-                        texture.SetPixel(x, y, ShouldSpawnBrick(x, y) ? Color.white : Color.black);
-                }
+            _debugImage.gameObject.SetActive(true);
 
-                texture.filterMode = FilterMode.Point;
-                texture.Apply();
-                _debugImage.material.mainTexture = texture;
-            }
+            var texture = new Texture2D(_gridSize.x, _gridSize.y);
+
+            for (var y = 0; y < _gridSize.y; y++)
+            for (var x = 0; x < _gridSize.x; x++)
+                texture.SetPixel(x, y, ShouldSpawnBrick(x, y) ? Color.white : Color.black);
+
+            texture.filterMode = FilterMode.Point;
+            texture.Apply();
+            _debugImage.material.mainTexture = texture;
 #else
             _debugImage.gameObject.SetActive(false);
-#endif            
+#endif
         }
     }
 }

@@ -11,7 +11,7 @@ namespace Prez
         [SerializeField] private float _movementY;
         [SerializeField] private Ease _ease;
         [SerializeField] private Color _startColor;
-                
+
         private void OnEnable()
         {
             transform.DOMoveY(_movementY, 1f)

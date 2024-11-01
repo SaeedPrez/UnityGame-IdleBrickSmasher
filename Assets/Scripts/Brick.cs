@@ -16,16 +16,16 @@ namespace Prez
         [SerializeField] private SpriteRenderer _fillImage;
         [SerializeField] private SpriteRenderer _borderImage;
         [SerializeField] private Color _damageColor;
-        
+        private Color _borderColor;
+
+        private BoxCollider2D _collider;
+        private double _currentHealth;
+
         public double MaxHealth { get; private set; }
         public bool IsActive { get; private set; }
         public Color FillColor { get; private set; }
         public Vector2Int GridPosition { get; private set; }
         public double SpawnedRowNumber { get; private set; }
-
-        private BoxCollider2D _collider;
-        private double _currentHealth;
-        private Color _borderColor;
 
         private void Awake()
         {
@@ -40,9 +40,9 @@ namespace Prez
             _collider.enabled = true;
             UpdateHealthUi();
         }
-        
+
         /// <summary>
-        /// Sets max health.
+        ///     Sets max health.
         /// </summary>
         /// <param name="health"></param>
         public void SetMaxHealth(double health)
@@ -52,7 +52,7 @@ namespace Prez
         }
 
         /// <summary>
-        /// Sets positions.
+        ///     Sets positions.
         /// </summary>
         /// <param name="gridPosition"></param>
         /// <param name="position"></param>
@@ -63,7 +63,7 @@ namespace Prez
         }
 
         /// <summary>
-        /// Set the row number where the brick belongs.
+        ///     Set the row number where the brick belongs.
         /// </summary>
         /// <param name="row"></param>
         public void SetSpawnedRowNumber(double row)
@@ -72,7 +72,7 @@ namespace Prez
         }
 
         /// <summary>
-        /// Sets the brick color.
+        ///     Sets the brick color.
         /// </summary>
         /// <param name="color"></param>
         public void SetColor(Color color)
@@ -80,9 +80,9 @@ namespace Prez
             FillColor = color;
             _fillImage.color = FillColor;
         }
-        
+
         /// <summary>
-        /// Moves the brick down a row.
+        ///     Moves the brick down a row.
         /// </summary>
         /// <param name="position"></param>
         public void MoveDown(Vector2 position)
@@ -90,12 +90,12 @@ namespace Prez
             transform.DOKill(true);
             transform.DOLocalMoveY(position.y, 0.2f)
                 .SetEase(Ease.OutCirc);
-            
+
             GridPosition += Vector2Int.up;
         }
 
         /// <summary>
-        /// Takes damage.
+        ///     Takes damage.
         /// </summary>
         /// <param name="data"></param>
         public void TakeDamage(DamageData data)
@@ -103,7 +103,7 @@ namespace Prez
             data.Damage = data.DamageRaw > _currentHealth
                 ? _currentHealth
                 : data.DamageRaw;
-        
+
             _currentHealth -= Math.Round(data.Damage, 2);
             UpdateHealthUi();
 
@@ -122,9 +122,9 @@ namespace Prez
 
             EventManager.I.TriggerBrickDamaged(data);
         }
-    
+
         /// <summary>
-        /// Updates the health Ui with current health.
+        ///     Updates the health Ui with current health.
         /// </summary>
         private void UpdateHealthUi()
         {
@@ -133,21 +133,21 @@ namespace Prez
                 _fillContainer.localScale = Vector3.one;
                 return;
             }
-        
+
             _fillContainer.DOKill();
             _fillContainer.DOScaleX((float)(_currentHealth / MaxHealth), 0.1f);
-        
+
             _healthUi.SetText(Helper.GetNumberAsString(_currentHealth));
         }
 
         /// <summary>
-        /// Destroys the brick.
+        ///     Destroys the brick.
         /// </summary>
         private void Destroyed()
         {
             if (!IsActive)
                 return;
-            
+
             IsActive = false;
             _collider.enabled = false;
             transform.DOKill(true);

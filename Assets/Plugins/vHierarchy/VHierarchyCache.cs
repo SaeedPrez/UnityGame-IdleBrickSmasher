@@ -1,19 +1,7 @@
 #if UNITY_EDITOR
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using System;
 using UnityEditor;
-using UnityEditor.ShortcutManagement;
-using System.Reflection;
-using System.Linq;
-using UnityEngine.UIElements;
-using UnityEngine.SceneManagement;
-using UnityEditor.SceneManagement;
-using Type = System.Type;
-using static VHierarchy.VHierarchyData;
 using static VHierarchy.Libs.VUtils;
-using static VHierarchy.Libs.VGUI;
-
 
 
 namespace VHierarchy
@@ -22,27 +10,13 @@ namespace VHierarchy
     public class VHierarchyCache : ScriptableSingleton<VHierarchyCache>
     {
         // used for finding SceneData and SceneIdMap for objects that were moved out of their original scene 
-        public SerializableDictionary<int, string> originalSceneGuids_byInstanceId = new SerializableDictionary<int, string>();
+        public SerializableDictionary<int, string> originalSceneGuids_byInstanceId = new();
 
         // used as cache for converting GlobalID to InstanceID and as a way to find GameObjectData for prefabs in playmode (when prefabs produce invalid GlobalIDs)
-        public SerializableDictionary<string, SceneIdMap> sceneIdMaps_bySceneGuid = new SerializableDictionary<string, SceneIdMap>();
+        public SerializableDictionary<string, SceneIdMap> sceneIdMaps_bySceneGuid = new();
 
         // used for fetching icons set inside prefab instances in playmode (when prefabs produce invalid GlobalIDs)
-        public SerializableDictionary<int, GlobalID> prefabInstanceGlobalIds_byInstanceIds = new SerializableDictionary<int, GlobalID>();
-
-
-        [System.Serializable]
-        public class SceneIdMap
-        {
-            public SerializableDictionary<int, GlobalID> globalIds_byInstanceId = new SerializableDictionary<int, GlobalID>();
-
-            public int instanceIdsHash;
-            public int globalIdsHash;
-
-        }
-
-
-
+        public SerializableDictionary<int, GlobalID> prefabInstanceGlobalIds_byInstanceIds = new();
 
 
         public static void Clear()
@@ -51,12 +25,19 @@ namespace VHierarchy
             instance.sceneIdMaps_bySceneGuid.Clear();
 
             instance.Save(true);
+        }
 
+
+        [Serializable]
+        public class SceneIdMap
+        {
+            public SerializableDictionary<int, GlobalID> globalIds_byInstanceId = new();
+
+            public int instanceIdsHash;
+            public int globalIdsHash;
         }
 
         // public static void Save() => instance.Save(true);    // cache is never saved to disk, it just needs to survive domain reloads
-
-
     }
 }
 #endif

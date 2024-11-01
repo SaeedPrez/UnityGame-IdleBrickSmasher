@@ -6,23 +6,22 @@ namespace Prez.Utilities
 {
     public class ObjectPool : MonoBehaviour
     {
-        
         [SerializeField] private GameObject _prefab;
         [SerializeField] private Transform _container;
         [SerializeField] private int _startQuantity;
         [SerializeField] private int _maxQuantity;
         [SerializeField] private float _autoReturnAfter;
-        
+
         private ObjectPool<GameObject> _pool;
 
         private void Awake()
         {
-            _pool = new ObjectPool<GameObject>(CreateEffect, 
-                OnGetEffect, 
-                OnReturnEffect, 
-                OnDestroyEffect, 
-                true, 
-                _startQuantity, 
+            _pool = new ObjectPool<GameObject>(CreateEffect,
+                OnGetEffect,
+                OnReturnEffect,
+                OnDestroyEffect,
+                true,
+                _startQuantity,
                 _maxQuantity);
         }
 
@@ -42,7 +41,7 @@ namespace Prez.Utilities
             if (obj.activeInHierarchy)
                 obj.SetActive(false);
         }
-        
+
         private void OnDestroyEffect(GameObject obj)
         {
             Destroy(obj);

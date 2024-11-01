@@ -14,7 +14,7 @@ namespace Prez.Core
         [SerializeField] private RectTransform _ballMenuRowContainer;
         [SerializeField] private Transform _ballContainer;
         [SerializeField] private ParticleSystem _ballSpawnEffect;
-        
+
         private readonly List<BallMenuRow> _ballMenuRows = new();
 
         private void OnEnable()
@@ -23,27 +23,27 @@ namespace Prez.Core
             EventManager.I.OnLeveledUp += OnLeveledUp;
             EventManager.I.OnBallRequestRespawn += OnBallRequestRespawn;
         }
-        
+
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
             EventManager.I.OnLeveledUp -= OnLeveledUp;
             EventManager.I.OnBallRequestRespawn -= OnBallRequestRespawn;
         }
-        
+
         private void OnGameStateChanged(EGameState state)
         {
             if (state is EGameState.Loaded)
                 StartCoroutine(CreateBallMenuRows());
         }
-        
+
         private void OnLeveledUp(int level)
         {
             var ballMenuRow = _ballMenuRows.FirstOrDefault(bmr => bmr.Ball.Data.UnlockLevel == level);
 
             if (!ballMenuRow)
                 return;
-            
+
             UnlockBallMenuRow(ballMenuRow);
             MessageManager.Queue($"Ball {ballMenuRow.Ball.Data.Id} unlocked!");
         }
@@ -56,7 +56,7 @@ namespace Prez.Core
         #region Ball Menu Rows
 
         /// <summary>
-        /// Creates ball menu rows and their balls.
+        ///     Creates ball menu rows and their balls.
         /// </summary>
         private IEnumerator CreateBallMenuRows()
         {
@@ -71,34 +71,32 @@ namespace Prez.Core
             }
 
             yield return new WaitForSeconds(1.5f);
-            
+
             foreach (var ballMenuRow in _ballMenuRows)
-            {
                 if (ballMenuRow.Data.UnlockLevel <= GameManager.Data.LevelCurrent)
                 {
                     ballMenuRow.gameObject.SetActive(true);
                     yield return new WaitForSeconds(0.15f);
                     UnlockBallMenuRow(ballMenuRow);
                 }
-            }
         }
 
         /// <summary>
-        /// Unlocks ball menu row.
+        ///     Unlocks ball menu row.
         /// </summary>
         /// <param name="ballMenuRow"></param>
         private void UnlockBallMenuRow(BallMenuRow ballMenuRow)
         {
             if (ballMenuRow.IsUnlocked)
                 return;
-            
+
             ballMenuRow.Unlock();
             EnableNextBallMenuRow();
             SpawnBall(ballMenuRow.Ball);
         }
 
         /// <summary>
-        /// Spawns a ball.
+        ///     Spawns a ball.
         /// </summary>
         /// <param name="ball"></param>
         private void SpawnBall(Ball ball)
@@ -108,16 +106,16 @@ namespace Prez.Core
             RandomizeBallVelocity(ball);
             _ballSpawnEffect.Play();
         }
-        
+
         /// <summary>
-        /// Set a randomized ball velocity.
+        ///     Set a randomized ball velocity.
         /// </summary>
         /// <param name="ball"></param>
         private void RandomizeBallVelocity(Ball ball)
         {
             ball.SetRandomDirectionVelocity();
         }
-        
+
         private void EnableNextBallMenuRow()
         {
             var nextBallMenuRow = _ballMenuRows

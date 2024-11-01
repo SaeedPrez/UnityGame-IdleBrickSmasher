@@ -1,39 +1,44 @@
 #if UNITY_EDITOR
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor;
-using UnityEditor.ShortcutManagement;
-using System.Reflection;
 using System.Linq;
-using UnityEngine.UIElements;
-using UnityEngine.SceneManagement;
-using UnityEditor.SceneManagement;
-using UnityEditorInternal;
+using UnityEditor;
+using UnityEngine;
 using static VHierarchy.Libs.VUtils;
 using static VHierarchy.Libs.VGUI;
-
 
 
 namespace VHierarchy
 {
     public class VHierarchyPalette : ScriptableObject
     {
-        public List<Color> colors = new List<Color>();
+        public static int greyColorsCount = 1;
+        public static int rainbowColorsCount = 8;
+        public List<Color> colors = new();
 
         public bool colorsEnabled;
+
+
+        public List<IconRow> iconRows = new();
+        public static int colorsCount => greyColorsCount + rainbowColorsCount;
+
+
+        private void Reset()
+        {
+            ResetColors();
+            ResetIcons();
+        }
 
         public void ResetColors()
         {
             colors.Clear();
 
-            for (int i = 0; i < colorsCount; i++)
+            for (var i = 0; i < colorsCount; i++)
                 colors.Add(GetDefaultColor(i));
 
             colorsEnabled = true;
 
             this.Dirty();
-
         }
 
         public static Color GetDefaultColor(int colorIndex)
@@ -49,8 +54,8 @@ namespace VHierarchy
 #else
                 color = Greyscale(isDarkTheme ? .315f : .9f);
 #endif
-
             }
+
             void rainbowDarkTheme()
             {
                 if (colorIndex < greyColorsCount) return;
@@ -75,8 +80,8 @@ namespace VHierarchy
 
 
                 color.a = .1f;
-
             }
+
             void rainbowLightTheme()
             {
                 if (colorIndex < greyColorsCount) return;
@@ -85,7 +90,6 @@ namespace VHierarchy
                 color = HSLToRGB((colorIndex - greyColorsCount.ToFloat()) / rainbowColorsCount, .62f, .8f);
 
                 color.a = .1f;
-
             }
 
             grey();
@@ -93,33 +97,6 @@ namespace VHierarchy
             rainbowLightTheme();
 
             return color;
-
-        }
-
-        public static int greyColorsCount = 1;
-        public static int rainbowColorsCount = 8;
-        public static int colorsCount => greyColorsCount + rainbowColorsCount;
-
-
-
-
-        public List<IconRow> iconRows = new List<IconRow>();
-
-        [System.Serializable]
-        public class IconRow
-        {
-            public List<string> builtinIcons = new List<string>(); // names
-            public List<string> customIcons = new List<string>(); // guids
-
-            public bool enabled = true;
-
-            public bool isCustom => !builtinIcons.Any() || customIcons.Any();
-            public bool isEmpty => !builtinIcons.Any() && !customIcons.Any();
-            public int iconCount => builtinIcons.Count + customIcons.Count;
-
-            public IconRow(string[] builtinIcons) => this.builtinIcons = builtinIcons.ToList();
-            public IconRow() { }
-
         }
 
         public void ResetIcons()
@@ -135,8 +112,7 @@ namespace VHierarchy
                 "StandaloneInputModule Icon",
                 "EventSystem Icon",
                 "Terrain Icon",
-                "ScriptableObject Icon",
-
+                "ScriptableObject Icon"
             }));
             iconRows.Add(new IconRow(new[]
             {
@@ -144,16 +120,14 @@ namespace VHierarchy
                 "ParticleSystem Icon",
                 "TrailRenderer Icon",
                 "Material Icon",
-                "ReflectionProbe Icon",
-
+                "ReflectionProbe Icon"
             }));
             iconRows.Add(new IconRow(new[]
             {
                 "Light Icon",
                 "DirectionalLight Icon",
                 "LightmapParameters Icon",
-                "LightProbes Icon",
-
+                "LightProbes Icon"
             }));
             iconRows.Add(new IconRow(new[]
             {
@@ -162,8 +136,7 @@ namespace VHierarchy
                 "SphereCollider Icon",
                 "CapsuleCollider Icon",
                 "WheelCollider Icon",
-                "MeshCollider Icon",
-
+                "MeshCollider Icon"
             }));
             iconRows.Add(new IconRow(new[]
             {
@@ -171,8 +144,7 @@ namespace VHierarchy
                 "AudioClip Icon",
                 "AudioListener Icon",
                 "AudioEchoFilter Icon",
-                "AudioReverbZone Icon",
-
+                "AudioReverbZone Icon"
             }));
             iconRows.Add(new IconRow(new[]
             {
@@ -181,37 +153,48 @@ namespace VHierarchy
                 "PreMatCylinder",
                 "PreMatQuad",
                 "Favorite",
-                #if UNITY_2021_3_OR_NEWER
+#if UNITY_2021_3_OR_NEWER
                 "Settings Icon",
-                #endif
-
+#endif
             }));
 
             this.Dirty();
-
         }
-
-
 
 
         [ContextMenu("Export palette")]
         public void Export()
         {
-            var packagePath = EditorUtility.SaveFilePanel("Export vHierarchy Palette", "", this.GetPath().GetFilename(withExtension: false), "unitypackage");
+            var packagePath = EditorUtility.SaveFilePanel("Export vHierarchy Palette", "", this.GetPath().GetFilename(false), "unitypackage");
 
             var iconPaths = iconRows.SelectMany(r => r.customIcons).Select(r => r.ToPath()).Where(r => !r.IsNullOrEmpty());
 
             AssetDatabase.ExportPackage(iconPaths.Append(this.GetPath()).ToArray(), packagePath);
 
             EditorUtility.RevealInFinder(packagePath);
-
         }
 
+        [Serializable]
+        public class IconRow
+        {
+            public List<string> builtinIcons = new(); // names
+            public List<string> customIcons = new(); // guids
 
+            public bool enabled = true;
 
+            public IconRow(string[] builtinIcons)
+            {
+                this.builtinIcons = builtinIcons.ToList();
+            }
 
-        void Reset() { ResetColors(); ResetIcons(); }
+            public IconRow()
+            {
+            }
 
+            public bool isCustom => !builtinIcons.Any() || customIcons.Any();
+            public bool isEmpty => !builtinIcons.Any() && !customIcons.Any();
+            public int iconCount => builtinIcons.Count + customIcons.Count;
+        }
     }
 }
 #endif

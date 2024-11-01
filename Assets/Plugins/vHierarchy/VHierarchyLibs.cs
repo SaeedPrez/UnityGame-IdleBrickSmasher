@@ -1,17 +1,16 @@
 #if UNITY_EDITOR
-using Type = System.Type;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
-using UnityEditor;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Diagnostics;
 using System.Reflection;
+using UnityEditor;
+using UnityEngine;
 using UnityEngine.Experimental.Rendering;
+using Type = System.Type;
 using static VHierarchy.Libs.VUtils;
-using static VHierarchy.Libs.VGUI;
+using Object = UnityEngine.Object;
 
 
 namespace VHierarchy.Libs
@@ -20,32 +19,41 @@ namespace VHierarchy.Libs
     {
         #region Text
 
-
         public static string FormatDistance(float meters)
         {
-            int m = (int)meters;
+            var m = (int)meters;
 
             if (m < 1000) return m + " m";
-            else return (m / 1000) + "." + (m / 100) % 10 + " km";
+            return m / 1000 + "." + m / 100 % 10 + " km";
         }
-        public static string FormatLong(long l) => System.String.Format("{0:n0}", l);
-        public static string FormatInt(int l) => FormatLong((long)l);
+
+        public static string FormatLong(long l)
+        {
+            return string.Format("{0:n0}", l);
+        }
+
+        public static string FormatInt(int l)
+        {
+            return FormatLong(l);
+        }
+
         public static string FormatSize(long bytes, bool sizeUnknownIfNotMoreThanZero = false)
         {
             if (sizeUnknownIfNotMoreThanZero && bytes == 0) return "Size unknown";
 
             var ss = new[] { "B", "KB", "MB", "GB", "TB" };
             var bprev = bytes;
-            int i = 0;
+            var i = 0;
             while (bytes >= 1024 && i++ < ss.Length - 1) bytes = (bprev = bytes) / 1024;
 
             if (bytes < 0) return "? B";
             if (i < 3) return string.Format("{0:0.#} ", bytes) + ss[i];
             return string.Format("{0:0.##} ", bytes) + ss[i];
         }
+
         public static string FormatTime(long ms, bool includeMs = false)
         {
-            System.TimeSpan t = System.TimeSpan.FromMilliseconds(ms);
+            var t = TimeSpan.FromMilliseconds(ms);
             var s = "";
             if (t.Hours != 0) s += " " + t.Hours + " hour" + CountSuffix(t.Hours);
             if (t.Minutes != 0) s += " " + t.Minutes + " minute" + CountSuffix(t.Minutes);
@@ -58,24 +66,31 @@ namespace VHierarchy.Libs
 
             return s.Trim();
         }
-        static string CountSuffix(long c) => c % 10 != 1 ? "s" : "";
+
+        private static string CountSuffix(long c)
+        {
+            return c % 10 != 1 ? "s" : "";
+        }
+
         public static string Remove(this string s, string toRemove)
         {
             if (toRemove == "") return s;
             return s.Replace(toRemove, "");
         }
 
-        public static bool IsEmpty(this string s) => s == "";
-        public static bool IsNullOrEmpty(this string s) => string.IsNullOrEmpty(s);
+        public static bool IsEmpty(this string s)
+        {
+            return s == "";
+        }
 
-
-
-
+        public static bool IsNullOrEmpty(this string s)
+        {
+            return string.IsNullOrEmpty(s);
+        }
 
         #endregion
 
         #region IEnumerables
-
 
         public static T AddAt<T>(this List<T> l, T r, int i)
         {
@@ -86,6 +101,7 @@ namespace VHierarchy.Libs
                 l.Insert(i, r);
             return r;
         }
+
         public static T RemoveLast<T>(this List<T> l)
         {
             if (!l.Any()) return default;
@@ -103,7 +119,11 @@ namespace VHierarchy.Libs
                 list.Add(r);
         }
 
-        public static int LastIndex<T>(this List<T> l) => l.Count - 1; // toremove
+        public static int LastIndex<T>(this List<T> l)
+        {
+            return l.Count - 1;
+            // toremove
+        }
 
         // public static T GetAtWrapped<T>(this List<T> list, int i) // toremove
         // {
@@ -113,23 +133,29 @@ namespace VHierarchy.Libs
         //     return list[i];
         // }
 
-
-
-
-
         #endregion
 
         #region Linq
 
+        public static T NextTo<T>(this IEnumerable<T> e, T to)
+        {
+            return e.SkipWhile(r => !r.Equals(to)).Skip(1).FirstOrDefault();
+        }
 
-        public static T NextTo<T>(this IEnumerable<T> e, T to) => e.SkipWhile(r => !r.Equals(to)).Skip(1).FirstOrDefault();
+        public static T PreviousTo<T>(this IEnumerable<T> e, T to)
+        {
+            return e.Reverse().SkipWhile(r => !r.Equals(to)).Skip(1).FirstOrDefault();
+        }
 
-        public static T PreviousTo<T>(this IEnumerable<T> e, T to) => e.Reverse().SkipWhile(r => !r.Equals(to)).Skip(1).FirstOrDefault();
+        public static T NextToOtFirst<T>(this IEnumerable<T> e, T to)
+        {
+            return e.NextTo(to) ?? e.First();
+        }
 
-        public static T NextToOtFirst<T>(this IEnumerable<T> e, T to) => e.NextTo(to) ?? e.First();
-
-        public static T PreviousToOrLast<T>(this IEnumerable<T> e, T to) => e.PreviousTo(to) ?? e.Last();
-
+        public static T PreviousToOrLast<T>(this IEnumerable<T> e, T to)
+        {
+            return e.PreviousTo(to) ?? e.Last();
+        }
 
 
         public static Dictionary<TKey, TValue> MergeDictionaries<TKey, TValue>(IEnumerable<Dictionary<TKey, TValue>> dicts)
@@ -140,27 +166,45 @@ namespace VHierarchy.Libs
             var mergedDict = new Dictionary<TKey, TValue>(dicts.First());
 
             foreach (var dict in dicts.Skip(1))
-                foreach (var r in dict)
-                    if (!mergedDict.ContainsKey(r.Key))
-                        mergedDict.Add(r.Key, r.Value);
+            foreach (var r in dict)
+                if (!mergedDict.ContainsKey(r.Key))
+                    mergedDict.Add(r.Key, r.Value);
 
             return mergedDict;
         }
 
-        public static IEnumerable<T> InsertFirst<T>(this IEnumerable<T> ie, T t) => new[] { t }.Concat(ie);
+        public static IEnumerable<T> InsertFirst<T>(this IEnumerable<T> ie, T t)
+        {
+            return new[] { t }.Concat(ie);
+        }
 
 
-        public static bool None<T>(this IEnumerable<T> ie, System.Func<T, bool> f) => !ie.Any(f);
+        public static bool None<T>(this IEnumerable<T> ie, Func<T, bool> f)
+        {
+            return !ie.Any(f);
+        }
 
-        public static bool None<T>(this IEnumerable<T> ie) => !ie.Any();
+        public static bool None<T>(this IEnumerable<T> ie)
+        {
+            return !ie.Any();
+        }
 
 
-        public static int IndexOfFirst<T>(this List<T> list, System.Func<T, bool> f) => list.FirstOrDefault(f) is T t ? list.IndexOf(t) : -1;
+        public static int IndexOfFirst<T>(this List<T> list, Func<T, bool> f)
+        {
+            return list.FirstOrDefault(f) is T t ? list.IndexOf(t) : -1;
+        }
 
-        public static int IndexOfLast<T>(this List<T> list, System.Func<T, bool> f) => list.LastOrDefault(f) is T t ? list.IndexOf(t) : -1;
+        public static int IndexOfLast<T>(this List<T> list, Func<T, bool> f)
+        {
+            return list.LastOrDefault(f) is T t ? list.IndexOf(t) : -1;
+        }
 
 
-        public static void SortBy<T, T2>(this List<T> list, System.Func<T, T2> keySelector) where T2 : System.IComparable => list.Sort((q, w) => keySelector(q).CompareTo(keySelector(w)));
+        public static void SortBy<T, T2>(this List<T> list, Func<T, T2> keySelector) where T2 : IComparable
+        {
+            list.Sort((q, w) => keySelector(q).CompareTo(keySelector(w)));
+        }
 
         public static void RemoveValue<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TValue value)
         {
@@ -169,13 +213,10 @@ namespace VHierarchy.Libs
         }
 
 
-
-
-        public static TValue GetValueOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> dic, TKey key) => dic.ContainsKey(key) ? dic[key] : default;
-
-
-
-
+        public static TValue GetValueOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> dic, TKey key)
+        {
+            return dic.ContainsKey(key) ? dic[key] : default;
+        }
 
         #endregion
 
@@ -183,7 +224,7 @@ namespace VHierarchy.Libs
 
         public static object GetFieldValue(this object o, string fieldName, bool exceptionIfNotFound = true)
         {
-            var type = (o as Type) ?? o.GetType();
+            var type = o as Type ?? o.GetType();
             var target = o is Type ? null : o;
 
 
@@ -192,14 +233,14 @@ namespace VHierarchy.Libs
 
 
             if (exceptionIfNotFound)
-                throw new System.Exception($"Field '{fieldName}' not found in '{type.Name}' type and its parent types");
+                throw new Exception($"Field '{fieldName}' not found in '{type.Name}' type and its parent types");
 
             return null;
-
         }
+
         public static object GetPropertyValue(this object o, string propertyName, bool exceptionIfNotFound = true)
         {
-            var type = (o as Type) ?? o.GetType();
+            var type = o as Type ?? o.GetType();
             var target = o is Type ? null : o;
 
 
@@ -208,14 +249,14 @@ namespace VHierarchy.Libs
 
 
             if (exceptionIfNotFound)
-                throw new System.Exception($"Property '{propertyName}' not found in '{type.Name}' type and its parent types");
+                throw new Exception($"Property '{propertyName}' not found in '{type.Name}' type and its parent types");
 
             return null;
-
         }
+
         public static object GetMemberValue(this object o, string memberName, bool exceptionIfNotFound = true)
         {
-            var type = (o as Type) ?? o.GetType();
+            var type = o as Type ?? o.GetType();
             var target = o is Type ? null : o;
 
 
@@ -227,15 +268,14 @@ namespace VHierarchy.Libs
 
 
             if (exceptionIfNotFound)
-                throw new System.Exception($"Member '{memberName}' not found in '{type.Name}' type and its parent types");
+                throw new Exception($"Member '{memberName}' not found in '{type.Name}' type and its parent types");
 
             return null;
-
         }
 
         public static void SetFieldValue(this object o, string fieldName, object value, bool exceptionIfNotFound = true)
         {
-            var type = (o as Type) ?? o.GetType();
+            var type = o as Type ?? o.GetType();
             var target = o is Type ? null : o;
 
 
@@ -244,12 +284,12 @@ namespace VHierarchy.Libs
 
 
             else if (exceptionIfNotFound)
-                throw new System.Exception($"Field '{fieldName}' not found in '{type.Name}' type and its parent types");
-
+                throw new Exception($"Field '{fieldName}' not found in '{type.Name}' type and its parent types");
         }
+
         public static void SetPropertyValue(this object o, string propertyName, object value, bool exceptionIfNotFound = true)
         {
-            var type = (o as Type) ?? o.GetType();
+            var type = o as Type ?? o.GetType();
             var target = o is Type ? null : o;
 
 
@@ -258,12 +298,12 @@ namespace VHierarchy.Libs
 
 
             else if (exceptionIfNotFound)
-                throw new System.Exception($"Property '{propertyName}' not found in '{type.Name}' type and its parent types");
-
+                throw new Exception($"Property '{propertyName}' not found in '{type.Name}' type and its parent types");
         }
+
         public static void SetMemberValue(this object o, string memberName, object value, bool exceptionIfNotFound = true)
         {
-            var type = (o as Type) ?? o.GetType();
+            var type = o as Type ?? o.GetType();
             var target = o is Type ? null : o;
 
 
@@ -275,13 +315,12 @@ namespace VHierarchy.Libs
 
 
             else if (exceptionIfNotFound)
-                throw new System.Exception($"Member '{memberName}' not found in '{type.Name}' type and its parent types");
-
+                throw new Exception($"Member '{memberName}' not found in '{type.Name}' type and its parent types");
         }
 
         public static object InvokeMethod(this object o, string methodName, params object[] parameters)
         {
-            var type = (o as Type) ?? o.GetType();
+            var type = o as Type ?? o.GetType();
             var target = o is Type ? null : o;
 
 
@@ -289,13 +328,11 @@ namespace VHierarchy.Libs
                 return methodInfo.Invoke(target, parameters);
 
 
-            throw new System.Exception($"Method '{methodName}' not found in '{type.Name}' type, its parent types and interfaces");
-
+            throw new Exception($"Method '{methodName}' not found in '{type.Name}' type, its parent types and interfaces");
         }
 
 
-
-        static FieldInfo GetFieldInfo(this Type type, string fieldName)
+        private static FieldInfo GetFieldInfo(this Type type, string fieldName)
         {
             if (fieldInfoCache.TryGetValue(type, out var fieldInfosByNames))
                 if (fieldInfosByNames.TryGetValue(fieldName, out var fieldInfo))
@@ -311,11 +348,11 @@ namespace VHierarchy.Libs
 
 
             return fieldInfoCache[type][fieldName] = null;
-
         }
-        static Dictionary<Type, Dictionary<string, FieldInfo>> fieldInfoCache = new Dictionary<Type, Dictionary<string, FieldInfo>>();
 
-        static PropertyInfo GetPropertyInfo(this Type type, string propertyName)
+        private static readonly Dictionary<Type, Dictionary<string, FieldInfo>> fieldInfoCache = new();
+
+        private static PropertyInfo GetPropertyInfo(this Type type, string propertyName)
         {
             if (propertyInfoCache.TryGetValue(type, out var propertyInfosByNames))
                 if (propertyInfosByNames.TryGetValue(propertyName, out var propertyInfo))
@@ -331,11 +368,11 @@ namespace VHierarchy.Libs
 
 
             return propertyInfoCache[type][propertyName] = null;
-
         }
-        static Dictionary<Type, Dictionary<string, PropertyInfo>> propertyInfoCache = new Dictionary<Type, Dictionary<string, PropertyInfo>>();
 
-        static MethodInfo GetMethodInfo(this Type type, string methodName, params Type[] argumentTypes)
+        private static readonly Dictionary<Type, Dictionary<string, PropertyInfo>> propertyInfoCache = new();
+
+        private static MethodInfo GetMethodInfo(this Type type, string methodName, params Type[] argumentTypes)
         {
             var methodHash = methodName.GetHashCode() ^ argumentTypes.Aggregate(0, (hash, r) => hash ^= r.GetHashCode());
 
@@ -343,7 +380,6 @@ namespace VHierarchy.Libs
             if (methodInfoCache.TryGetValue(type, out var methodInfosByHashes))
                 if (methodInfosByHashes.TryGetValue(methodHash, out var methodInfo))
                     return methodInfo;
-
 
 
             if (!methodInfoCache.ContainsKey(type))
@@ -358,83 +394,207 @@ namespace VHierarchy.Libs
                     return methodInfoCache[type][methodHash] = methodInfo;
 
 
-
             return methodInfoCache[type][methodHash] = null;
-
         }
-        static Dictionary<Type, Dictionary<int, MethodInfo>> methodInfoCache = new Dictionary<Type, Dictionary<int, MethodInfo>>();
+
+        private static readonly Dictionary<Type, Dictionary<int, MethodInfo>> methodInfoCache = new();
 
 
+        public static T GetFieldValue<T>(this object o, string fieldName, bool exceptionIfNotFound = true)
+        {
+            return (T)o.GetFieldValue(fieldName, exceptionIfNotFound);
+        }
 
-        public static T GetFieldValue<T>(this object o, string fieldName, bool exceptionIfNotFound = true) => (T)o.GetFieldValue(fieldName, exceptionIfNotFound);
-        public static T GetPropertyValue<T>(this object o, string propertyName, bool exceptionIfNotFound = true) => (T)o.GetPropertyValue(propertyName, exceptionIfNotFound);
-        public static T GetMemberValue<T>(this object o, string memberName, bool exceptionIfNotFound = true) => (T)o.GetMemberValue(memberName, exceptionIfNotFound);
-        public static T InvokeMethod<T>(this object o, string methodName, params object[] parameters) => (T)o.InvokeMethod(methodName, parameters);
+        public static T GetPropertyValue<T>(this object o, string propertyName, bool exceptionIfNotFound = true)
+        {
+            return (T)o.GetPropertyValue(propertyName, exceptionIfNotFound);
+        }
+
+        public static T GetMemberValue<T>(this object o, string memberName, bool exceptionIfNotFound = true)
+        {
+            return (T)o.GetMemberValue(memberName, exceptionIfNotFound);
+        }
+
+        public static T InvokeMethod<T>(this object o, string methodName, params object[] parameters)
+        {
+            return (T)o.InvokeMethod(methodName, parameters);
+        }
 
 
+        public static List<Type> GetSubclasses(this Type t)
+        {
+            return t.Assembly.GetTypes().Where(type => type.IsSubclassOf(t)).ToList();
+        }
+
+        public static object GetDefaultValue(this FieldInfo f, params object[] constructorVars)
+        {
+            return f.GetValue(Activator.CreateInstance(f.ReflectedType, constructorVars));
+        }
+
+        public static object GetDefaultValue(this FieldInfo f)
+        {
+            return f.GetValue(Activator.CreateInstance(f.ReflectedType));
+        }
 
 
+        public static IEnumerable<FieldInfo> GetFieldsWithoutBase(this Type t)
+        {
+            return t.GetFields().Where(r => !t.BaseType.GetFields().Any(rr => rr.Name == r.Name));
+        }
 
-
-        public static List<Type> GetSubclasses(this Type t) => t.Assembly.GetTypes().Where(type => type.IsSubclassOf(t)).ToList();
-
-        public static object GetDefaultValue(this FieldInfo f, params object[] constructorVars) => f.GetValue(System.Activator.CreateInstance(((MemberInfo)f).ReflectedType, constructorVars));
-
-        public static object GetDefaultValue(this FieldInfo f) => f.GetValue(System.Activator.CreateInstance(((MemberInfo)f).ReflectedType));
-
-
-        public static IEnumerable<FieldInfo> GetFieldsWithoutBase(this Type t) => t.GetFields().Where(r => !t.BaseType.GetFields().Any(rr => rr.Name == r.Name));
-
-        public static IEnumerable<PropertyInfo> GetPropertiesWithoutBase(this Type t) => t.GetProperties().Where(r => !t.BaseType.GetProperties().Any(rr => rr.Name == r.Name));
+        public static IEnumerable<PropertyInfo> GetPropertiesWithoutBase(this Type t)
+        {
+            return t.GetProperties().Where(r => !t.BaseType.GetProperties().Any(rr => rr.Name == r.Name));
+        }
 
 
         public const BindingFlags maxBindingFlags = (BindingFlags)62;
-
-
-
-
-
-
 
         #endregion
 
         #region Math
 
+        public static bool Approx(this float f1, float f2)
+        {
+            return Mathf.Approximately(f1, f2);
+        }
 
-        public static bool Approx(this float f1, float f2) => Mathf.Approximately(f1, f2);
-        public static bool CloseTo(this float f1, float f2, float distance) => f1.DistTo(f2) <= distance;
-        public static float DistTo(this float f1, float f2) => Mathf.Abs(f1 - f2);
-        public static float Dist(float f1, float f2) => Mathf.Abs(f1 - f2);
-        public static float Avg(float f1, float f2) => (f1 + f2) / 2;
-        public static float Abs(this float f) => Mathf.Abs(f);
-        public static int Abs(this int f) => Mathf.Abs(f);
-        public static float Sign(this float f) => Mathf.Sign(f);
-        public static float Clamp(this float f, float f0, float f1) => Mathf.Clamp(f, f0, f1);
-        public static int Clamp(this int f, int f0, int f1) => Mathf.Clamp(f, f0, f1);
-        public static float Clamp01(this float f) => Mathf.Clamp(f, 0, 1);
-        public static Vector2 Clamp01(this Vector2 f) => new Vector2(f.x.Clamp01(), f.y.Clamp01());
-        public static Vector3 Clamp01(this Vector3 f) => new Vector3(f.x.Clamp01(), f.y.Clamp01(), f.z.Clamp01());
+        public static bool CloseTo(this float f1, float f2, float distance)
+        {
+            return f1.DistTo(f2) <= distance;
+        }
+
+        public static float DistTo(this float f1, float f2)
+        {
+            return Mathf.Abs(f1 - f2);
+        }
+
+        public static float Dist(float f1, float f2)
+        {
+            return Mathf.Abs(f1 - f2);
+        }
+
+        public static float Avg(float f1, float f2)
+        {
+            return (f1 + f2) / 2;
+        }
+
+        public static float Abs(this float f)
+        {
+            return Mathf.Abs(f);
+        }
+
+        public static int Abs(this int f)
+        {
+            return Mathf.Abs(f);
+        }
+
+        public static float Sign(this float f)
+        {
+            return Mathf.Sign(f);
+        }
+
+        public static float Clamp(this float f, float f0, float f1)
+        {
+            return Mathf.Clamp(f, f0, f1);
+        }
+
+        public static int Clamp(this int f, int f0, int f1)
+        {
+            return Mathf.Clamp(f, f0, f1);
+        }
+
+        public static float Clamp01(this float f)
+        {
+            return Mathf.Clamp(f, 0, 1);
+        }
+
+        public static Vector2 Clamp01(this Vector2 f)
+        {
+            return new Vector2(f.x.Clamp01(), f.y.Clamp01());
+        }
+
+        public static Vector3 Clamp01(this Vector3 f)
+        {
+            return new Vector3(f.x.Clamp01(), f.y.Clamp01(), f.z.Clamp01());
+        }
 
 
-        public static float Pow(this float f, float pow) => Mathf.Pow(f, pow);
-        public static int Pow(this int f, int pow) => (int)Mathf.Pow(f, pow);
+        public static float Pow(this float f, float pow)
+        {
+            return Mathf.Pow(f, pow);
+        }
 
-        public static float Round(this float f) => Mathf.Round(f);
-        public static float Ceil(this float f) => Mathf.Ceil(f);
-        public static float Floor(this float f) => Mathf.Floor(f);
-        public static int RoundToInt(this float f) => Mathf.RoundToInt(f);
-        public static int CeilToInt(this float f) => Mathf.CeilToInt(f);
-        public static int FloorToInt(this float f) => Mathf.FloorToInt(f);
-        public static int ToInt(this float f) => (int)f;
-        public static float ToFloat(this int f) => (float)f;
+        public static int Pow(this int f, int pow)
+        {
+            return (int)Mathf.Pow(f, pow);
+        }
+
+        public static float Round(this float f)
+        {
+            return Mathf.Round(f);
+        }
+
+        public static float Ceil(this float f)
+        {
+            return Mathf.Ceil(f);
+        }
+
+        public static float Floor(this float f)
+        {
+            return Mathf.Floor(f);
+        }
+
+        public static int RoundToInt(this float f)
+        {
+            return Mathf.RoundToInt(f);
+        }
+
+        public static int CeilToInt(this float f)
+        {
+            return Mathf.CeilToInt(f);
+        }
+
+        public static int FloorToInt(this float f)
+        {
+            return Mathf.FloorToInt(f);
+        }
+
+        public static int ToInt(this float f)
+        {
+            return (int)f;
+        }
+
+        public static float ToFloat(this int f)
+        {
+            return f;
+        }
 
 
-        public static float Sqrt(this float f) => Mathf.Sqrt(f);
+        public static float Sqrt(this float f)
+        {
+            return Mathf.Sqrt(f);
+        }
 
-        public static float Max(this float f, float ff) => Mathf.Max(f, ff);
-        public static float Min(this float f, float ff) => Mathf.Min(f, ff);
-        public static int Max(this int f, int ff) => Mathf.Max(f, ff);
-        public static int Min(this int f, int ff) => Mathf.Min(f, ff);
+        public static float Max(this float f, float ff)
+        {
+            return Mathf.Max(f, ff);
+        }
+
+        public static float Min(this float f, float ff)
+        {
+            return Mathf.Min(f, ff);
+        }
+
+        public static int Max(this int f, int ff)
+        {
+            return Mathf.Max(f, ff);
+        }
+
+        public static int Min(this int f, int ff)
+        {
+            return Mathf.Min(f, ff);
+        }
 
         public static float Loop(this float f, float boundMin, float boundMax)
         {
@@ -442,13 +602,28 @@ namespace VHierarchy.Libs
             while (f > boundMax) f -= boundMax - boundMin;
             return f;
         }
-        public static float Loop(this float f, float boundMax) => f.Loop(0, boundMax);
 
-        public static float PingPong(this float f, float boundMin, float boundMax) => boundMin + Mathf.PingPong(f - boundMin, boundMax - boundMin);
-        public static float PingPong(this float f, float boundMax) => f.PingPong(0, boundMax);
+        public static float Loop(this float f, float boundMax)
+        {
+            return f.Loop(0, boundMax);
+        }
+
+        public static float PingPong(this float f, float boundMin, float boundMax)
+        {
+            return boundMin + Mathf.PingPong(f - boundMin, boundMax - boundMin);
+        }
+
+        public static float PingPong(this float f, float boundMax)
+        {
+            return f.PingPong(0, boundMax);
+        }
 
 
-        public static float TriangleArea(Vector2 A, Vector2 B, Vector2 C) => Vector3.Cross(A - B, A - C).z.Abs() / 2;
+        public static float TriangleArea(Vector2 A, Vector2 B, Vector2 C)
+        {
+            return Vector3.Cross(A - B, A - C).z.Abs() / 2;
+        }
+
         public static Vector2 LineIntersection(Vector2 A, Vector2 B, Vector2 C, Vector2 D)
         {
             var a1 = B.y - A.y;
@@ -465,15 +640,28 @@ namespace VHierarchy.Libs
             var y = (a1 * c2 - a2 * c1) / d;
 
             return new Vector2(x, y);
-
         }
 
-        public static float ProjectOn(this Vector2 v, Vector2 on) => Vector3.Project(v, on).magnitude;
-        public static float AngleTo(this Vector2 v, Vector2 to) => Vector2.Angle(v, to);
+        public static float ProjectOn(this Vector2 v, Vector2 on)
+        {
+            return Vector3.Project(v, on).magnitude;
+        }
 
-        public static Vector2 Rotate(this Vector2 v, float deg) => Quaternion.AngleAxis(deg, Vector3.forward) * v;
+        public static float AngleTo(this Vector2 v, Vector2 to)
+        {
+            return Vector2.Angle(v, to);
+        }
 
-        public static float Smoothstep(this float f) { f = f.Clamp01(); return f * f * (3 - 2 * f); }
+        public static Vector2 Rotate(this Vector2 v, float deg)
+        {
+            return Quaternion.AngleAxis(deg, Vector3.forward) * v;
+        }
+
+        public static float Smoothstep(this float f)
+        {
+            f = f.Clamp01();
+            return f * f * (3 - 2 * f);
+        }
 
         public static float InverseLerp(this Vector2 v, Vector2 a, Vector2 b)
         {
@@ -482,75 +670,184 @@ namespace VHierarchy.Libs
             return Vector2.Dot(av, ab) / Vector2.Dot(ab, ab);
         }
 
-        public static bool IsOdd(this int i) => i % 2 == 1;
-        public static bool IsEven(this int i) => i % 2 == 0;
+        public static bool IsOdd(this int i)
+        {
+            return i % 2 == 1;
+        }
 
-        public static bool IsInRange(this int i, int a, int b) => i >= a && i <= b;
-        public static bool IsInRange(this float i, float a, float b) => i >= a && i <= b;
+        public static bool IsEven(this int i)
+        {
+            return i % 2 == 0;
+        }
 
-        public static bool IsInRangeOf(this int i, IList list) => i.IsInRange(0, list.Count - 1);
-        public static bool IsInRangeOf<T>(this int i, T[] array) => i.IsInRange(0, array.Length - 1);
+        public static bool IsInRange(this int i, int a, int b)
+        {
+            return i >= a && i <= b;
+        }
 
+        public static bool IsInRange(this float i, float a, float b)
+        {
+            return i >= a && i <= b;
+        }
 
+        public static bool IsInRangeOf(this int i, IList list)
+        {
+            return i.IsInRange(0, list.Count - 1);
+        }
 
-
-
-
+        public static bool IsInRangeOf<T>(this int i, T[] array)
+        {
+            return i.IsInRange(0, array.Length - 1);
+        }
 
         #endregion
 
         #region Lerping
 
+        public static float LerpT(float lerpSpeed, float deltaTime)
+        {
+            return 1 - Mathf.Exp(-lerpSpeed * 2f * deltaTime);
+        }
 
-        public static float LerpT(float lerpSpeed, float deltaTime) => 1 - Mathf.Exp(-lerpSpeed * 2f * deltaTime);
-        public static float LerpT(float lerpSpeed) => LerpT(lerpSpeed, Time.deltaTime);
+        public static float LerpT(float lerpSpeed)
+        {
+            return LerpT(lerpSpeed, Time.deltaTime);
+        }
 
-        public static float Lerp(float f1, float f2, float t) => Mathf.LerpUnclamped(f1, f2, t);
-        public static float Lerp(ref float f1, float f2, float t) => f1 = Lerp(f1, f2, t);
+        public static float Lerp(float f1, float f2, float t)
+        {
+            return Mathf.LerpUnclamped(f1, f2, t);
+        }
 
-        public static Vector2 Lerp(Vector2 f1, Vector2 f2, float t) => Vector2.LerpUnclamped(f1, f2, t);
-        public static Vector2 Lerp(ref Vector2 f1, Vector2 f2, float t) => f1 = Lerp(f1, f2, t);
+        public static float Lerp(ref float f1, float f2, float t)
+        {
+            return f1 = Lerp(f1, f2, t);
+        }
 
-        public static Vector3 Lerp(Vector3 f1, Vector3 f2, float t) => Vector3.LerpUnclamped(f1, f2, t);
-        public static Vector3 Lerp(ref Vector3 f1, Vector3 f2, float t) => f1 = Lerp(f1, f2, t);
+        public static Vector2 Lerp(Vector2 f1, Vector2 f2, float t)
+        {
+            return Vector2.LerpUnclamped(f1, f2, t);
+        }
 
-        public static Color Lerp(Color f1, Color f2, float t) => Color.LerpUnclamped(f1, f2, t);
-        public static Color Lerp(ref Color f1, Color f2, float t) => f1 = Lerp(f1, f2, t);
+        public static Vector2 Lerp(ref Vector2 f1, Vector2 f2, float t)
+        {
+            return f1 = Lerp(f1, f2, t);
+        }
 
+        public static Vector3 Lerp(Vector3 f1, Vector3 f2, float t)
+        {
+            return Vector3.LerpUnclamped(f1, f2, t);
+        }
 
-        public static float Lerp(float current, float target, float speed, float deltaTime) => Mathf.Lerp(current, target, LerpT(speed, deltaTime));
-        public static float Lerp(ref float current, float target, float speed, float deltaTime) => current = Lerp(current, target, speed, deltaTime);
+        public static Vector3 Lerp(ref Vector3 f1, Vector3 f2, float t)
+        {
+            return f1 = Lerp(f1, f2, t);
+        }
 
-        public static Vector2 Lerp(Vector2 current, Vector2 target, float speed, float deltaTime) => Vector2.Lerp(current, target, LerpT(speed, deltaTime));
-        public static Vector2 Lerp(ref Vector2 current, Vector2 target, float speed, float deltaTime) => current = Lerp(current, target, speed, deltaTime);
+        public static Color Lerp(Color f1, Color f2, float t)
+        {
+            return Color.LerpUnclamped(f1, f2, t);
+        }
 
-        public static Vector3 Lerp(Vector3 current, Vector3 target, float speed, float deltaTime) => Vector3.Lerp(current, target, LerpT(speed, deltaTime));
-        public static Vector3 Lerp(ref Vector3 current, Vector3 target, float speed, float deltaTime) => current = Lerp(current, target, speed, deltaTime);
-
-        public static float SmoothDamp(float current, float target, float speed, ref float derivative, float deltaTime) => Mathf.SmoothDamp(current, target, ref derivative, .5f / speed, Mathf.Infinity, deltaTime);
-        public static float SmoothDamp(ref float current, float target, float speed, ref float derivative, float deltaTime) => current = SmoothDamp(current, target, speed, ref derivative, deltaTime);
-        public static float SmoothDamp(float current, float target, float speed, ref float derivative) => SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
-        public static float SmoothDamp(ref float current, float target, float speed, ref float derivative) => current = SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
-
-        public static Vector2 SmoothDamp(Vector2 current, Vector2 target, float speed, ref Vector2 derivative, float deltaTime) => Vector2.SmoothDamp(current, target, ref derivative, .5f / speed, Mathf.Infinity, deltaTime);
-        public static Vector2 SmoothDamp(ref Vector2 current, Vector2 target, float speed, ref Vector2 derivative, float deltaTime) => current = SmoothDamp(current, target, speed, ref derivative, deltaTime);
-        public static Vector2 SmoothDamp(Vector2 current, Vector2 target, float speed, ref Vector2 derivative) => SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
-        public static Vector2 SmoothDamp(ref Vector2 current, Vector2 target, float speed, ref Vector2 derivative) => current = SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
-
-        public static Vector3 SmoothDamp(Vector3 current, Vector3 target, float speed, ref Vector3 derivative, float deltaTime) => Vector3.SmoothDamp(current, target, ref derivative, .5f / speed, Mathf.Infinity, deltaTime);
-        public static Vector3 SmoothDamp(ref Vector3 current, Vector3 target, float speed, ref Vector3 derivative, float deltaTime) => current = SmoothDamp(current, target, speed, ref derivative, deltaTime);
-        public static Vector3 SmoothDamp(Vector3 current, Vector3 target, float speed, ref Vector3 derivative) => SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
-        public static Vector3 SmoothDamp(ref Vector3 current, Vector3 target, float speed, ref Vector3 derivative) => current = SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
-
-
-
+        public static Color Lerp(ref Color f1, Color f2, float t)
+        {
+            return f1 = Lerp(f1, f2, t);
+        }
 
 
+        public static float Lerp(float current, float target, float speed, float deltaTime)
+        {
+            return Mathf.Lerp(current, target, LerpT(speed, deltaTime));
+        }
+
+        public static float Lerp(ref float current, float target, float speed, float deltaTime)
+        {
+            return current = Lerp(current, target, speed, deltaTime);
+        }
+
+        public static Vector2 Lerp(Vector2 current, Vector2 target, float speed, float deltaTime)
+        {
+            return Vector2.Lerp(current, target, LerpT(speed, deltaTime));
+        }
+
+        public static Vector2 Lerp(ref Vector2 current, Vector2 target, float speed, float deltaTime)
+        {
+            return current = Lerp(current, target, speed, deltaTime);
+        }
+
+        public static Vector3 Lerp(Vector3 current, Vector3 target, float speed, float deltaTime)
+        {
+            return Vector3.Lerp(current, target, LerpT(speed, deltaTime));
+        }
+
+        public static Vector3 Lerp(ref Vector3 current, Vector3 target, float speed, float deltaTime)
+        {
+            return current = Lerp(current, target, speed, deltaTime);
+        }
+
+        public static float SmoothDamp(float current, float target, float speed, ref float derivative, float deltaTime)
+        {
+            return Mathf.SmoothDamp(current, target, ref derivative, .5f / speed, Mathf.Infinity, deltaTime);
+        }
+
+        public static float SmoothDamp(ref float current, float target, float speed, ref float derivative, float deltaTime)
+        {
+            return current = SmoothDamp(current, target, speed, ref derivative, deltaTime);
+        }
+
+        public static float SmoothDamp(float current, float target, float speed, ref float derivative)
+        {
+            return SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
+        }
+
+        public static float SmoothDamp(ref float current, float target, float speed, ref float derivative)
+        {
+            return current = SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
+        }
+
+        public static Vector2 SmoothDamp(Vector2 current, Vector2 target, float speed, ref Vector2 derivative, float deltaTime)
+        {
+            return Vector2.SmoothDamp(current, target, ref derivative, .5f / speed, Mathf.Infinity, deltaTime);
+        }
+
+        public static Vector2 SmoothDamp(ref Vector2 current, Vector2 target, float speed, ref Vector2 derivative, float deltaTime)
+        {
+            return current = SmoothDamp(current, target, speed, ref derivative, deltaTime);
+        }
+
+        public static Vector2 SmoothDamp(Vector2 current, Vector2 target, float speed, ref Vector2 derivative)
+        {
+            return SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
+        }
+
+        public static Vector2 SmoothDamp(ref Vector2 current, Vector2 target, float speed, ref Vector2 derivative)
+        {
+            return current = SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
+        }
+
+        public static Vector3 SmoothDamp(Vector3 current, Vector3 target, float speed, ref Vector3 derivative, float deltaTime)
+        {
+            return Vector3.SmoothDamp(current, target, ref derivative, .5f / speed, Mathf.Infinity, deltaTime);
+        }
+
+        public static Vector3 SmoothDamp(ref Vector3 current, Vector3 target, float speed, ref Vector3 derivative, float deltaTime)
+        {
+            return current = SmoothDamp(current, target, speed, ref derivative, deltaTime);
+        }
+
+        public static Vector3 SmoothDamp(Vector3 current, Vector3 target, float speed, ref Vector3 derivative)
+        {
+            return SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
+        }
+
+        public static Vector3 SmoothDamp(ref Vector3 current, Vector3 target, float speed, ref Vector3 derivative)
+        {
+            return current = SmoothDamp(current, target, speed, ref derivative, Time.deltaTime);
+        }
 
         #endregion
 
         #region Colors
-
 
         public static Color HSLToRGB(float h, float s, float l)
         {
@@ -593,143 +890,333 @@ namespace VHierarchy.Libs
 
             return new Color(r, g, b);
         }
+
         public static Color LCHtoRGB(float l, float c, float h)
         {
             l *= 100;
             c *= 100;
             h *= 360;
 
-            double xw = 0.948110;
-            double yw = 1.00000;
-            double zw = 1.07304;
+            var xw = 0.948110;
+            var yw = 1.00000;
+            var zw = 1.07304;
 
-            float a = c * Mathf.Cos(Mathf.Deg2Rad * h);
-            float b = c * Mathf.Sin(Mathf.Deg2Rad * h);
+            var a = c * Mathf.Cos(Mathf.Deg2Rad * h);
+            var b = c * Mathf.Sin(Mathf.Deg2Rad * h);
 
-            float fy = (l + 16) / 116;
-            float fx = fy + (a / 500);
-            float fz = fy - (b / 200);
+            var fy = (l + 16) / 116;
+            var fx = fy + a / 500;
+            var fz = fy - b / 200;
 
-            float x = (float)System.Math.Round(xw * ((System.Math.Pow(fx, 3) > 0.008856) ? System.Math.Pow(fx, 3) : ((fx - 16 / 116) / 7.787)), 5);
-            float y = (float)System.Math.Round(yw * ((System.Math.Pow(fy, 3) > 0.008856) ? System.Math.Pow(fy, 3) : ((fy - 16 / 116) / 7.787)), 5);
-            float z = (float)System.Math.Round(zw * ((System.Math.Pow(fz, 3) > 0.008856) ? System.Math.Pow(fz, 3) : ((fz - 16 / 116) / 7.787)), 5);
+            var x = (float)Math.Round(xw * (Math.Pow(fx, 3) > 0.008856 ? Math.Pow(fx, 3) : (fx - 16 / 116) / 7.787), 5);
+            var y = (float)Math.Round(yw * (Math.Pow(fy, 3) > 0.008856 ? Math.Pow(fy, 3) : (fy - 16 / 116) / 7.787), 5);
+            var z = (float)Math.Round(zw * (Math.Pow(fz, 3) > 0.008856 ? Math.Pow(fz, 3) : (fz - 16 / 116) / 7.787), 5);
 
-            float r = x * 3.2406f - y * 1.5372f - z * 0.4986f;
-            float g = -x * 0.9689f + y * 1.8758f + z * 0.0415f;
-            float bValue = x * 0.0557f - y * 0.2040f + z * 1.0570f;
+            var r = x * 3.2406f - y * 1.5372f - z * 0.4986f;
+            var g = -x * 0.9689f + y * 1.8758f + z * 0.0415f;
+            var bValue = x * 0.0557f - y * 0.2040f + z * 1.0570f;
 
-            r = r > 0.0031308f ? 1.055f * (float)System.Math.Pow(r, 1 / 2.4) - 0.055f : r * 12.92f;
-            g = g > 0.0031308f ? 1.055f * (float)System.Math.Pow(g, 1 / 2.4) - 0.055f : g * 12.92f;
-            bValue = bValue > 0.0031308f ? 1.055f * (float)System.Math.Pow(bValue, 1 / 2.4) - 0.055f : bValue * 12.92f;
+            r = r > 0.0031308f ? 1.055f * (float)Math.Pow(r, 1 / 2.4) - 0.055f : r * 12.92f;
+            g = g > 0.0031308f ? 1.055f * (float)Math.Pow(g, 1 / 2.4) - 0.055f : g * 12.92f;
+            bValue = bValue > 0.0031308f ? 1.055f * (float)Math.Pow(bValue, 1 / 2.4) - 0.055f : bValue * 12.92f;
 
             // r = (float)System.Math.Round(System.Math.Max(0, System.Math.Min(1, r)));
             // g = (float)System.Math.Round(System.Math.Max(0, System.Math.Min(1, g)));
             // bValue = (float)System.Math.Round(System.Math.Max(0, System.Math.Min(1, bValue)));
 
             return new Color(r, g, bValue);
-
         }
 
 
+        public static Color Greyscale(float brightness, float alpha = 1)
+        {
+            return new Color(brightness, brightness, brightness, alpha);
+        }
 
-        public static Color Greyscale(float brightness, float alpha = 1) => new Color(brightness, brightness, brightness, alpha);
+        public static Color SetAlpha(this Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
+        }
 
-        public static Color SetAlpha(this Color color, float alpha) { color.a = alpha; return color; }
-        public static Color MultiplyAlpha(this Color color, float k) { color.a *= k; return color; }
-
-
-
-
+        public static Color MultiplyAlpha(this Color color, float k)
+        {
+            color.a *= k;
+            return color;
+        }
 
         #endregion
 
         #region Rects
 
+        public static Rect Resize(this Rect rect, float px)
+        {
+            rect.x += px;
+            rect.y += px;
+            rect.width -= px * 2;
+            rect.height -= px * 2;
+            return rect;
+        }
 
-        public static Rect Resize(this Rect rect, float px) { rect.x += px; rect.y += px; rect.width -= px * 2; rect.height -= px * 2; return rect; }
+        public static Rect SetPos(this Rect rect, Vector2 v)
+        {
+            return rect.SetPos(v.x, v.y);
+        }
 
-        public static Rect SetPos(this Rect rect, Vector2 v) => rect.SetPos(v.x, v.y);
-        public static Rect SetPos(this Rect rect, float x, float y) { rect.x = x; rect.y = y; return rect; }
+        public static Rect SetPos(this Rect rect, float x, float y)
+        {
+            rect.x = x;
+            rect.y = y;
+            return rect;
+        }
 
-        public static Rect SetX(this Rect rect, float x) => rect.SetPos(x, rect.y);
-        public static Rect SetY(this Rect rect, float y) => rect.SetPos(rect.x, y);
-        public static Rect SetXMax(this Rect rect, float xMax) { rect.xMax = xMax; return rect; }
-        public static Rect SetYMax(this Rect rect, float yMax) { rect.yMax = yMax; return rect; }
+        public static Rect SetX(this Rect rect, float x)
+        {
+            return rect.SetPos(x, rect.y);
+        }
 
-        public static Rect SetMidPos(this Rect r, Vector2 v) => r.SetPos(v).MoveX(-r.width / 2).MoveY(-r.height / 2);
+        public static Rect SetY(this Rect rect, float y)
+        {
+            return rect.SetPos(rect.x, y);
+        }
 
-        public static Rect Move(this Rect rect, Vector2 v) { rect.position += v; return rect; }
-        public static Rect Move(this Rect rect, float x, float y) { rect.x += x; rect.y += y; return rect; }
-        public static Rect MoveX(this Rect rect, float px) { rect.x += px; return rect; }
-        public static Rect MoveY(this Rect rect, float px) { rect.y += px; return rect; }
+        public static Rect SetXMax(this Rect rect, float xMax)
+        {
+            rect.xMax = xMax;
+            return rect;
+        }
 
-        public static Rect SetWidth(this Rect rect, float f) { rect.width = f; return rect; }
-        public static Rect SetWidthFromMid(this Rect rect, float px) { rect.x += rect.width / 2; rect.width = px; rect.x -= rect.width / 2; return rect; }
-        public static Rect SetWidthFromRight(this Rect rect, float px) { rect.x += rect.width; rect.width = px; rect.x -= rect.width; return rect; }
+        public static Rect SetYMax(this Rect rect, float yMax)
+        {
+            rect.yMax = yMax;
+            return rect;
+        }
 
-        public static Rect SetHeight(this Rect rect, float f) { rect.height = f; return rect; }
-        public static Rect SetHeightFromMid(this Rect rect, float px) { rect.y += rect.height / 2; rect.height = px; rect.y -= rect.height / 2; return rect; }
-        public static Rect SetHeightFromBottom(this Rect rect, float px) { rect.y += rect.height; rect.height = px; rect.y -= rect.height; return rect; }
+        public static Rect SetMidPos(this Rect r, Vector2 v)
+        {
+            return r.SetPos(v).MoveX(-r.width / 2).MoveY(-r.height / 2);
+        }
 
-        public static Rect AddWidth(this Rect rect, float f) => rect.SetWidth(rect.width + f);
-        public static Rect AddWidthFromMid(this Rect rect, float f) => rect.SetWidthFromMid(rect.width + f);
-        public static Rect AddWidthFromRight(this Rect rect, float f) => rect.SetWidthFromRight(rect.width + f);
+        public static Rect Move(this Rect rect, Vector2 v)
+        {
+            rect.position += v;
+            return rect;
+        }
 
-        public static Rect AddHeight(this Rect rect, float f) => rect.SetHeight(rect.height + f);
-        public static Rect AddHeightFromMid(this Rect rect, float f) => rect.SetHeightFromMid(rect.height + f);
-        public static Rect AddHeightFromBottom(this Rect rect, float f) => rect.SetHeightFromBottom(rect.height + f);
+        public static Rect Move(this Rect rect, float x, float y)
+        {
+            rect.x += x;
+            rect.y += y;
+            return rect;
+        }
 
-        public static Rect SetSize(this Rect rect, Vector2 v) => rect.SetWidth(v.x).SetHeight(v.y);
-        public static Rect SetSize(this Rect rect, float w, float h) => rect.SetWidth(w).SetHeight(h);
-        public static Rect SetSize(this Rect rect, float f) { rect.height = rect.width = f; return rect; }
+        public static Rect MoveX(this Rect rect, float px)
+        {
+            rect.x += px;
+            return rect;
+        }
 
-        public static Rect SetSizeFromMid(this Rect r, Vector2 v) => r.Move(r.size / 2).SetSize(v).Move(-v / 2);
-        public static Rect SetSizeFromMid(this Rect r, float x, float y) => r.SetSizeFromMid(new Vector2(x, y));
-        public static Rect SetSizeFromMid(this Rect r, float f) => r.SetSizeFromMid(new Vector2(f, f));
+        public static Rect MoveY(this Rect rect, float px)
+        {
+            rect.y += px;
+            return rect;
+        }
 
-        public static Rect AlignToPixelGrid(this Rect r) => GUIUtility.AlignRectToDevice(r);
+        public static Rect SetWidth(this Rect rect, float f)
+        {
+            rect.width = f;
+            return rect;
+        }
 
+        public static Rect SetWidthFromMid(this Rect rect, float px)
+        {
+            rect.x += rect.width / 2;
+            rect.width = px;
+            rect.x -= rect.width / 2;
+            return rect;
+        }
 
+        public static Rect SetWidthFromRight(this Rect rect, float px)
+        {
+            rect.x += rect.width;
+            rect.width = px;
+            rect.x -= rect.width;
+            return rect;
+        }
 
+        public static Rect SetHeight(this Rect rect, float f)
+        {
+            rect.height = f;
+            return rect;
+        }
 
+        public static Rect SetHeightFromMid(this Rect rect, float px)
+        {
+            rect.y += rect.height / 2;
+            rect.height = px;
+            rect.y -= rect.height / 2;
+            return rect;
+        }
+
+        public static Rect SetHeightFromBottom(this Rect rect, float px)
+        {
+            rect.y += rect.height;
+            rect.height = px;
+            rect.y -= rect.height;
+            return rect;
+        }
+
+        public static Rect AddWidth(this Rect rect, float f)
+        {
+            return rect.SetWidth(rect.width + f);
+        }
+
+        public static Rect AddWidthFromMid(this Rect rect, float f)
+        {
+            return rect.SetWidthFromMid(rect.width + f);
+        }
+
+        public static Rect AddWidthFromRight(this Rect rect, float f)
+        {
+            return rect.SetWidthFromRight(rect.width + f);
+        }
+
+        public static Rect AddHeight(this Rect rect, float f)
+        {
+            return rect.SetHeight(rect.height + f);
+        }
+
+        public static Rect AddHeightFromMid(this Rect rect, float f)
+        {
+            return rect.SetHeightFromMid(rect.height + f);
+        }
+
+        public static Rect AddHeightFromBottom(this Rect rect, float f)
+        {
+            return rect.SetHeightFromBottom(rect.height + f);
+        }
+
+        public static Rect SetSize(this Rect rect, Vector2 v)
+        {
+            return rect.SetWidth(v.x).SetHeight(v.y);
+        }
+
+        public static Rect SetSize(this Rect rect, float w, float h)
+        {
+            return rect.SetWidth(w).SetHeight(h);
+        }
+
+        public static Rect SetSize(this Rect rect, float f)
+        {
+            rect.height = rect.width = f;
+            return rect;
+        }
+
+        public static Rect SetSizeFromMid(this Rect r, Vector2 v)
+        {
+            return r.Move(r.size / 2).SetSize(v).Move(-v / 2);
+        }
+
+        public static Rect SetSizeFromMid(this Rect r, float x, float y)
+        {
+            return r.SetSizeFromMid(new Vector2(x, y));
+        }
+
+        public static Rect SetSizeFromMid(this Rect r, float f)
+        {
+            return r.SetSizeFromMid(new Vector2(f, f));
+        }
+
+        public static Rect AlignToPixelGrid(this Rect r)
+        {
+            return GUIUtility.AlignRectToDevice(r);
+        }
 
         #endregion
 
         #region Vectors
 
+        public static Vector2 AddX(this Vector2 v, float f)
+        {
+            return new Vector2(v.x + f, v.y + 0);
+        }
 
-        public static Vector2 AddX(this Vector2 v, float f) => new Vector2(v.x + f, v.y + 0);
-        public static Vector2 AddY(this Vector2 v, float f) => new Vector2(v.x + 0, v.y + f);
+        public static Vector2 AddY(this Vector2 v, float f)
+        {
+            return new Vector2(v.x + 0, v.y + f);
+        }
 
-        public static Vector3 AddX(this Vector3 v, float f) => new Vector3(v.x + f, v.y + 0, v.z + 0);
-        public static Vector3 AddY(this Vector3 v, float f) => new Vector3(v.x + 0, v.y + f, v.z + 0);
-        public static Vector3 AddZ(this Vector3 v, float f) => new Vector3(v.x + 0, v.y + 0, v.z + f);
+        public static Vector3 AddX(this Vector3 v, float f)
+        {
+            return new Vector3(v.x + f, v.y + 0, v.z + 0);
+        }
 
-        public static Vector2 xx(this Vector3 v) { return new Vector2(v.x, v.x); }
-        public static Vector2 xy(this Vector3 v) { return new Vector2(v.x, v.y); }
-        public static Vector2 xz(this Vector3 v) { return new Vector2(v.x, v.z); }
-        public static Vector2 yx(this Vector3 v) { return new Vector2(v.y, v.x); }
-        public static Vector2 yy(this Vector3 v) { return new Vector2(v.y, v.y); }
-        public static Vector2 yz(this Vector3 v) { return new Vector2(v.y, v.z); }
-        public static Vector2 zx(this Vector3 v) { return new Vector2(v.z, v.x); }
-        public static Vector2 zy(this Vector3 v) { return new Vector2(v.z, v.y); }
-        public static Vector2 zz(this Vector3 v) { return new Vector2(v.z, v.z); }
+        public static Vector3 AddY(this Vector3 v, float f)
+        {
+            return new Vector3(v.x + 0, v.y + f, v.z + 0);
+        }
 
+        public static Vector3 AddZ(this Vector3 v, float f)
+        {
+            return new Vector3(v.x + 0, v.y + 0, v.z + f);
+        }
 
+        public static Vector2 xx(this Vector3 v)
+        {
+            return new Vector2(v.x, v.x);
+        }
 
+        public static Vector2 xy(this Vector3 v)
+        {
+            return new Vector2(v.x, v.y);
+        }
 
+        public static Vector2 xz(this Vector3 v)
+        {
+            return new Vector2(v.x, v.z);
+        }
+
+        public static Vector2 yx(this Vector3 v)
+        {
+            return new Vector2(v.y, v.x);
+        }
+
+        public static Vector2 yy(this Vector3 v)
+        {
+            return new Vector2(v.y, v.y);
+        }
+
+        public static Vector2 yz(this Vector3 v)
+        {
+            return new Vector2(v.y, v.z);
+        }
+
+        public static Vector2 zx(this Vector3 v)
+        {
+            return new Vector2(v.z, v.x);
+        }
+
+        public static Vector2 zy(this Vector3 v)
+        {
+            return new Vector2(v.z, v.y);
+        }
+
+        public static Vector2 zz(this Vector3 v)
+        {
+            return new Vector2(v.z, v.z);
+        }
 
         #endregion
 
         #region Textures
-
 
         public static Texture2D CreateTexture2D(int width, int height, GraphicsFormat graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB, bool useMips = false)
         {
             return new Texture2D(width, height, graphicsFormat, useMips ? TextureCreationFlags.MipChain : TextureCreationFlags.None);
         }
 
-        public static RenderTexture CreateRT(int width, int height, GraphicsFormat graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB, bool useMips = false, bool autoGenerateMips = true, bool useDepth = false)
+        public static RenderTexture CreateRT(int width, int height, GraphicsFormat graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB, bool useMips = false,
+            bool autoGenerateMips = true, bool useDepth = false)
         {
             var rt = new RenderTexture(width, height, useDepth ? 24 : 0, graphicsFormat);
 
@@ -739,9 +1226,10 @@ namespace VHierarchy.Libs
             rt.enableRandomWrite = true;
 
             return rt;
-
         }
-        public static RenderTexture GetTemporaryRT(int width, int height, GraphicsFormat graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB, bool useMips = false, bool autoGenerateMips = true, bool useDepth = false)
+
+        public static RenderTexture GetTemporaryRT(int width, int height, GraphicsFormat graphicsFormat = GraphicsFormat.R8G8B8A8_SRGB, bool useMips = false,
+            bool autoGenerateMips = true, bool useDepth = false)
         {
             var rt = RenderTexture.GetTemporary(width, height, useDepth ? 24 : 0, graphicsFormat);
 
@@ -751,48 +1239,72 @@ namespace VHierarchy.Libs
             rt.enableRandomWrite = true;
 
             return rt;
-
         }
 
-        public static RenderTexture CreateRT(this RenderTextureDescriptor descriptor) => new RenderTexture(descriptor);
+        public static RenderTexture CreateRT(this RenderTextureDescriptor descriptor)
+        {
+            return new RenderTexture(descriptor);
+        }
+
         public static RenderTexture CreateRT(this RenderTextureDescriptor descriptor, int resolution)
         {
             descriptor.width = descriptor.height = resolution;
 
             return descriptor.CreateRT();
-
         }
+
         public static RenderTexture CreateRT(this RenderTextureDescriptor descriptor, int width, int height)
         {
             descriptor.width = width;
             descriptor.height = height;
 
             return descriptor.CreateRT();
-
         }
-        public static RenderTexture CreateRT(this RenderTextureDescriptor descriptor, float resolution) => descriptor.GetTemporaryRT(Mathf.RoundToInt(resolution));
-        public static RenderTexture CreateRT(this RenderTextureDescriptor descriptor, float width, float height) => descriptor.CreateRT(Mathf.RoundToInt(width), Mathf.RoundToInt(height));
-        public static RenderTexture GetTemporaryRT(this RenderTextureDescriptor descriptor) => RenderTexture.GetTemporary(descriptor);
+
+        public static RenderTexture CreateRT(this RenderTextureDescriptor descriptor, float resolution)
+        {
+            return descriptor.GetTemporaryRT(Mathf.RoundToInt(resolution));
+        }
+
+        public static RenderTexture CreateRT(this RenderTextureDescriptor descriptor, float width, float height)
+        {
+            return descriptor.CreateRT(Mathf.RoundToInt(width), Mathf.RoundToInt(height));
+        }
+
+        public static RenderTexture GetTemporaryRT(this RenderTextureDescriptor descriptor)
+        {
+            return RenderTexture.GetTemporary(descriptor);
+        }
+
         public static RenderTexture GetTemporaryRT(this RenderTextureDescriptor descriptor, int resolution)
         {
             descriptor.width = descriptor.height = resolution;
 
             return descriptor.GetTemporaryRT();
-
         }
+
         public static RenderTexture GetTemporaryRT(this RenderTextureDescriptor descriptor, int width, int height)
         {
             descriptor.width = width;
             descriptor.height = height;
 
             return descriptor.GetTemporaryRT();
-
         }
-        public static RenderTexture GetTemporaryRT(this RenderTextureDescriptor descriptor, float resolution) => descriptor.GetTemporaryRT(Mathf.RoundToInt(resolution));
-        public static RenderTexture GetTemporaryRT(this RenderTextureDescriptor descriptor, float width, float height) => descriptor.GetTemporaryRT(Mathf.RoundToInt(width), Mathf.RoundToInt(height));
 
-        public static void ReleaseTemporary(this RenderTexture rt) { if (rt) RenderTexture.ReleaseTemporary(rt); }
+        public static RenderTexture GetTemporaryRT(this RenderTextureDescriptor descriptor, float resolution)
+        {
+            return descriptor.GetTemporaryRT(Mathf.RoundToInt(resolution));
+        }
 
+        public static RenderTexture GetTemporaryRT(this RenderTextureDescriptor descriptor, float width, float height)
+        {
+            return descriptor.GetTemporaryRT(Mathf.RoundToInt(width), Mathf.RoundToInt(height));
+        }
+
+        public static void ReleaseTemporary(this RenderTexture rt)
+        {
+            if (rt) RenderTexture.ReleaseTemporary(rt);
+        }
 
 
         public static Texture2D ToTexture2D(this RenderTexture rt)
@@ -803,8 +1315,8 @@ namespace VHierarchy.Libs
             texture2D.Apply();
 
             return texture2D;
-
         }
+
         public static RenderTexture ToRenderTexture(this Texture2D texture2d)
         {
             var rt = CreateRT(texture2d.width, texture2d.height, texture2d.graphicsFormat, texture2d.mipmapCount > 1);
@@ -812,7 +1324,6 @@ namespace VHierarchy.Libs
             Graphics.CopyTexture(texture2d, rt);
 
             return rt;
-
         }
 
 
@@ -825,7 +1336,6 @@ namespace VHierarchy.Libs
             texture2D.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
 
             RenderTexture.active = prevActive;
-
         }
         // public static void CopyTo(this RenderTexture source, Texture2D target) // todo to readpixels overload
         // {
@@ -857,11 +1367,11 @@ namespace VHierarchy.Libs
             Graphics.CopyTexture(texture2d, copy);
 
             return copy;
-
         }
+
         public static Texture2D CreateResizedCopy(this Texture2D texture2d, int w, int h)
         {
-            var rt = GetTemporaryRT(w, h, texture2d.graphicsFormat.GetCompatibleForRendering(), false);
+            var rt = GetTemporaryRT(w, h, texture2d.graphicsFormat.GetCompatibleForRendering());
 
             Graphics.Blit(texture2d, rt);
 
@@ -878,7 +1388,6 @@ namespace VHierarchy.Libs
 
 
             return resizedCopy;
-
         }
 
 
@@ -888,13 +1397,13 @@ namespace VHierarchy.Libs
 
             var color32 = (Color32)color;
 
-            for (int i = 0; i < pixels.Length; i++)
+            for (var i = 0; i < pixels.Length; i++)
                 pixels[i] = color32;
 
             texture2d.SetPixels32(pixels);
             texture2d.Apply();
-
         }
+
         public static RenderTexture FillWithColor(this RenderTexture rt, Color color) // todo builtin shader or GL.clear
         {
             var mat = new Material(Shader.Find("Hidden/VBlitColor"));
@@ -906,9 +1415,7 @@ namespace VHierarchy.Libs
             mat.Destroy();
 
             return rt;
-
         }
-
 
 
         public static GraphicsFormat GetCompatibleForRendering(this GraphicsFormat graphicsFormat)
@@ -918,16 +1425,18 @@ namespace VHierarchy.Libs
 #else
             return SystemInfo.GetCompatibleFormat(graphicsFormat, FormatUsage.Render);
 #endif
-
         }
-
 
 
 #if UNITY_EDITOR
 
-        public static void SavePNG(this Texture2D texture2d, string path) => File.WriteAllBytes(path, texture2d.EncodeToPNG());
+        public static void SavePNG(this Texture2D texture2d, string path)
+        {
+            File.WriteAllBytes(path, texture2d.EncodeToPNG());
+        }
 
-        public static void SetImportSettings(this Texture2D texture2d, int? maxSize = null, bool? useMips = null, bool? sRGB = null, bool? isReadable = null, bool? useCompression = null)
+        public static void SetImportSettings(this Texture2D texture2d, int? maxSize = null, bool? useMips = null, bool? sRGB = null, bool? isReadable = null,
+            bool? useCompression = null)
         {
             var importer = texture2d.GetImporter();
 
@@ -955,29 +1464,28 @@ namespace VHierarchy.Libs
                     platformSettings.maxTextureSize = maxSize.GetValueOrDefault();
 
                 importer.SetPlatformTextureSettings(platformSettings);
-
             }
-
         }
 
-        public static TextureImporter GetImporter(this Texture2D t) => (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(t));
+        public static TextureImporter GetImporter(this Texture2D t)
+        {
+            return (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(t));
+        }
 
 #endif
-
-
-
-
-
-
 
         #endregion
 
         #region Compute
 
-
-        [System.Serializable]
+        [Serializable]
         public class GaussianKernel
         {
+            public bool isEvenSize;
+
+            public int radius = 7;
+            public float sharpness = .5f;
+
             public GaussianKernel(bool isEvenSize = false, int radius = 7, float sharpness = .5f)
             {
                 this.isEvenSize = isEvenSize;
@@ -985,62 +1493,60 @@ namespace VHierarchy.Libs
                 this.sharpness = sharpness;
             }
 
-            public bool isEvenSize = false;
-
-            public int radius = 7;
-            public float sharpness = .5f;
-
             public int size => radius * 2 + (isEvenSize ? 0 : 1);
             public float sigma => 1 - Mathf.Pow(sharpness, .1f) * .99999f;
 
             public float[,] Array2d()
             {
-                float[,] kr = new float[size, size];
+                var kr = new float[size, size];
 
-                if (size == 1) { kr[0, 0] = 1; return kr; }
+                if (size == 1)
+                {
+                    kr[0, 0] = 1;
+                    return kr;
+                }
 
                 var a = -2f * radius * radius / Mathf.Log(sigma);
                 var sum = 0f;
 
-                for (int y = 0; y < size; y++)
-                    for (int x = 0; x < size; x++)
-                    {
-                        var rX = size % 2 == 1 ? (x - radius) : (x - radius) + .5f;
-                        var rY = size % 2 == 1 ? (y - radius) : (y - radius) + .5f;
-                        var dist = Mathf.Sqrt(rX * rX + rY * rY);
-                        kr[x, y] = Mathf.Exp(-dist * dist / a);
-                        sum += kr[x, y];
-                    }
+                for (var y = 0; y < size; y++)
+                for (var x = 0; x < size; x++)
+                {
+                    var rX = size % 2 == 1 ? x - radius : x - radius + .5f;
+                    var rY = size % 2 == 1 ? y - radius : y - radius + .5f;
+                    var dist = Mathf.Sqrt(rX * rX + rY * rY);
+                    kr[x, y] = Mathf.Exp(-dist * dist / a);
+                    sum += kr[x, y];
+                }
 
-                for (int y = 0; y < size; y++)
-                    for (int x = 0; x < size; x++)
-                        kr[x, y] /= sum;
+                for (var y = 0; y < size; y++)
+                for (var x = 0; x < size; x++)
+                    kr[x, y] /= sum;
 
                 return kr;
             }
+
             public float[] ArrayFlat()
             {
                 var gk = Array2d();
-                float[] flat = new float[size * size];
+                var flat = new float[size * size];
 
-                for (int i = 0; i < size; i++)
-                    for (int j = 0; j < size; j++)
-                        flat[(i * size + j)] = gk[i, j];
+                for (var i = 0; i < size; i++)
+                for (var j = 0; j < size; j++)
+                    flat[i * size + j] = gk[i, j];
 
                 return flat;
             }
         }
 
-
-
-
-
         #endregion
 
         #region GameObjects
 
-
-        public static bool IsPrefab(this GameObject go) => go.scene.name == null || go.scene.name == go.name;
+        public static bool IsPrefab(this GameObject go)
+        {
+            return go.scene.name == null || go.scene.name == go.name;
+        }
 
         public static Bounds GetBounds(this GameObject go, bool local = false)
         {
@@ -1064,7 +1570,6 @@ namespace VHierarchy.Libs
                     bounds = b;
                 else
                     bounds.Encapsulate(new Bounds(r.transform.position + r.terrainData.size / 2, r.terrainData.size));
-
             }
 
             if (bounds == default)
@@ -1073,14 +1578,9 @@ namespace VHierarchy.Libs
             return bounds;
         }
 
-
-
-
-
         #endregion
 
         #region Objects
-
 
         public static Object[] FindObjects(Type type)
         {
@@ -1090,6 +1590,7 @@ namespace VHierarchy.Libs
             return Object.FindObjectsOfType(type);
 #endif
         }
+
         public static T[] FindObjects<T>() where T : Object
         {
 #if UNITY_2023_1_OR_NEWER
@@ -1105,14 +1606,12 @@ namespace VHierarchy.Libs
                 Object.Destroy(r);
             else
                 Object.DestroyImmediate(r);
-
         }
 
-        public static void DestroyImmediate(this Object o) => Object.DestroyImmediate(o);
-
-
-
-
+        public static void DestroyImmediate(this Object o)
+        {
+            Object.DestroyImmediate(o);
+        }
 
         #endregion
 
@@ -1120,11 +1619,18 @@ namespace VHierarchy.Libs
 
 #if UNITY_EDITOR
 
-        [System.Serializable]
-        public struct GlobalID : System.IEquatable<GlobalID>
+        [Serializable]
+        public struct GlobalID : IEquatable<GlobalID>
         {
-            public Object GetObject() => GlobalObjectId.GlobalObjectIdentifierToObjectSlow(globalObjectId);
-            public int GetObjectInstanceId() => GlobalObjectId.GlobalObjectIdentifierToInstanceIDSlow(globalObjectId);
+            public Object GetObject()
+            {
+                return GlobalObjectId.GlobalObjectIdentifierToObjectSlow(globalObjectId);
+            }
+
+            public int GetObjectInstanceId()
+            {
+                return GlobalObjectId.GlobalObjectIdentifierToInstanceIDSlow(globalObjectId);
+            }
 
 
             public int idType => globalObjectId.identifierType;
@@ -1136,44 +1642,72 @@ namespace VHierarchy.Libs
             public bool isAsset => globalObjectId.identifierType == 1;
             public bool isSceneObject => globalObjectId.identifierType == 2;
 
-            public GlobalObjectId globalObjectId => _globalObjectId.Equals(default) && GlobalObjectId.TryParse(globalObjectIdString, out var r) ? _globalObjectId = r : _globalObjectId;
+            public GlobalObjectId globalObjectId => _globalObjectId.Equals(default) && GlobalObjectId.TryParse(globalObjectIdString, out var r)
+                ? _globalObjectId = r
+                : _globalObjectId;
+
             public GlobalObjectId _globalObjectId;
 
-            public GlobalID(Object o) => globalObjectIdString = (_globalObjectId = GlobalObjectId.GetGlobalObjectIdSlow(o)).ToString();
-            public GlobalID(string s) => globalObjectIdString = GlobalObjectId.TryParse(s, out _globalObjectId) ? s : s;
+            public GlobalID(Object o)
+            {
+                globalObjectIdString = (_globalObjectId = GlobalObjectId.GetGlobalObjectIdSlow(o)).ToString();
+            }
+
+            public GlobalID(string s)
+            {
+                globalObjectIdString = GlobalObjectId.TryParse(s, out _globalObjectId) ? s : s;
+            }
 
             public string globalObjectIdString;
 
 
+            public bool Equals(GlobalID other)
+            {
+                return globalObjectIdString.Equals(other.globalObjectIdString);
+            }
 
-            public bool Equals(GlobalID other) => this.globalObjectIdString.Equals(other.globalObjectIdString);
+            public static bool operator ==(GlobalID a, GlobalID b)
+            {
+                return a.Equals(b);
+            }
 
-            public static bool operator ==(GlobalID a, GlobalID b) => a.Equals(b);
-            public static bool operator !=(GlobalID a, GlobalID b) => !a.Equals(b);
+            public static bool operator !=(GlobalID a, GlobalID b)
+            {
+                return !a.Equals(b);
+            }
 
-            public override bool Equals(object other) => other is GlobalID otherglobalID && this.Equals(otherglobalID);
-            public override int GetHashCode() => globalObjectIdString == null ? 0 : globalObjectIdString.GetHashCode();
+            public override bool Equals(object other)
+            {
+                return other is GlobalID otherglobalID && Equals(otherglobalID);
+            }
+
+            public override int GetHashCode()
+            {
+                return globalObjectIdString == null ? 0 : globalObjectIdString.GetHashCode();
+            }
 
 
-            public override string ToString() => globalObjectIdString;
-
-
+            public override string ToString()
+            {
+                return globalObjectIdString;
+            }
 
 
             public GlobalID UnpackForPrefab()
             {
-                var unpackedFileId = (this.fileId ^ this.prefabId) & 0x7fffffffffffffff;
+                var unpackedFileId = (fileId ^ prefabId) & 0x7fffffffffffffff;
 
 
-                var unpackedGId = new GlobalID($"GlobalObjectId_V1-{this.idType}-{this.guid}-{unpackedFileId}-0");
+                var unpackedGId = new GlobalID($"GlobalObjectId_V1-{idType}-{guid}-{unpackedFileId}-0");
 
                 return unpackedGId;
-
             }
-
         }
 
-        public static GlobalID GetGlobalID(this Object o) => new GlobalID(o);
+        public static GlobalID GetGlobalID(this Object o)
+        {
+            return new GlobalID(o);
+        }
 
         public static int[] GetObjectInstanceIds(this IEnumerable<GlobalID> globalIDs)
         {
@@ -1189,25 +1723,40 @@ namespace VHierarchy.Libs
 
 #endif
 
-
-
-
         #endregion
 
         #region Paths
 
+        public static string GetParentPath(this string path)
+        {
+            return path.Substring(0, path.LastIndexOf('/'));
+        }
 
-        public static string GetParentPath(this string path) => path.Substring(0, path.LastIndexOf('/'));
-        public static bool HasParentPath(this string path) => path.Contains('/') && path.GetParentPath() != "";
+        public static bool HasParentPath(this string path)
+        {
+            return path.Contains('/') && path.GetParentPath() != "";
+        }
 
-        public static string ToGlobalPath(this string localPath) => Application.dataPath + "/" + localPath.Substring(0, localPath.Length - 1);
-        public static string ToLocalPath(this string globalPath) => "Assets" + globalPath.Remove(Application.dataPath);
+        public static string ToGlobalPath(this string localPath)
+        {
+            return Application.dataPath + "/" + localPath.Substring(0, localPath.Length - 1);
+        }
+
+        public static string ToLocalPath(this string globalPath)
+        {
+            return "Assets" + globalPath.Remove(Application.dataPath);
+        }
 
 
+        public static string CombinePath(this string p, string p2)
+        {
+            return Path.Combine(p, p2);
+        }
 
-        public static string CombinePath(this string p, string p2) => Path.Combine(p, p2);
-
-        public static bool IsSubpathOf(this string path, string of) => path.StartsWith(of + "/") || of == "";
+        public static bool IsSubpathOf(this string path, string of)
+        {
+            return path.StartsWith(of + "/") || of == "";
+        }
 
         public static string GetDirectory(this string pathOrDirectory)
         {
@@ -1217,10 +1766,12 @@ namespace VHierarchy.Libs
                 directory = directory.Substring(0, directory.LastIndexOf('/'));
 
             return directory;
-
         }
 
-        public static bool DirectoryExists(this string pathOrDirectory) => Directory.Exists(pathOrDirectory.GetDirectory());
+        public static bool DirectoryExists(this string pathOrDirectory)
+        {
+            return Directory.Exists(pathOrDirectory.GetDirectory());
+        }
 
         public static string EnsureDirExists(this string pathOrDirectory) // todo to EnsureDirectoryExists
         {
@@ -1233,9 +1784,7 @@ namespace VHierarchy.Libs
                 Directory.CreateDirectory(directory);
 
             return pathOrDirectory;
-
         }
-
 
 
         public static string ClearDir(this string dir)
@@ -1250,10 +1799,6 @@ namespace VHierarchy.Libs
         }
 
 
-
-
-
-
 #if UNITY_EDITOR
 
         public static string EnsurePathIsUnique(this string path)
@@ -1263,18 +1808,15 @@ namespace VHierarchy.Libs
             var s = AssetDatabase.GenerateUniqueAssetPath(path); // returns empty if parent dir doesnt exist 
 
             return s == "" ? path : s;
-
         }
 
         public static void EnsureDirExistsAndRevealInFinder(string dir)
         {
             EnsureDirExists(dir);
-            UnityEditor.EditorUtility.OpenWithDefaultApp(dir);
+            EditorUtility.OpenWithDefaultApp(dir);
         }
 
 #endif
-
-
 
         #endregion
 
@@ -1282,46 +1824,99 @@ namespace VHierarchy.Libs
 
 #if UNITY_EDITOR
 
-        public static AssetImporter GetImporter(this Object t) => AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(t));
+        public static AssetImporter GetImporter(this Object t)
+        {
+            return AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(t));
+        }
 
-        public static string ToPath(this string guid) => AssetDatabase.GUIDToAssetPath(guid); // returns empty string if not found
-        public static List<string> ToPaths(this IEnumerable<string> guids) => guids.Select(r => r.ToPath()).ToList();
+        public static string ToPath(this string guid)
+        {
+            return AssetDatabase.GUIDToAssetPath(guid);
+            // returns empty string if not found
+        }
 
-        public static string GetFilename(this string path, bool withExtension = false) => withExtension ? Path.GetFileName(path) : Path.GetFileNameWithoutExtension(path); // prev GetName
-        public static string GetExtension(this string path) => Path.GetExtension(path);
+        public static List<string> ToPaths(this IEnumerable<string> guids)
+        {
+            return guids.Select(r => r.ToPath()).ToList();
+        }
+
+        public static string GetFilename(this string path, bool withExtension = false)
+        {
+            return withExtension ? Path.GetFileName(path) : Path.GetFileNameWithoutExtension(path);
+            // prev GetName
+        }
+
+        public static string GetExtension(this string path)
+        {
+            return Path.GetExtension(path);
+        }
 
 
-        public static string ToGuid(this string pathInProject) => AssetDatabase.AssetPathToGUID(pathInProject);
-        public static List<string> ToGuids(this IEnumerable<string> pathsInProject) => pathsInProject.Select(r => r.ToGuid()).ToList();
+        public static string ToGuid(this string pathInProject)
+        {
+            return AssetDatabase.AssetPathToGUID(pathInProject);
+        }
 
-        public static string GetPath(this Object o) => AssetDatabase.GetAssetPath(o);
-        public static string GetGuid(this Object o) => AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(o));
+        public static List<string> ToGuids(this IEnumerable<string> pathsInProject)
+        {
+            return pathsInProject.Select(r => r.ToGuid()).ToList();
+        }
 
-        public static string GetScriptPath(string scriptName) => AssetDatabase.FindAssets("t: script " + scriptName, null).FirstOrDefault()?.ToPath() ?? "scirpt not found";
+        public static string GetPath(this Object o)
+        {
+            return AssetDatabase.GetAssetPath(o);
+        }
 
+        public static string GetGuid(this Object o)
+        {
+            return AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(o));
+        }
 
-
+        public static string GetScriptPath(string scriptName)
+        {
+            return AssetDatabase.FindAssets("t: script " + scriptName, null).FirstOrDefault()?.ToPath() ?? "scirpt not found";
+        }
 
 
         // toremove
-        public static Object LoadGuid(this string guid) => AssetDatabase.LoadAssetAtPath(guid.ToPath(), typeof(Object));
-        public static T LoadGuid<T>(this string guid) where T : Object => AssetDatabase.LoadAssetAtPath<T>(guid.ToPath());
+        public static Object LoadGuid(this string guid)
+        {
+            return AssetDatabase.LoadAssetAtPath(guid.ToPath(), typeof(Object));
+        }
+
+        public static T LoadGuid<T>(this string guid) where T : Object
+        {
+            return AssetDatabase.LoadAssetAtPath<T>(guid.ToPath());
+        }
 
 
+        public static List<string> FindAllAssetsOfType_guids(Type type)
+        {
+            return AssetDatabase.FindAssets("t:" + type.Name).ToList();
+        }
 
+        public static List<string> FindAllAssetsOfType_guids(Type type, string path)
+        {
+            return AssetDatabase.FindAssets("t:" + type.Name, new[] { path }).ToList();
+        }
 
-        public static List<string> FindAllAssetsOfType_guids(Type type) => AssetDatabase.FindAssets("t:" + type.Name).ToList();
-        public static List<string> FindAllAssetsOfType_guids(Type type, string path) => AssetDatabase.FindAssets("t:" + type.Name, new[] { path }).ToList();
-        public static List<T> FindAllAssetsOfType<T>() where T : Object => FindAllAssetsOfType_guids(typeof(T)).Select(r => (T)r.LoadGuid()).ToList();
-        public static List<T> FindAllAssetsOfType<T>(string path) where T : Object => FindAllAssetsOfType_guids(typeof(T), path).Select(r => (T)r.LoadGuid()).ToList();
+        public static List<T> FindAllAssetsOfType<T>() where T : Object
+        {
+            return FindAllAssetsOfType_guids(typeof(T)).Select(r => (T)r.LoadGuid()).ToList();
+        }
 
-        public static T Reimport<T>(this T t) where T : Object { AssetDatabase.ImportAsset(t.GetPath(), ImportAssetOptions.ForceUpdate); return t; }
+        public static List<T> FindAllAssetsOfType<T>(string path) where T : Object
+        {
+            return FindAllAssetsOfType_guids(typeof(T), path).Select(r => (T)r.LoadGuid()).ToList();
+        }
+
+        public static T Reimport<T>(this T t) where T : Object
+        {
+            AssetDatabase.ImportAsset(t.GetPath(), ImportAssetOptions.ForceUpdate);
+            return t;
+        }
 
 #endif
-
-
-
-
 
         #endregion
 
@@ -1341,6 +1936,7 @@ namespace VHierarchy.Libs
             if (File.Exists(path))
                 File.Move(path, path + "~");
         }
+
         public static void Unhide(string path)
         {
             if (!IsHidden(path)) return;
@@ -1353,36 +1949,37 @@ namespace VHierarchy.Libs
             if (File.Exists(path + "~"))
                 File.Move(path + "~", path);
         }
-        public static bool IsHidden(this string path) => path.EndsWith("~") || File.Exists(path + "~");
+
+        public static bool IsHidden(this string path)
+        {
+            return path.EndsWith("~") || File.Exists(path + "~");
+        }
 
         public static void CopyDirectoryDeep(string sourcePath, string destinationPath)
         {
             CopyDirectoryRecursively(sourcePath, destinationPath);
 
-            var metas = GetFilesRecursively(destinationPath, (f) => f.EndsWith(".meta"));
+            var metas = GetFilesRecursively(destinationPath, f => f.EndsWith(".meta"));
             var guidTable = new List<(string originalGuid, string newGuid)>();
 
-            foreach (string meta in metas)
+            foreach (var meta in metas)
             {
-                StreamReader file = new StreamReader(meta);
+                var file = new StreamReader(meta);
                 file.ReadLine();
-                string guidLine = file.ReadLine();
+                var guidLine = file.ReadLine();
                 file.Close();
-                string originalGuid = guidLine.Substring(6, guidLine.Length - 6);
-                string newGuid = GUID.Generate().ToString().Replace("-", "");
+                var originalGuid = guidLine.Substring(6, guidLine.Length - 6);
+                var newGuid = GUID.Generate().ToString().Replace("-", "");
                 guidTable.Add((originalGuid, newGuid));
             }
 
             var allFiles = GetFilesRecursively(destinationPath);
 
-            foreach (string fileToModify in allFiles)
+            foreach (var fileToModify in allFiles)
             {
-                string content = File.ReadAllText(fileToModify);
+                var content = File.ReadAllText(fileToModify);
 
-                foreach (var guidPair in guidTable)
-                {
-                    content = content.Replace(guidPair.originalGuid, guidPair.newGuid);
-                }
+                foreach (var guidPair in guidTable) content = content.Replace(guidPair.originalGuid, guidPair.newGuid);
 
                 File.WriteAllText(fileToModify, content);
             }
@@ -1392,84 +1989,69 @@ namespace VHierarchy.Libs
 
         private static void CopyDirectoryRecursively(string sourceDirName, string destDirName)
         {
-            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
+            var dir = new DirectoryInfo(sourceDirName);
 
-            DirectoryInfo[] dirs = dir.GetDirectories();
+            var dirs = dir.GetDirectories();
 
-            if (!Directory.Exists(destDirName))
+            if (!Directory.Exists(destDirName)) Directory.CreateDirectory(destDirName);
+
+            var files = dir.GetFiles();
+            foreach (var file in files)
             {
-                Directory.CreateDirectory(destDirName);
-            }
-
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
-            {
-                string temppath = Path.Combine(destDirName, file.Name);
+                var temppath = Path.Combine(destDirName, file.Name);
                 file.CopyTo(temppath, false);
             }
 
-            foreach (DirectoryInfo subdir in dirs)
+            foreach (var subdir in dirs)
             {
-                string temppath = Path.Combine(destDirName, subdir.Name);
+                var temppath = Path.Combine(destDirName, subdir.Name);
                 CopyDirectoryRecursively(subdir.FullName, temppath);
             }
         }
 
-        private static List<string> GetFilesRecursively(string path, System.Func<string, bool> criteria = null, List<string> files = null)
+        private static List<string> GetFilesRecursively(string path, Func<string, bool> criteria = null, List<string> files = null)
         {
-            if (files == null)
-            {
-                files = new List<string>();
-            }
+            if (files == null) files = new List<string>();
 
             files.AddRange(Directory.GetFiles(path).Where(f => criteria == null || criteria(f)));
 
-            foreach (string directory in Directory.GetDirectories(path))
-            {
-                GetFilesRecursively(directory, criteria, files);
-            }
+            foreach (var directory in Directory.GetDirectories(path)) GetFilesRecursively(directory, criteria, files);
 
             return files;
         }
 
 #endif
 
-
-
-
         #endregion
 
         #region Serialization
 
-        [System.Serializable]
+        [Serializable]
         public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializationCallbackReceiver
         {
-            public List<TKey> keys = new List<TKey>();
-            public List<TValue> values = new List<TValue>();
+            public List<TKey> keys = new();
+            public List<TValue> values = new();
 
             public void OnBeforeSerialize()
             {
                 keys.Clear();
                 values.Clear();
 
-                foreach (KeyValuePair<TKey, TValue> kvp in this)
+                foreach (var kvp in this)
                 {
                     keys.Add(kvp.Key);
                     values.Add(kvp.Value);
                 }
-
             }
+
             public void OnAfterDeserialize()
             {
-                this.Clear();
+                Clear();
 
-                for (int i = 0; i < keys.Count; i++)
+                for (var i = 0; i < keys.Count; i++)
                     this[keys[i]] = values[i];
-
             }
-
         }
-
 
         #endregion
 
@@ -1489,15 +2071,22 @@ namespace VHierarchy.Libs
 
             AssetDatabase.ImportAsset(path);
         }
-        public static bool ScriptHasDefineDisabled(Type scriptType) => File.ReadLines(GetScriptPath(scriptType.Name)).First().StartsWith("#define DISABLED");
+
+        public static bool ScriptHasDefineDisabled(Type scriptType)
+        {
+            return File.ReadLines(GetScriptPath(scriptType.Name)).First().StartsWith("#define DISABLED");
+        }
+
         public static void SetDefineDisabledInScript(Type scriptType, bool defineDisabled)
         {
             if (ScriptHasDefineDisabled(scriptType) != defineDisabled)
                 ToggleDefineDisabledInScript(scriptType);
-
         }
 
-        public static int GetProjectId() => Application.dataPath.GetHashCode();
+        public static int GetProjectId()
+        {
+            return Application.dataPath.GetHashCode();
+        }
 
         public static void PingObject(Object o, bool select = false, bool focusProjectWindow = true)
         {
@@ -1506,11 +2095,15 @@ namespace VHierarchy.Libs
                 Selection.activeObject = null;
                 Selection.activeObject = o;
             }
+
             if (focusProjectWindow) EditorUtility.FocusProjectWindow();
             EditorGUIUtility.PingObject(o);
-
         }
-        public static void PingObject(string guid, bool select = false, bool focusProjectWindow = true) => PingObject(AssetDatabase.LoadAssetAtPath<Object>(guid.ToPath()));
+
+        public static void PingObject(string guid, bool select = false, bool focusProjectWindow = true)
+        {
+            PingObject(AssetDatabase.LoadAssetAtPath<Object>(guid.ToPath()));
+        }
 
 
         public static void OpenFolder(string path)
@@ -1525,13 +2118,22 @@ namespace VHierarchy.Libs
             m_ListAreaState.GetType().GetField("m_SelectedInstanceIDs").SetValue(m_ListAreaState, new List<int> { folder.GetInstanceID() });
 
             t.GetMethod("OpenSelectedFolders", maxBindingFlags).Invoke(null, null);
-
         }
 
-        public static void Dirty(this Object o) => UnityEditor.EditorUtility.SetDirty(o);
-        public static void RecordUndo(this Object o) => Undo.RecordObject(o, "");
+        public static void Dirty(this Object o)
+        {
+            EditorUtility.SetDirty(o);
+        }
+
+        public static void RecordUndo(this Object o)
+        {
+            Undo.RecordObject(o, "");
+        }
 #if UNITY_2021_1_OR_NEWER
-        public static void Save(this Object o) => AssetDatabase.SaveAssetIfDirty(o);
+        public static void Save(this Object o)
+        {
+            AssetDatabase.SaveAssetIfDirty(o);
+        }
 #else
         public static void Save(this Object o) { }
 #endif
@@ -1542,19 +2144,22 @@ namespace VHierarchy.Libs
             EditorGUIUtility.ShowObjectPicker<T>(obj, allowSceneObjects, searchFilter, controlID);
 
             return Resources.FindObjectsOfTypeAll(typeof(Editor).Assembly.GetType("UnityEditor.ObjectSelector")).FirstOrDefault() as EditorWindow;
-
         }
-        public static EditorWindow OpenColorPicker(System.Action<Color> colorChangedCallback, Color color, bool showAlpha = true, bool hdr = false)
+
+        public static EditorWindow OpenColorPicker(Action<Color> colorChangedCallback, Color color, bool showAlpha = true, bool hdr = false)
         {
             typeof(Editor).Assembly.GetType("UnityEditor.ColorPicker").InvokeMethod("Show", colorChangedCallback, color, showAlpha, hdr);
 
             return typeof(Editor).Assembly.GetType("UnityEditor.ColorPicker").GetPropertyValue<EditorWindow>("instance");
-
         }
 
         public static void MoveTo(this EditorWindow window, Vector2 position, bool ensureFitsOnScreen = true)
         {
-            if (!ensureFitsOnScreen) { window.position = window.position.SetPos(position); return; }
+            if (!ensureFitsOnScreen)
+            {
+                window.position = window.position.SetPos(position);
+                return;
+            }
 
             var windowRect = window.position;
             var unityWindowRect = EditorGUIUtility.GetMainWindowPosition();
@@ -1566,40 +2171,44 @@ namespace VHierarchy.Libs
             position.y = position.y.Min(unityWindowRect.yMax - windowRect.height);
 
             window.position = windowRect.SetPos(position);
-
         }
 
 
+        public static void RemoveEditorErrors()
+        {
+            removeEditorErrorsMethod.Invoke(null, new object[] { 1 });
+        }
 
-        public static void RemoveEditorErrors() => removeEditorErrorsMethod.Invoke(null, new object[] { 1 });
-        static MethodInfo removeEditorErrorsMethod = System.AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(r => r.GetName().ToString().Contains("UnityEditor.CoreModule")).GetTypes().First(r => r.Name.Contains("LogEntry")).GetMethod("RemoveLogEntriesByMode", BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo removeEditorErrorsMethod = AppDomain.CurrentDomain.GetAssemblies()
+            .FirstOrDefault(r => r.GetName().ToString().Contains("UnityEditor.CoreModule")).GetTypes().First(r => r.Name.Contains("LogEntry"))
+            .GetMethod("RemoveLogEntriesByMode", BindingFlags.Static | BindingFlags.NonPublic);
 
 
         public static class EditorPrefsCached
         {
+            private static readonly Dictionary<string, bool> bools_byKey = new();
+            private static readonly Dictionary<string, float> floats_byKey = new();
+            private static readonly Dictionary<string, int> ints_byKey = new();
+
             public static int GetInt(string key, int defaultValue = 0)
             {
                 if (ints_byKey.ContainsKey(key))
                     return ints_byKey[key];
-                else
-                    return ints_byKey[key] = EditorPrefs.GetInt(key, defaultValue);
-
+                return ints_byKey[key] = EditorPrefs.GetInt(key, defaultValue);
             }
+
             public static bool GetBool(string key, bool defaultValue = false)
             {
                 if (bools_byKey.ContainsKey(key))
                     return bools_byKey[key];
-                else
-                    return bools_byKey[key] = EditorPrefs.GetBool(key, defaultValue);
-
+                return bools_byKey[key] = EditorPrefs.GetBool(key, defaultValue);
             }
+
             public static float GetFloat(string key, float defaultValue = 0)
             {
                 if (floats_byKey.ContainsKey(key))
                     return floats_byKey[key];
-                else
-                    return floats_byKey[key] = EditorPrefs.GetFloat(key, defaultValue);
-
+                return floats_byKey[key] = EditorPrefs.GetFloat(key, defaultValue);
             }
 
             public static void SetInt(string key, int value)
@@ -1607,43 +2216,64 @@ namespace VHierarchy.Libs
                 ints_byKey[key] = value;
 
                 EditorPrefs.SetInt(key, value);
-
             }
+
             public static void SetBool(string key, bool value)
             {
                 bools_byKey[key] = value;
 
                 EditorPrefs.SetBool(key, value);
-
             }
+
             public static void SetFloat(string key, float value)
             {
                 floats_byKey[key] = value;
 
                 EditorPrefs.SetFloat(key, value);
-
             }
-
-
-            static Dictionary<string, bool> bools_byKey = new();
-            static Dictionary<string, float> floats_byKey = new();
-            static Dictionary<string, int> ints_byKey = new();
-
         }
 
 
 #endif
 
-
-
-
-
         #endregion
-
     }
 
     public static class VGUI
     {
+        #region Colors
+
+        public static class GUIColors
+        {
+            public static Color windowBackground => isDarkTheme ? Greyscale(.22f) : Greyscale(.78f); // prev backgroundCol
+
+            public static Color pressedButtonBackground =>
+                isDarkTheme ? new Color(.48f, .76f, 1f, 1f) * 1.4f : new Color(.48f, .7f, 1f, 1f) * 1.2f; // prev pressedButtonCol
+
+            public static Color greyedOutTint => Greyscale(.7f);
+            public static Color selectedBackground => isDarkTheme ? new Color(.17f, .365f, .535f) : new Color(.2f, .375f, .555f) * 1.2f;
+        }
+
+        #endregion
+
+        #region Icons
+
+        public static class EditorIcons
+        {
+            private static readonly Dictionary<string, Texture2D> icons_byName = new();
+
+            public static Texture2D GetIcon(string iconNameOrPath)
+            {
+                if (icons_byName.TryGetValue(iconNameOrPath, out var cachedResult)) return cachedResult;
+
+                var icon = typeof(EditorGUIUtility).InvokeMethod<Texture2D>("LoadIcon", iconNameOrPath);
+
+                return icons_byName[iconNameOrPath] = icon;
+            }
+        }
+
+        #endregion
+
         #region Controls
 
         public static T Field<T>(Rect rect, string name, T cur)
@@ -1665,9 +2295,21 @@ namespace VHierarchy.Libs
 
             return default;
         }
-        public static T Field<T>(string name, T cur) => Field(ExpandWidthLabelRect(), name, cur);
-        public static void Field<T>(Rect rect, string name, ref T cur) => cur = Field(rect, name, cur);
-        public static void Field<T>(string name, ref T cur) => cur = Field(name, cur);
+
+        public static T Field<T>(string name, T cur)
+        {
+            return Field(ExpandWidthLabelRect(), name, cur);
+        }
+
+        public static void Field<T>(Rect rect, string name, ref T cur)
+        {
+            cur = Field(rect, name, cur);
+        }
+
+        public static void Field<T>(string name, ref T cur)
+        {
+            cur = Field(name, cur);
+        }
 
         public static T Slider<T>(Rect rect, string name, T cur, T min, T max)
         {
@@ -1679,10 +2321,21 @@ namespace VHierarchy.Libs
 
             return default;
         }
-        public static T Slider<T>(string name, T cur, T min, T max) => Slider(ExpandWidthLabelRect(), name, cur, min, max);
-        public static void Slider<T>(Rect rect, string name, ref T cur, T min, T max) => cur = Slider(rect, name, cur, min, max);
-        public static void Slider<T>(string name, ref T cur, T min, T max) => cur = Slider(name, cur, min, max);
 
+        public static T Slider<T>(string name, T cur, T min, T max)
+        {
+            return Slider(ExpandWidthLabelRect(), name, cur, min, max);
+        }
+
+        public static void Slider<T>(Rect rect, string name, ref T cur, T min, T max)
+        {
+            cur = Slider(rect, name, cur, min, max);
+        }
+
+        public static void Slider<T>(string name, ref T cur, T min, T max)
+        {
+            cur = Slider(name, cur, min, max);
+        }
 
 
         public static bool _ResetFieldButton(Rect rect, bool isObjectField = false)
@@ -1693,6 +2346,7 @@ namespace VHierarchy.Libs
             GUI.color = prev;
             return r;
         }
+
         public static void _DrawResettableFieldCrossIcon(Rect rect, bool isObjectField = false, float brightness = .36f)
         {
             var iconRect = rect.SetWidthFromRight(20).SetSizeFromMid(15).MoveX(isObjectField ? -18 : 0).MoveY(.5f);
@@ -1709,7 +2363,6 @@ namespace VHierarchy.Libs
             SetGUIColor(Greyscale(brightness));
             GUI.Label(iconRect, EditorGUIUtility.IconContent("CrossIcon"));
             ResetGUIColor();
-
         }
 
         public static T ResettableField<T>(Rect rect, string name, T cur, T resetTo = default)
@@ -1719,14 +2372,26 @@ namespace VHierarchy.Libs
 
             cur = Field(rect, name, cur);
 
-            if (!object.Equals(cur, resetTo))
+            if (!Equals(cur, resetTo))
                 _DrawResettableFieldCrossIcon(rect, isObjectField);
 
             return reset ? resetTo : cur;
         }
-        public static T ResettableField<T>(string name, T cur, T resetTo = default) => ResettableField(ExpandWidthLabelRect(), name, cur, resetTo);
-        public static void ResettableField<T>(Rect rect, string name, ref T cur, T resetTo = default) => cur = ResettableField(rect, name, cur, resetTo);
-        public static void ResettableField<T>(string name, ref T cur, T resetTo = default) => cur = ResettableField(name, cur, resetTo);
+
+        public static T ResettableField<T>(string name, T cur, T resetTo = default)
+        {
+            return ResettableField(ExpandWidthLabelRect(), name, cur, resetTo);
+        }
+
+        public static void ResettableField<T>(Rect rect, string name, ref T cur, T resetTo = default)
+        {
+            cur = ResettableField(rect, name, cur, resetTo);
+        }
+
+        public static void ResettableField<T>(string name, ref T cur, T resetTo = default)
+        {
+            cur = ResettableField(name, cur, resetTo);
+        }
 
         public static T ResettableSlider<T>(Rect rect, string name, T cur, T min, T max, T resetTo = default)
         {
@@ -1734,15 +2399,26 @@ namespace VHierarchy.Libs
 
             cur = Slider(rect, name, cur, min, max);
 
-            if (!object.Equals(cur, resetTo))
+            if (!Equals(cur, resetTo))
                 _DrawResettableFieldCrossIcon(lastRect);
 
             return reset ? resetTo : cur;
         }
-        public static T ResettableSlider<T>(string name, T cur, T min, T max, T resetTo = default) => ResettableSlider(ExpandWidthLabelRect(), name, cur, min, max, resetTo);
-        public static void ResettableSlider<T>(Rect rect, string name, ref T cur, T min, T max, T resetTo = default) => cur = ResettableSlider(rect, name, cur, min, max, resetTo);
-        public static void ResettableSlider<T>(string name, ref T cur, T min, T max, T resetTo = default) => cur = ResettableSlider(name, cur, min, max, resetTo);
 
+        public static T ResettableSlider<T>(string name, T cur, T min, T max, T resetTo = default)
+        {
+            return ResettableSlider(ExpandWidthLabelRect(), name, cur, min, max, resetTo);
+        }
+
+        public static void ResettableSlider<T>(Rect rect, string name, ref T cur, T min, T max, T resetTo = default)
+        {
+            cur = ResettableSlider(rect, name, cur, min, max, resetTo);
+        }
+
+        public static void ResettableSlider<T>(string name, ref T cur, T min, T max, T resetTo = default)
+        {
+            cur = ResettableSlider(name, cur, min, max, resetTo);
+        }
 
 
         // public static int ResettableFieldWithPlusMinsButtons(Rect rect, string name, int cur, int min, int max, int resetTo = 0, int increment = 1)
@@ -1770,7 +2446,6 @@ namespace VHierarchy.Libs
 
         //     GUI.enabled = prev;
         //     GUI.skin.label.alignment = TextAnchor.MiddleLeft;
-
 
 
         //     return cur;
@@ -1801,17 +2476,43 @@ namespace VHierarchy.Libs
             GUI.skin.label.alignment = TextAnchor.MiddleLeft;
 
 
-
             return cur;
         }
-        public static int ResettableFieldWithPlusMinsButtons(string name, int cur, int min, int max, int resetTo = 0, int increment = 1) => ResettableFieldWithPlusMinsButtons(ExpandWidthLabelRect(), name, cur, min, max, resetTo, increment);
-        public static int ResettableFieldWithPlusMinsButtons(Rect rect, string name, ref int cur, int min, int max, int resetTo = 0, int increment = 1) => cur = ResettableFieldWithPlusMinsButtons(rect, name, cur, min, max, resetTo, increment);
-        public static int ResettableFieldWithPlusMinsButtons(string name, ref int cur, int min, int max, int resetTo = 0, int increment = 1) => cur = ResettableFieldWithPlusMinsButtons(name, cur, min, max, resetTo, increment);
 
-        public static int FieldWithPlusMinsButtons(Rect rect, string name, int cur, int min, int max, int increment = 1) => ResettableFieldWithPlusMinsButtons(rect, name, cur, min, max, cur, increment);
-        public static int FieldWithPlusMinsButtons(string name, int cur, int min, int max, int increment = 1) => FieldWithPlusMinsButtons(ExpandWidthLabelRect(), name, cur, min, max, increment);
-        public static int FieldWithPlusMinsButtons(Rect rect, string name, ref int cur, int min, int max, int increment = 1) => cur = FieldWithPlusMinsButtons(rect, name, cur, min, max, increment);
-        public static int FieldWithPlusMinsButtons(string name, ref int cur, int min, int max, int increment = 1) => cur = FieldWithPlusMinsButtons(name, cur, min, max, increment);
+        public static int ResettableFieldWithPlusMinsButtons(string name, int cur, int min, int max, int resetTo = 0, int increment = 1)
+        {
+            return ResettableFieldWithPlusMinsButtons(ExpandWidthLabelRect(), name, cur, min, max, resetTo, increment);
+        }
+
+        public static int ResettableFieldWithPlusMinsButtons(Rect rect, string name, ref int cur, int min, int max, int resetTo = 0, int increment = 1)
+        {
+            return cur = ResettableFieldWithPlusMinsButtons(rect, name, cur, min, max, resetTo, increment);
+        }
+
+        public static int ResettableFieldWithPlusMinsButtons(string name, ref int cur, int min, int max, int resetTo = 0, int increment = 1)
+        {
+            return cur = ResettableFieldWithPlusMinsButtons(name, cur, min, max, resetTo, increment);
+        }
+
+        public static int FieldWithPlusMinsButtons(Rect rect, string name, int cur, int min, int max, int increment = 1)
+        {
+            return ResettableFieldWithPlusMinsButtons(rect, name, cur, min, max, cur, increment);
+        }
+
+        public static int FieldWithPlusMinsButtons(string name, int cur, int min, int max, int increment = 1)
+        {
+            return FieldWithPlusMinsButtons(ExpandWidthLabelRect(), name, cur, min, max, increment);
+        }
+
+        public static int FieldWithPlusMinsButtons(Rect rect, string name, ref int cur, int min, int max, int increment = 1)
+        {
+            return cur = FieldWithPlusMinsButtons(rect, name, cur, min, max, increment);
+        }
+
+        public static int FieldWithPlusMinsButtons(string name, ref int cur, int min, int max, int increment = 1)
+        {
+            return cur = FieldWithPlusMinsButtons(name, cur, min, max, increment);
+        }
 
 
         public static bool OnOffButton(Rect rect, string name, bool val)
@@ -1830,9 +2531,21 @@ namespace VHierarchy.Libs
 
             return val;
         }
-        public static bool OnOffButton(string name, bool val) => OnOffButton(ExpandWidthLabelRect(), name, val);
-        public static void OnOffButton(Rect rect, string name, ref bool val) => val = OnOffButton(rect, name, val);
-        public static void OnOffButton(string name, ref bool val) => val = OnOffButton(ExpandWidthLabelRect(), name, val);
+
+        public static bool OnOffButton(string name, bool val)
+        {
+            return OnOffButton(ExpandWidthLabelRect(), name, val);
+        }
+
+        public static void OnOffButton(Rect rect, string name, ref bool val)
+        {
+            val = OnOffButton(rect, name, val);
+        }
+
+        public static void OnOffButton(string name, ref bool val)
+        {
+            val = OnOffButton(ExpandWidthLabelRect(), name, val);
+        }
 
 
         public static bool Toggle(Rect rect, string name, bool val)
@@ -1847,10 +2560,21 @@ namespace VHierarchy.Libs
 
             return val;
         }
-        public static bool Toggle(string name, bool val) => Toggle(ExpandWidthLabelRect(), name, val);
-        public static void Toggle(Rect rect, string name, ref bool val) => val = Toggle(rect, name, val);
-        public static void Toggle(string name, ref bool val) => val = Toggle(ExpandWidthLabelRect(), name, val);
 
+        public static bool Toggle(string name, bool val)
+        {
+            return Toggle(ExpandWidthLabelRect(), name, val);
+        }
+
+        public static void Toggle(Rect rect, string name, ref bool val)
+        {
+            val = Toggle(rect, name, val);
+        }
+
+        public static void Toggle(string name, ref bool val)
+        {
+            val = Toggle(ExpandWidthLabelRect(), name, val);
+        }
 
 
         public static bool LeftToggle(Rect rect, string name, bool val, float offset = 0)
@@ -1864,10 +2588,21 @@ namespace VHierarchy.Libs
 
             return val;
         }
-        public static bool LeftToggle(string name, bool val, float offset = 0) => LeftToggle(ExpandWidthLabelRect(), name, val, offset);
-        public static void LeftToggle(Rect rect, string name, ref bool val, float offset = 0) => val = LeftToggle(rect, name, val, offset);
-        public static void LeftToggle(string name, ref bool val, float offset = 0) => val = LeftToggle(ExpandWidthLabelRect(), name, val, offset);
 
+        public static bool LeftToggle(string name, bool val, float offset = 0)
+        {
+            return LeftToggle(ExpandWidthLabelRect(), name, val, offset);
+        }
+
+        public static void LeftToggle(Rect rect, string name, ref bool val, float offset = 0)
+        {
+            val = LeftToggle(rect, name, val, offset);
+        }
+
+        public static void LeftToggle(string name, ref bool val, float offset = 0)
+        {
+            val = LeftToggle(ExpandWidthLabelRect(), name, val, offset);
+        }
 
 
         public static Color SmallColorField(Rect rect, string name, Color val, bool showAlpha = true, bool hdr = false)
@@ -1898,17 +2633,26 @@ namespace VHierarchy.Libs
 
                 alphaRect.Draw();
                 alphaRect.SetWidth(alphaRect.width * val.a).Draw(Color.white);
-
             }
 
 
             return val;
         }
-        public static Color SmallColorField(string name, Color val, bool showAlpha = true, bool hdr = false) => SmallColorField(ExpandWidthLabelRect().MoveX(-1), name, val, showAlpha, hdr);
-        public static void SmallColorField(Rect rect, string name, ref Color val, bool showAlpha = true, bool hdr = false) => val = SmallColorField(rect, name, val, showAlpha, hdr);
-        public static void SmallColorField(string name, ref Color val, bool showAlpha = true, bool hdr = false) => val = SmallColorField(ExpandWidthLabelRect(), name, val, showAlpha, hdr);
 
+        public static Color SmallColorField(string name, Color val, bool showAlpha = true, bool hdr = false)
+        {
+            return SmallColorField(ExpandWidthLabelRect().MoveX(-1), name, val, showAlpha, hdr);
+        }
 
+        public static void SmallColorField(Rect rect, string name, ref Color val, bool showAlpha = true, bool hdr = false)
+        {
+            val = SmallColorField(rect, name, val, showAlpha, hdr);
+        }
+
+        public static void SmallColorField(string name, ref Color val, bool showAlpha = true, bool hdr = false)
+        {
+            val = SmallColorField(ExpandWidthLabelRect(), name, val, showAlpha, hdr);
+        }
 
 
         public static void ObjectFieldWidhoutPicker<T>(Rect rect, string name, T val) where T : Object
@@ -1933,8 +2677,8 @@ namespace VHierarchy.Libs
                 style.Draw(fieldRect, EditorGUIUtility.ObjectContent(val, typeof(T)), id, DragAndDrop.activeControlID == id, fieldRect.IsHovered());
 
                 EditorGUIUtility.SetIconSize(prev);
-
             }
+
             void click()
             {
                 if (!curEvent.isMouseDown || !rect.IsHovered() || curEvent.mouseButton != 0) return;
@@ -1963,6 +2707,7 @@ namespace VHierarchy.Libs
                         AssetDatabase.OpenAsset(obj);
                         GUIUtility.ExitGUI();
                     }
+
                     curEvent.Use();
                 }
             }
@@ -1970,12 +2715,12 @@ namespace VHierarchy.Libs
 
             draw();
             click();
-
-
         }
-        public static void ObjectFieldWidhoutPicker<T>(string name, T val) where T : Object => ObjectFieldWidhoutPicker(ExpandWidthLabelRect(), name, val);
 
-
+        public static void ObjectFieldWidhoutPicker<T>(string name, T val) where T : Object
+        {
+            ObjectFieldWidhoutPicker(ExpandWidthLabelRect(), name, val);
+        }
 
 
         public static bool InvisibleButton(Rect rect)
@@ -1989,13 +2734,7 @@ namespace VHierarchy.Libs
             GUI.enabled = e;
 
             return r;
-
         }
-
-
-
-
-
 
 
         public static bool Foldout(string name, bool val)
@@ -2034,16 +2773,17 @@ namespace VHierarchy.Libs
         }
 
 
-
-        public static void ColorPickerButton(Rect rect, Color color, System.Action<Color> colorChangedCallback, bool showAlphaBar = false, Color displayTint = default, bool greyedOut = false)
+        public static void ColorPickerButton(Rect rect, Color color, Action<Color> colorChangedCallback, bool showAlphaBar = false, Color displayTint = default,
+            bool greyedOut = false)
         {
             if (displayTint == default)
                 displayTint = Color.white;
 
             if (GUI.Button(rect, ""))
-                OpenColorPicker(colorChangedCallback, color, true, false);
+                OpenColorPicker(colorChangedCallback, color);
 
-            var c = color; c.a = 1;
+            var c = color;
+            c.a = 1;
 
             rect.SetHeight(showAlphaBar ? rect.height - 2 : rect.height).Draw(c * displayTint * (greyedOut ? GUIColors.greyedOutTint : Color.white));
 
@@ -2058,28 +2798,29 @@ namespace VHierarchy.Libs
         }
 
 
-
-
-
         public static int ResolutionPopup(string name, int cur, int min = 256, int max = 4096)
         {
             var ints = Enumerable.Range((int)Mathf.Log(min, 2), (int)Mathf.Log(max, 2) - (int)Mathf.Log(min, 2) + 1).Select(r => (int)Mathf.Pow(2, r)).ToArray();
             return EditorGUILayout.IntPopup(name, cur, ints.Select(r => r.ToString()).ToArray(), ints);
         }
+
         public static int HeightmapResolutionPopup(string name, int cur, int min = 513, int max = 16385)
         {
-            var ints = Enumerable.Range((int)Mathf.Log(min - 1, 2), (int)Mathf.Log(max - 1, 2) - (int)Mathf.Log(min - 1, 2) + 1).Select(r => (int)Mathf.Pow(2, r)).Select(r => r + 1).ToArray();
+            var ints = Enumerable.Range((int)Mathf.Log(min - 1, 2), (int)Mathf.Log(max - 1, 2) - (int)Mathf.Log(min - 1, 2) + 1).Select(r => (int)Mathf.Pow(2, r))
+                .Select(r => r + 1).ToArray();
             return EditorGUILayout.IntPopup(name, cur, ints.Select(r => r.ToString()).ToArray(), ints);
         }
 
-        public static T SelectorPopup<T>(Rect rect, string name, T selected, List<T> options, System.Func<T, string> nameGetter, int labelOffset = -1)
+        public static T SelectorPopup<T>(Rect rect, string name, T selected, List<T> options, Func<T, string> nameGetter, int labelOffset = -1)
         {
             var names = options.Select(r => nameGetter(r)).ToList();
             var curName = nameGetter(selected);
             var ints = Enumerable.Range(0, options.Count);
-            int r = 0;
+            var r = 0;
             if (labelOffset < 0)
+            {
                 r = EditorGUI.IntPopup(rect, name, names.IndexOf(curName), names.ToArray(), ints.ToArray());
+            }
             else
             {
                 r = EditorGUI.IntPopup(rect, names.IndexOf(curName), names.ToArray(), ints.ToArray());
@@ -2088,21 +2829,32 @@ namespace VHierarchy.Libs
 
             return options[r];
         }
-        public static T SelectorPopup<T>(string name, T selected, List<T> options, System.Func<T, string> nameGetter) { GUILayout.Label("", GUILayout.ExpandWidth(true)); return SelectorPopup(lastRect, name, selected, options, nameGetter); }
+
+        public static T SelectorPopup<T>(string name, T selected, List<T> options, Func<T, string> nameGetter)
+        {
+            GUILayout.Label("", GUILayout.ExpandWidth(true));
+            return SelectorPopup(lastRect, name, selected, options, nameGetter);
+        }
 
         // todo make it a class 
-        public static void SelectorWithIcons<T>(ref T selected, List<T> options, System.Func<T, string> nameGetter, System.Func<T, Texture> textureGetter, System.Func<T, Rect?> uvsGetter, ref Vector2 scrollPos,
+        public static void SelectorWithIcons<T>(ref T selected, List<T> options, Func<T, string> nameGetter, Func<T, Texture> textureGetter, Func<T, Rect?> uvsGetter,
+            ref Vector2 scrollPos,
             ref bool renaming, ref string renamingTempName, float buttonSize = 60, float iconBorder = 1, bool showNoneOption = false, bool dragndropPossible = false,
-            System.Action onAdd = null, System.Action<Object> onDragndrop = null, System.Action onRenameEnded = null, System.Action onSelectedClicked = null, System.Action<T> onRightclicked = null, Material iconMaterial = null, bool showPlusButton = true,
+            Action onAdd = null, Action<Object> onDragndrop = null, Action onRenameEnded = null, Action onSelectedClicked = null, Action<T> onRightclicked = null,
+            Material iconMaterial = null, bool showPlusButton = true,
             string noneOptionText = "None", Texture2D noneOptionTexture = null)
         {
             var renaming_ = renaming;
             var selected_ = selected;
-            bool pressedSelect = false;
+            var pressedSelect = false;
 
             var newNamerenamingTempName_ = renamingTempName;
 
-            Rect nameRect(Rect lastRect) => lastRect.MoveY(lastRect.height).Resize(1).SetHeight(18);
+            Rect nameRect(Rect lastRect)
+            {
+                return lastRect.MoveY(lastRect.height).Resize(1).SetHeight(18);
+            }
+
             void drawSelectedBlue(Rect lastRect, string name)
             {
                 var rname = nameRect(lastRect);
@@ -2112,6 +2864,7 @@ namespace VHierarchy.Libs
                 rselect = rselect.Resize(2);
                 rselect.Draw(GUI.skin.settings.selectionColor * .9f);
             }
+
             void drawName(Rect rname, string name)
             {
                 if (name.GetLabelWidth() < buttonSize)
@@ -2124,8 +2877,15 @@ namespace VHierarchy.Libs
             {
                 if (GUILayout.Button("", GUILayout.Height(buttonSize), GUILayout.Width(buttonSize)))
                 {
-                    if (t.Equals(selected_)) onSelectedClicked?.Invoke();
-                    else { selected_ = t; pressedSelect = true; }
+                    if (t.Equals(selected_))
+                    {
+                        onSelectedClicked?.Invoke();
+                    }
+                    else
+                    {
+                        selected_ = t;
+                        pressedSelect = true;
+                    }
 
                     if (curEvent.mouseButton == 1 && onRightclicked != null)
                         onRightclicked(t);
@@ -2143,13 +2903,22 @@ namespace VHierarchy.Libs
                     GUI.DrawTexture(lastRect.Resize(iconBorder), textureGetter(t));
 
 
-
                 if (t.Equals(selected_)) drawSelectedBlue(lastRect, nameGetter(t));
 
 
                 if (curEvent.isKeyDown && curEvent.keyCode == KeyCode.Return)
-                    if (!renaming_) { newNamerenamingTempName_ = nameGetter(selected_); renaming_ = true; curEvent.Use(); }
-                    else { onRenameEnded(); renaming_ = false; curEvent.Use(); }
+                    if (!renaming_)
+                    {
+                        newNamerenamingTempName_ = nameGetter(selected_);
+                        renaming_ = true;
+                        curEvent.Use();
+                    }
+                    else
+                    {
+                        onRenameEnded();
+                        renaming_ = false;
+                        curEvent.Use();
+                    }
 
                 if (t.Equals(selected_) && renaming_)
                 {
@@ -2158,9 +2927,11 @@ namespace VHierarchy.Libs
                     newNamerenamingTempName_ = GUI.TextField(nameRect(lastRect), newNamerenamingTempName_);
                 }
                 else
+                {
                     drawName(nameRect(lastRect), nameGetter(t));
-
+                }
             }
+
             void plus()
             {
                 if (!showPlusButton) return;
@@ -2172,7 +2943,6 @@ namespace VHierarchy.Libs
                     onAdd();
 
 
-
                 if (!dragndropPossible) return;
 
                 DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
@@ -2182,22 +2952,20 @@ namespace VHierarchy.Libs
                 if (mouseIn) EditorGUI.DrawRect(rect, Greyscale(.8f, .07f));
 
 
-
                 if (!curEvent.isDragPerform || !mouseIn) return;
 
                 DragAndDrop.AcceptDrag();
 
                 onDragndrop(DragAndDrop.objectReferences[0]);
             }
+
             void none()
             {
                 if (!showNoneOption) return;
 
 
                 if (GUILayout.Button(noneOptionTexture, GUILayout.Height(buttonSize), GUILayout.Width(buttonSize)))
-                    selected_ = default(T);
-
-
+                    selected_ = default;
 
 
                 // if (selected_.Equals(default(T))) drawSelectedBlue(lastRect, noneOptionText);
@@ -2214,7 +2982,8 @@ namespace VHierarchy.Libs
 
             foreach (var r in options)
             {
-                item(r); Space(2);
+                item(r);
+                Space(2);
             }
 
             plus();
@@ -2234,7 +3003,7 @@ namespace VHierarchy.Libs
         // prev Toggle
         public static bool ToggleLeftOld(string s, bool b, float offset = 6, float textOffset = -4, bool expandWidth = true)
         {
-            bool washor = __hor;
+            var washor = __hor;
             if (!washor) Horizontal();
             GUILayout.Space(offset);
             var r = EditorGUILayout.Toggle(b, GUILayout.Width(20));
@@ -2259,11 +3028,6 @@ namespace VHierarchy.Libs
         }
 
 
-
-
-
-
-
         public static float ExpSlider(Rect rect, string name, float val, float min, float max, bool showDecimal = true)
         {
             EditorGUI.PrefixLabel(rect, new GUIContent(name));
@@ -2281,39 +3045,29 @@ namespace VHierarchy.Libs
                     val = ii;
             }
             else
+            {
                 val = EditorGUI.FloatField(rVal, val);
+            }
 
 
             var rSlider = rect.MoveX(-valWindowSize - 4).SetWidthFromRight(rect.width - EditorGUIUtility.labelWidth - valWindowSize - 6);
             var e = 2.71828;
             var k = (max - min) / (e - 1);
             var c0 = min - k;
-            var t = System.Math.Log(((double)val - c0) / k);
+            var t = Math.Log((val - c0) / k);
 
             EditorGUI.BeginChangeCheck();
             var tSlider = GUI.HorizontalSlider(rSlider, (float)t, 0, 1);
-            var newVal = (float)(c0 + k * System.Math.Pow(e, tSlider));
+            var newVal = (float)(c0 + k * Math.Pow(e, tSlider));
 
 
             return EditorGUI.EndChangeCheck() ? Mathf.Clamp(newVal, min, max) : val;
         }
-        public static float ExpSlider(string name, float val, float min, float max, bool showDecimal = true) => ExpSlider(ExpandWidthLabelRect(), name, val, min, max, showDecimal);
 
-
-
-
-        #endregion
-
-        #region Colors
-
-        public static class GUIColors
+        public static float ExpSlider(string name, float val, float min, float max, bool showDecimal = true)
         {
-            public static Color windowBackground => isDarkTheme ? Greyscale(.22f) : Greyscale(.78f); // prev backgroundCol
-            public static Color pressedButtonBackground => isDarkTheme ? new Color(.48f, .76f, 1f, 1f) * 1.4f : new Color(.48f, .7f, 1f, 1f) * 1.2f; // prev pressedButtonCol
-            public static Color greyedOutTint => Greyscale(.7f);
-            public static Color selectedBackground => isDarkTheme ? new Color(.17f, .365f, .535f) : new Color(.2f, .375f, .555f) * 1.2f;
+            return ExpSlider(ExpandWidthLabelRect(), name, val, min, max, showDecimal);
         }
-
 
         #endregion
 
@@ -2323,7 +3077,11 @@ namespace VHierarchy.Libs
 
         public static bool isDarkTheme => EditorGUIUtility.isProSkin;
 
-        public static float GetLabelWidth(this string s) => GUI.skin.label.CalcSize(new GUIContent(s)).x;
+        public static float GetLabelWidth(this string s)
+        {
+            return GUI.skin.label.CalcSize(new GUIContent(s)).x;
+        }
+
         public static float GetLabelWidth(this string s, int fotSize)
         {
             SetLabelFontSize(fotSize);
@@ -2333,8 +3091,8 @@ namespace VHierarchy.Libs
             ResetLabelStyle();
 
             return r;
-
         }
+
         public static float GetLabelWidth(this string s, bool isBold)
         {
             if (isBold)
@@ -2346,16 +3104,36 @@ namespace VHierarchy.Libs
                 ResetLabelStyle();
 
             return r;
-
         }
 
-        public static void SetGUIEnabled(bool enabled) { _prevGuiEnabled = GUI.enabled; GUI.enabled = enabled; }
-        public static void ResetGUIEnabled() => GUI.enabled = _prevGuiEnabled;
-        static bool _prevGuiEnabled = true;
+        public static void SetGUIEnabled(bool enabled)
+        {
+            _prevGuiEnabled = GUI.enabled;
+            GUI.enabled = enabled;
+        }
 
-        public static void SetLabelFontSize(int size) => GUI.skin.label.fontSize = size;
-        public static void SetLabelBold() => GUI.skin.label.fontStyle = FontStyle.Bold;
-        public static void SetLabelAlignmentCenter() => GUI.skin.label.alignment = TextAnchor.MiddleCenter;
+        public static void ResetGUIEnabled()
+        {
+            GUI.enabled = _prevGuiEnabled;
+        }
+
+        private static bool _prevGuiEnabled = true;
+
+        public static void SetLabelFontSize(int size)
+        {
+            GUI.skin.label.fontSize = size;
+        }
+
+        public static void SetLabelBold()
+        {
+            GUI.skin.label.fontStyle = FontStyle.Bold;
+        }
+
+        public static void SetLabelAlignmentCenter()
+        {
+            GUI.skin.label.alignment = TextAnchor.MiddleCenter;
+        }
+
         public static void ResetLabelStyle()
         {
             GUI.skin.label.fontSize = 0;
@@ -2372,28 +3150,31 @@ namespace VHierarchy.Libs
             _guiColorModified = true;
 
             GUI.color = _defaultGuiColor * c;
-
         }
+
         public static void ResetGUIColor()
         {
             GUI.color = _guiColorModified ? _defaultGuiColor : Color.white;
 
             _guiColorModified = false;
-
         }
-        static bool _guiColorModified;
-        static Color _defaultGuiColor;
 
-
+        private static bool _guiColorModified;
+        private static Color _defaultGuiColor;
 
         #endregion
 
         #region Events
 
-
         public class WrappedEvent
         {
             public Event e;
+
+
+            public WrappedEvent(Event e)
+            {
+                this.e = e;
+            }
 
             public bool isRepaint => e.type == EventType.Repaint;
             public bool isLayout => e.type == EventType.Layout;
@@ -2435,41 +3216,39 @@ namespace VHierarchy.Libs
             public bool holdingCmd => e.command;
             public bool holdingCmdOrCtrl => e.command || e.control;
 
-            public bool holdingAltOnly => e.modifiers == EventModifiers.Alt;        // in some sessions FunctionKey is always pressed?
-            public bool holdingShiftOnly => e.modifiers == EventModifiers.Shift;        // in some sessions FunctionKey is always pressed?
+            public bool holdingAltOnly => e.modifiers == EventModifiers.Alt; // in some sessions FunctionKey is always pressed?
+            public bool holdingShiftOnly => e.modifiers == EventModifiers.Shift; // in some sessions FunctionKey is always pressed?
             public bool holdingCtrlOnly => e.modifiers == EventModifiers.Control;
             public bool holdingCmdOnly => e.modifiers == EventModifiers.Command;
-            public bool holdingCmdOrCtrlOnly => (e.modifiers == EventModifiers.Command || e.modifiers == EventModifiers.Control);
+            public bool holdingCmdOrCtrlOnly => e.modifiers == EventModifiers.Command || e.modifiers == EventModifiers.Control;
 
             public EventType type => e.type;
 
-            public void Use() => e?.Use();
+            public void Use()
+            {
+                e?.Use();
+            }
 
-
-            public WrappedEvent(Event e) => this.e = e;
-
-            public override string ToString() => e.ToString();
-
+            public override string ToString()
+            {
+                return e.ToString();
+            }
         }
 
-        public static WrappedEvent Wrap(this Event e) => new(e);
+        public static WrappedEvent Wrap(this Event e)
+        {
+            return new WrappedEvent(e);
+        }
 
         public static WrappedEvent curEvent => _curEvent ??= typeof(Event).GetFieldValue<Event>("s_Current").Wrap();
-        static WrappedEvent _curEvent;
-
-
-
-
+        private static WrappedEvent _curEvent;
 
         #endregion
 
         #region Layout
 
-
-
-        public static void BeginPanel(string title, float height, System.Action onClose = null, System.Action onApply = null)
+        public static void BeginPanel(string title, float height, Action onClose = null, Action onApply = null)
         {
-
             void bg()
             {
                 GUI.enabled = false;
@@ -2489,12 +3268,10 @@ namespace VHierarchy.Libs
 
             void layout()
             {
-
                 GUILayout.BeginHorizontal();
                 Space(7);
                 EditorGUIUtility.labelWidth -= 7;
                 GUILayout.BeginVertical();
-
             }
 
             void title_()
@@ -2503,7 +3280,6 @@ namespace VHierarchy.Libs
                 EditorGUI.PrefixLabel(ExpandWidthLabelRect(), new GUIContent(title));
                 // GUI.skin.label.fontStyle = FontStyle.Bold;
                 // GUILayout.Label(title);
-
             }
 
             void buttons()
@@ -2530,9 +3306,7 @@ namespace VHierarchy.Libs
 
 
                 GUI.color = Color.white;
-
             }
-
 
 
             bg();
@@ -2541,7 +3315,6 @@ namespace VHierarchy.Libs
             buttons();
 
             Space(5);
-
         }
 
         public static void EndPanel()
@@ -2551,7 +3324,6 @@ namespace VHierarchy.Libs
             EditorGUIUtility.labelWidth = 0;
             GUILayout.EndHorizontal();
         }
-
 
 
         public static void BeginIndent(float f)
@@ -2573,34 +3345,80 @@ namespace VHierarchy.Libs
 
             EditorGUIUtility.labelWidth = _indentLabelWidthStack.Pop();
         }
-        static Stack<float> _indentLabelWidthStack = new Stack<float>();
+
+        private static readonly Stack<float> _indentLabelWidthStack = new();
 
 
-        public static void Horizontal() { if (__hor) GUILayout.EndHorizontal(); else GUILayout.BeginHorizontal(); __hor = !__hor; }
-        public static void Vertical() { if (__v) GUILayout.EndVertical(); else GUILayout.BeginVertical(); __v = !__v; }
-        public static void Area(Rect r) { if (__a) GUILayout.EndArea(); else GUILayout.BeginArea(r); __a = !__a; }
-        public static void Area() { if (__a) GUILayout.EndArea(); __a = !__a; }
-        public static void ResetUIBools() { __a = __hor = __v = false; _prevGuiEnabled = true; }
-        static bool __hor, __a, __v;
+        public static void Horizontal()
+        {
+            if (__hor) GUILayout.EndHorizontal();
+            else GUILayout.BeginHorizontal();
+            __hor = !__hor;
+        }
+
+        public static void Vertical()
+        {
+            if (__v) GUILayout.EndVertical();
+            else GUILayout.BeginVertical();
+            __v = !__v;
+        }
+
+        public static void Area(Rect r)
+        {
+            if (__a) GUILayout.EndArea();
+            else GUILayout.BeginArea(r);
+            __a = !__a;
+        }
+
+        public static void Area()
+        {
+            if (__a) GUILayout.EndArea();
+            __a = !__a;
+        }
+
+        public static void ResetUIBools()
+        {
+            __a = __hor = __v = false;
+            _prevGuiEnabled = true;
+        }
+
+        private static bool __hor, __a, __v;
 
         #endregion
 
         #region Drawing
 
-        public static Rect Draw(this Rect r) { EditorGUI.DrawRect(r, Color.black); return r; }
-        public static Rect Draw(this Rect r, Color c) { EditorGUI.DrawRect(r, c); return r; }
+        public static Rect Draw(this Rect r)
+        {
+            EditorGUI.DrawRect(r, Color.black);
+            return r;
+        }
 
-        public static Rect DrawOutline(this Rect r) => r.DrawOutline(Color.black);
-        public static Rect DrawOutline(this Rect r, Color c) { OutlineRect(r, c, false, 1); return r; }
+        public static Rect Draw(this Rect r, Color c)
+        {
+            EditorGUI.DrawRect(r, c);
+            return r;
+        }
+
+        public static Rect DrawOutline(this Rect r)
+        {
+            return r.DrawOutline(Color.black);
+        }
+
+        public static Rect DrawOutline(this Rect r, Color c)
+        {
+            OutlineRect(r, c);
+            return r;
+        }
 
         public static void OutlineRect(Rect rect, Color col, bool greyedOut = false, int px = 1)
         {
-            bool offset = false;
+            var offset = false;
 
-            int f = px;
+            var f = px;
             Rect r;
             //
-            Color tint = greyedOut ? Color.white * .74f : Color.white;
+            var tint = greyedOut ? Color.white * .74f : Color.white;
 
             r = rect;
             r.height = f;
@@ -2672,23 +3490,22 @@ namespace VHierarchy.Libs
                 var res = cornerRadius * 2 * pixelsPerPoint;
                 var pixels = new Color[res * res];
 
-                var white = Greyscale(1, 1);
+                var white = Greyscale(1);
                 var clear = Greyscale(1, 0);
                 var halfRes = res / 2;
 
-                for (int x = 0; x < res; x++)
-                    for (int y = 0; y < res; y++)
-                    {
-                        var sqrMagnitude = (new Vector2(x - halfRes + .5f, y - halfRes + .5f)).sqrMagnitude;
-                        pixels[x + y * res] = sqrMagnitude <= halfRes * halfRes ? white : clear;
-                    }
+                for (var x = 0; x < res; x++)
+                for (var y = 0; y < res; y++)
+                {
+                    var sqrMagnitude = new Vector2(x - halfRes + .5f, y - halfRes + .5f).sqrMagnitude;
+                    pixels[x + y * res] = sqrMagnitude <= halfRes * halfRes ? white : clear;
+                }
 
                 var texture = new Texture2D(res, res);
                 texture.SetPropertyValue("pixelsPerPoint", pixelsPerPoint);
                 texture.hideFlags = HideFlags.DontSave;
                 texture.SetPixels(pixels);
                 texture.Apply();
-
 
 
                 style = new GUIStyle();
@@ -2698,8 +3515,8 @@ namespace VHierarchy.Libs
 
 
                 _roundedStylesByCornerRadius[cornerRadius] = style;
-
             }
+
             void draw()
             {
                 SetGUIColor(color);
@@ -2707,17 +3524,20 @@ namespace VHierarchy.Libs
                 style.Draw(rect, false, false, false, false);
 
                 ResetGUIColor();
-
             }
 
             getStyle();
             draw();
 
             return rect;
-
         }
-        public static Rect DrawWithRoundedCorners(this Rect rect, Color color, float cornerRadius) => rect.DrawWithRoundedCorners(color, cornerRadius.RoundToInt());
-        static Dictionary<int, GUIStyle> _roundedStylesByCornerRadius = new Dictionary<int, GUIStyle>();
+
+        public static Rect DrawWithRoundedCorners(this Rect rect, Color color, float cornerRadius)
+        {
+            return rect.DrawWithRoundedCorners(color, cornerRadius.RoundToInt());
+        }
+
+        private static readonly Dictionary<int, GUIStyle> _roundedStylesByCornerRadius = new();
 
 
         public static Rect DrawBlurred(this Rect rect, Color color, int blurRadius)
@@ -2746,18 +3566,21 @@ namespace VHierarchy.Libs
                 var pixels = new Color[textureWidth * textureHeight];
                 var kernel = new GaussianKernel(false, blurRadiusScaled).Array2d();
 
-                for (int x = 0; x < textureWidth; x++)
-                    for (int y = 0; y < textureHeight; y++)
-                    {
-                        var sum = 0f;
+                for (var x = 0; x < textureWidth; x++)
+                for (var y = 0; y < textureHeight; y++)
+                {
+                    var sum = 0f;
 
-                        for (int xSample = (x - blurRadiusScaled).Max(blurRadiusScaled); xSample <= (x + blurRadiusScaled).Min(textureWidth - 1 - blurRadiusScaled); xSample++)
-                            for (int ySample = (y - blurRadiusScaled).Max(blurRadiusScaled); ySample <= (y + blurRadiusScaled).Min(textureHeight - 1 - blurRadiusScaled); ySample++)
-                                sum += kernel[blurRadiusScaled + xSample - x, blurRadiusScaled + ySample - y];
+                    for (var xSample = (x - blurRadiusScaled).Max(blurRadiusScaled);
+                         xSample <= (x + blurRadiusScaled).Min(textureWidth - 1 - blurRadiusScaled);
+                         xSample++)
+                    for (var ySample = (y - blurRadiusScaled).Max(blurRadiusScaled);
+                         ySample <= (y + blurRadiusScaled).Min(textureHeight - 1 - blurRadiusScaled);
+                         ySample++)
+                        sum += kernel[blurRadiusScaled + xSample - x, blurRadiusScaled + ySample - y];
 
-                        pixels[x + y * textureWidth] = Greyscale(1, sum);
-
-                    }
+                    pixels[x + y * textureWidth] = Greyscale(1, sum);
+                }
 
                 var texture = new Texture2D(textureWidth, textureHeight);
                 texture.SetPropertyValue("pixelsPerPoint", pixelsPerPoint);
@@ -2777,8 +3600,8 @@ namespace VHierarchy.Libs
                 _blurredStylesByTextureSize[(textureWidth, textureHeight)] = style;
 
                 // VDebug.LogFinish();
-
             }
+
             void draw()
             {
                 SetGUIColor(color);
@@ -2786,20 +3609,23 @@ namespace VHierarchy.Libs
                 style.Draw(rect.SetSizeFromMid(rect.width + blurRadius * 2, rect.height + blurRadius * 2), false, false, false, false);
 
                 ResetGUIColor();
-
             }
 
             getStyle();
             draw();
 
             return rect;
-
         }
-        public static Rect DrawBlurred(this Rect rect, Color color, float blurRadius) => rect.DrawBlurred(color, blurRadius.RoundToInt());
-        static Dictionary<(int, int), GUIStyle> _blurredStylesByTextureSize = new Dictionary<(int, int), GUIStyle>();
+
+        public static Rect DrawBlurred(this Rect rect, Color color, float blurRadius)
+        {
+            return rect.DrawBlurred(color, blurRadius.RoundToInt());
+        }
+
+        private static readonly Dictionary<(int, int), GUIStyle> _blurredStylesByTextureSize = new();
 
 
-        static void DrawCurtain(this Rect rect, Color color, int dir)
+        private static void DrawCurtain(this Rect rect, Color color, int dir)
         {
             void genTextures()
             {
@@ -2837,8 +3663,8 @@ namespace VHierarchy.Libs
                 right.hideFlags = HideFlags.DontSave;
                 right.wrapMode = TextureWrapMode.Clamp;
                 _gradientTextures[3] = right;
-
             }
+
             void draw()
             {
                 SetGUIColor(color);
@@ -2846,28 +3672,48 @@ namespace VHierarchy.Libs
                 GUI.DrawTexture(rect, _gradientTextures[dir]);
 
                 ResetGUIColor();
-
             }
 
             genTextures();
             draw();
-
         }
-        public static void DrawCurtainUp(this Rect rect, Color color) => rect.DrawCurtain(color, 0);
-        public static void DrawCurtainDown(this Rect rect, Color color) => rect.DrawCurtain(color, 1);
-        public static void DrawCurtainLeft(this Rect rect, Color color) => rect.DrawCurtain(color, 2);
-        public static void DrawCurtainRight(this Rect rect, Color color) => rect.DrawCurtain(color, 3);
-        static Texture2D[] _gradientTextures;
+
+        public static void DrawCurtainUp(this Rect rect, Color color)
+        {
+            rect.DrawCurtain(color, 0);
+        }
+
+        public static void DrawCurtainDown(this Rect rect, Color color)
+        {
+            rect.DrawCurtain(color, 1);
+        }
+
+        public static void DrawCurtainLeft(this Rect rect, Color color)
+        {
+            rect.DrawCurtain(color, 2);
+        }
+
+        public static void DrawCurtainRight(this Rect rect, Color color)
+        {
+            rect.DrawCurtain(color, 3);
+        }
+
+        private static Texture2D[] _gradientTextures;
 
 
-
-        public static bool IsHovered(this Rect r) => r.Contains(curEvent.mousePosition);
+        public static bool IsHovered(this Rect r)
+        {
+            return r.Contains(curEvent.mousePosition);
+        }
 
         #endregion
 
         #region Spacing
 
-        public static void Space(float px = 6) => GUILayout.Space(px);
+        public static void Space(float px = 6)
+        {
+            GUILayout.Space(px);
+        }
 
         public static void Divider(float space = 15, float yOffset = 0)
         {
@@ -2875,38 +3721,27 @@ namespace VHierarchy.Libs
             lastRect.SetHeightFromMid(1).SetWidthFromMid(lastRect.width - 16).MoveY(yOffset).Draw(isDarkTheme ? Color.white * .42f : Color.white * .72f);
         }
 
-        public static Rect ExpandSpace() { GUILayout.Label("", GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true)); return lastRect; }
-
-        public static Rect ExpandWidthLabelRect() { GUILayout.Label(""/* , GUILayout.Height(0) */, GUILayout.ExpandWidth(true)); return lastRect; }
-        public static Rect ExpandWidthLabelRect(float height) { GUILayout.Label("", GUILayout.Height(height), GUILayout.ExpandWidth(true)); return lastRect; }
-
-
-        #endregion
-
-        #region Icons
-
-
-        public static class EditorIcons
+        public static Rect ExpandSpace()
         {
-            public static Texture2D GetIcon(string iconNameOrPath)
-            {
-                if (icons_byName.TryGetValue(iconNameOrPath, out var cachedResult)) return cachedResult;
-
-                var icon = typeof(EditorGUIUtility).InvokeMethod<Texture2D>("LoadIcon", iconNameOrPath) as Texture2D;
-
-                return icons_byName[iconNameOrPath] = icon;
-
-            }
-
-            static Dictionary<string, Texture2D> icons_byName = new Dictionary<string, Texture2D>();
+            GUILayout.Label("", GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+            return lastRect;
         }
 
+        public static Rect ExpandWidthLabelRect()
+        {
+            GUILayout.Label("" /* , GUILayout.Height(0) */, GUILayout.ExpandWidth(true));
+            return lastRect;
+        }
 
-
+        public static Rect ExpandWidthLabelRect(float height)
+        {
+            GUILayout.Label("", GUILayout.Height(height), GUILayout.ExpandWidth(true));
+            return lastRect;
+        }
 
         #endregion
 
-        #region Other 
+        #region Other
 
         public static void MarkInteractive(this Rect rect)
         {
@@ -2917,16 +3752,15 @@ namespace VHierarchy.Libs
             var curGuiView = _pi_GUIView_current.GetValue(null);
 
             _mi_GUIView_MarkHotRegion.Invoke(curGuiView, new object[] { unclippedRect });
-
         }
-        static PropertyInfo _pi_GUIView_current = typeof(Editor).Assembly.GetType("UnityEditor.GUIView").GetProperty("current", maxBindingFlags);
-        static MethodInfo _mi_GUIView_MarkHotRegion = typeof(Editor).Assembly.GetType("UnityEditor.GUIView").GetMethod("MarkHotRegion", maxBindingFlags);
-        static MethodInfo _mi_GUIClip_UnclipToWindow = typeof(GUI).Assembly.GetType("UnityEngine.GUIClip").GetMethod("UnclipToWindow", maxBindingFlags, null, new[] { typeof(Rect) }, null);
 
+        private static readonly PropertyInfo _pi_GUIView_current = typeof(Editor).Assembly.GetType("UnityEditor.GUIView").GetProperty("current", maxBindingFlags);
+        private static readonly MethodInfo _mi_GUIView_MarkHotRegion = typeof(Editor).Assembly.GetType("UnityEditor.GUIView").GetMethod("MarkHotRegion", maxBindingFlags);
+
+        private static readonly MethodInfo _mi_GUIClip_UnclipToWindow =
+            typeof(GUI).Assembly.GetType("UnityEngine.GUIClip").GetMethod("UnclipToWindow", maxBindingFlags, null, new[] { typeof(Rect) }, null);
 
         #endregion
-
     }
-
 }
 #endif

@@ -2,70 +2,73 @@
 // Available at the Unity Asset Store - http://u3d.as/y3X 
 Shader "Archanor VFX/Epic Toon FX/ETFX_PowerboxLit"
 {
-	Properties
-	{
-		_Icon("Icon", 2D) = "white" {}
-		_Background("Background", 2D) = "white" {}
-		_IconTint("Icon Tint", Color) = (0,0,0,0)
-		_IconContrast("Icon Contrast", Range( 0.01 , 5)) = 1
-		_IconBrightness("Icon Brightness", Range( 0 , 3)) = 1
-		_BackgroundTint("Background Tint", Color) = (1,0,0.05511808,0)
-		_BackgroundContrast("Background Contrast", Range( 0 , 5)) = 1
-		_BackgroundBrightness("Background Brightness", Range( 0 , 3)) = 1
-		_IconScale("Icon Scale", Float) = 2
-		_IconOffset("Icon Offset", Vector) = (0,-1,0,0)
-		_Smoothness("Smoothness", Range( 0 , 1)) = 0
-		_Metallic("Metallic", Range( 0 , 1)) = 0
-		[HideInInspector] _texcoord( "", 2D ) = "white" {}
-		[HideInInspector] __dirty( "", Int ) = 1
-	}
+    Properties
+    {
+        _Icon("Icon", 2D) = "white" {}
+        _Background("Background", 2D) = "white" {}
+        _IconTint("Icon Tint", Color) = (0,0,0,0)
+        _IconContrast("Icon Contrast", Range( 0.01 , 5)) = 1
+        _IconBrightness("Icon Brightness", Range( 0 , 3)) = 1
+        _BackgroundTint("Background Tint", Color) = (1,0,0.05511808,0)
+        _BackgroundContrast("Background Contrast", Range( 0 , 5)) = 1
+        _BackgroundBrightness("Background Brightness", Range( 0 , 3)) = 1
+        _IconScale("Icon Scale", Float) = 2
+        _IconOffset("Icon Offset", Vector) = (0,-1,0,0)
+        _Smoothness("Smoothness", Range( 0 , 1)) = 0
+        _Metallic("Metallic", Range( 0 , 1)) = 0
+        [HideInInspector] _texcoord( "", 2D ) = "white" {}
+        [HideInInspector] __dirty( "", Int ) = 1
+    }
 
-	SubShader
-	{
-		Tags{ "RenderType" = "Opaque"  "Queue" = "Geometry+0" "IgnoreProjector" = "True" }
-		Cull Back
-		CGPROGRAM
-		#pragma target 3.0
-		#pragma surface surf Standard keepalpha addshadow fullforwardshadows 
-		struct Input
-		{
-			float2 uv_texcoord;
-			float4 vertexColor : COLOR;
-		};
+    SubShader
+    {
+        Tags
+        {
+            "RenderType" = "Opaque" "Queue" = "Geometry+0" "IgnoreProjector" = "True"
+        }
+        Cull Back
+        CGPROGRAM
+        #pragma target 3.0
+        #pragma surface surf Standard keepalpha addshadow fullforwardshadows
+        struct Input
+        {
+            float2 uv_texcoord;
+            float4 vertexColor : COLOR;
+        };
 
-		uniform float _BackgroundBrightness;
-		uniform sampler2D _Background;
-		uniform float4 _Background_ST;
-		uniform float _BackgroundContrast;
-		uniform float4 _BackgroundTint;
-		uniform sampler2D _Icon;
-		uniform float _IconScale;
-		uniform float3 _IconOffset;
-		uniform float4 _IconTint;
-		uniform float _IconContrast;
-		uniform float _IconBrightness;
-		uniform float _Metallic;
-		uniform float _Smoothness;
+        uniform float _BackgroundBrightness;
+        uniform sampler2D _Background;
+        uniform float4 _Background_ST;
+        uniform float _BackgroundContrast;
+        uniform float4 _BackgroundTint;
+        uniform sampler2D _Icon;
+        uniform float _IconScale;
+        uniform float3 _IconOffset;
+        uniform float4 _IconTint;
+        uniform float _IconContrast;
+        uniform float _IconBrightness;
+        uniform float _Metallic;
+        uniform float _Smoothness;
 
-		void surf( Input i , inout SurfaceOutputStandard o )
-		{
-			float2 uv_Background = i.uv_texcoord * _Background_ST.xy + _Background_ST.zw;
-			float4 temp_cast_0 = (_BackgroundContrast).xxxx;
-			float2 temp_cast_1 = (_IconScale).xx;
-			float2 uv_TexCoord45 = i.uv_texcoord * temp_cast_1 + _IconOffset.xy;
-			float4 tex2DNode2 = tex2D( _Icon, uv_TexCoord45 );
-			float4 temp_cast_3 = (_IconContrast).xxxx;
-			float4 lerpResult38 = lerp( ( _BackgroundBrightness * ( pow( tex2D( _Background, uv_Background ) , temp_cast_0 ) * _BackgroundTint ) * i.vertexColor ) , ( pow( ( tex2DNode2 + _IconTint ) , temp_cast_3 ) * _IconBrightness ) , tex2DNode2.a);
-			o.Albedo = lerpResult38.rgb;
-			o.Metallic = _Metallic;
-			o.Smoothness = _Smoothness;
-			o.Alpha = 1;
-		}
-
-		ENDCG
-	}
-	Fallback "Diffuse"
-	CustomEditor "ASEMaterialInspector"
+        void surf(Input i, inout SurfaceOutputStandard o)
+        {
+            float2 uv_Background = i.uv_texcoord * _Background_ST.xy + _Background_ST.zw;
+            float4 temp_cast_0 = (_BackgroundContrast).xxxx;
+            float2 temp_cast_1 = (_IconScale).xx;
+            float2 uv_TexCoord45 = i.uv_texcoord * temp_cast_1 + _IconOffset.xy;
+            float4 tex2DNode2 = tex2D(_Icon, uv_TexCoord45);
+            float4 temp_cast_3 = (_IconContrast).xxxx;
+            float4 lerpResult38 = lerp((_BackgroundBrightness * (pow(tex2D(_Background, uv_Background), temp_cast_0) * _BackgroundTint) * i.vertexColor),
+                (pow((tex2DNode2 + _IconTint), temp_cast_3) * _IconBrightness), tex2DNode2.a);
+            o.Albedo = lerpResult38.rgb;
+            o.Metallic = _Metallic;
+            o.Smoothness = _Smoothness;
+            o.Alpha = 1;
+        }
+        ENDCG
+    }
+    Fallback "Diffuse"
+    CustomEditor "ASEMaterialInspector"
 }
 /*ASEBEGIN
 Version=19002

@@ -8,9 +8,9 @@ namespace Prez.Menus
     {
         [SerializeField] protected Vector2 PositionVisible;
         [SerializeField] protected Vector2 PositionHidden;
+        protected bool IsHiding;
 
         protected RectTransform RectTransform;
-        protected bool IsHiding;
 
         protected virtual void Awake()
         {
@@ -21,7 +21,7 @@ namespace Prez.Menus
         {
             if (gameObject.activeInHierarchy)
                 return;
-            
+
             gameObject.SetActive(true);
             RectTransform.DOKill();
             RectTransform.DOAnchorPos(PositionVisible, 0.25f)
@@ -32,12 +32,12 @@ namespace Prez.Menus
         {
             if (!gameObject.activeInHierarchy)
                 return;
-            
-            if (IsHiding) 
+
+            if (IsHiding)
                 return;
 
             var duration = 0.25f;
-            
+
             IsHiding = true;
             RectTransform.DOKill();
             RectTransform.DOAnchorPos(PositionHidden, duration)

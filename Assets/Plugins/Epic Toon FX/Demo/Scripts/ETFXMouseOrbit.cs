@@ -1,9 +1,8 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
+using UnityEngine;
 
 namespace EpicToonFX
 {
-
     public class ETFXMouseOrbit : MonoBehaviour
     {
         public Transform target;
@@ -15,66 +14,57 @@ namespace EpicToonFX
         public float distanceMin = 8f;
         public float distanceMax = 15f;
         public float smoothTime = 2f;
-        private float rotationYAxis = 0.0f;
-        private float rotationXAxis = 0.0f;
-        private float velocityX = 0.0f;
-        private float maxVelocityX = 0.1f;
-        private float velocityY = 0.0f;
-        private readonly float autoRotationSmoothing = 0.02f;
 
-        [HideInInspector] public bool isAutoRotating = false;
+        [HideInInspector] public bool isAutoRotating;
         [HideInInspector] public ETFXEffectController etfxEffectController;
         [HideInInspector] public ETFXEffectControllerPooled etfxEffectControllerPooled;
+        private readonly float autoRotationSmoothing = 0.02f;
+        private float maxVelocityX = 0.1f;
+        private float rotationXAxis;
+        private float rotationYAxis;
+        private float velocityX;
+        private float velocityY;
 
         private void Start()
         {
-            Vector3 angles = transform.eulerAngles;
+            var angles = transform.eulerAngles;
             rotationYAxis = angles.y;
             rotationXAxis = angles.x;
 
             // Make the rigid body not change rotation
-            if (GetComponent<Rigidbody>())
-            {
-                GetComponent<Rigidbody>().freezeRotation = true;
-            }
+            if (GetComponent<Rigidbody>()) GetComponent<Rigidbody>().freezeRotation = true;
         }
 
         private void Update()
         {
-            if(target)
+            if (target)
             {
                 if (Input.GetMouseButton(1))
                 {
                     velocityX += xSpeed * Input.GetAxis("Mouse X") * distance * 0.02f;
                     velocityY += ySpeed * Input.GetAxis("Mouse Y") * 0.02f;
 
-                    if (isAutoRotating)
-                    {
-                        StopAutoRotation();
-                    }
+                    if (isAutoRotating) StopAutoRotation();
                 }
 
                 distance = Mathf.Clamp(distance - Input.GetAxis("Mouse ScrollWheel") * 15, distanceMin, distanceMax);
             }
         }
 
-		private void FixedUpdate()
+        private void FixedUpdate()
         {
             if (target)
             {
                 rotationYAxis += velocityX;
                 rotationXAxis -= velocityY;
                 rotationXAxis = ClampAngle(rotationXAxis, yMinLimit, yMaxLimit);
-                Quaternion toRotation = Quaternion.Euler(rotationXAxis, rotationYAxis, 0);
-                Quaternion rotation = toRotation;
-                
-                if (Physics.Linecast(target.position, transform.position, out RaycastHit hit))
-                {
-                   distance -= hit.distance;
-                }
+                var toRotation = Quaternion.Euler(rotationXAxis, rotationYAxis, 0);
+                var rotation = toRotation;
 
-                Vector3 negDistance = new Vector3(0.0f, 0.0f, -distance);
-                Vector3 position = Vector3.Lerp(transform.position, rotation * negDistance + target.position, 0.6f);
+                if (Physics.Linecast(target.position, transform.position, out var hit)) distance -= hit.distance;
+
+                var negDistance = new Vector3(0.0f, 0.0f, -distance);
+                var position = Vector3.Lerp(transform.position, rotation * negDistance + target.position, 0.6f);
 
                 transform.rotation = rotation;
                 transform.position = position;
@@ -116,9 +106,9 @@ namespace EpicToonFX
             StopAllCoroutines();
         }
 
-        IEnumerator AutoRotate()
+        private IEnumerator AutoRotate()
         {
-            int lerpSteps = 0;
+            var lerpSteps = 0;
 
             while (lerpSteps < 30)
             {

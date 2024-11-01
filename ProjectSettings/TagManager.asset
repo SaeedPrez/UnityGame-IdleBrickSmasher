@@ -8,6 +8,7 @@ TagManager:
   - Ball
   - Wall
   - WallBottom
+  - Projectile
   layers:
   - Default
   - TransparentFX
@@ -23,7 +24,7 @@ TagManager:
   - Walls
   - Bricks
   - Player
-  - 
+  - Projectile
   - 
   - 
   - 

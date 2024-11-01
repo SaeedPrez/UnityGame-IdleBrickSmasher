@@ -12,23 +12,23 @@ namespace Prez.Core
         [SerializeField] private TMP_Text _messageValue;
         [SerializeField] private float _animationDuration;
 
-        public static MessageManager I { get; private set; }
-        
         private readonly Dictionary<string, float> _messageQueue = new();
         private Coroutine _queueCoroutine;
+
+        public static MessageManager I { get; private set; }
 
         private void Awake()
         {
             SetupSingleton();
         }
-        
+
         private void Start()
         {
             _messageValue.alpha = 0;
         }
 
         /// <summary>
-        /// Setups the singleton.
+        ///     Setups the singleton.
         /// </summary>
         private void SetupSingleton()
         {
@@ -45,9 +45,9 @@ namespace Prez.Core
         {
             I.QueueMessage(message, duration);
         }
-        
+
         /// <summary>
-        /// Queue a message to be displayed.
+        ///     Queue a message to be displayed.
         /// </summary>
         /// <param name="message"></param>
         /// <param name="duration"></param>
@@ -58,7 +58,7 @@ namespace Prez.Core
 
             if (duration < 0.75f)
                 duration = 0.75f;
-            
+
             _messageQueue.Add(message, duration);
 
             if (_queueCoroutine == null)
@@ -66,7 +66,7 @@ namespace Prez.Core
         }
 
         /// <summary>
-        /// Shows the messages from the queue.
+        ///     Shows the messages from the queue.
         /// </summary>
         /// <returns></returns>
         private IEnumerator ShowMessages()
@@ -74,7 +74,7 @@ namespace Prez.Core
             while (_messageQueue.Count > 0)
             {
                 var next = _messageQueue.FirstOrDefault();
-                
+
                 _messageValue.SetText(next.Key);
                 _messageValue.DOKill(true);
                 _messageValue.transform.localScale = Vector3.one * 2f;
@@ -83,13 +83,13 @@ namespace Prez.Core
                     .SetEase(Ease.OutCirc);
 
                 yield return new WaitForSeconds(next.Value - _animationDuration);
-                
+
                 _messageValue.DOFade(0, _animationDuration);
                 _messageValue.transform.DOScale(Vector3.zero, _animationDuration)
                     .SetEase(Ease.InCirc);
 
                 _messageQueue.Remove(next.Key);
-                
+
                 yield return new WaitForSeconds(_animationDuration);
 
                 _queueCoroutine = null;

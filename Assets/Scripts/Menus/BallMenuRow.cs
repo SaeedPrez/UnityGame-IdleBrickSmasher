@@ -12,16 +12,16 @@ namespace Prez.Menus
 {
     public class BallMenuRow : MonoBehaviour
     {
-        [Tab("General")]
-        [SerializeField] private GameObject _lockedUi;
+        [Tab("General")] [SerializeField] private GameObject _lockedUi;
+
         [SerializeField] private TMP_Text _lockLevelUi;
         [SerializeField] private Button _talentsButton;
         [SerializeField] private TMP_Text _ballNrUi;
         [SerializeField] private float _rectSizeOpenY;
         [SerializeField] private CanvasGroup _upgrades;
 
-        [Tab("Stats")] 
-        [SerializeField] private TMP_Text _speedStatsUi;
+        [Tab("Stats")] [SerializeField] private TMP_Text _speedStatsUi;
+
         [SerializeField] private TMP_Text _dmgStatsUi;
         [SerializeField] private TMP_Text _dpsStatsUi;
         [SerializeField] private TMP_Text _chcStatsUi;
@@ -29,56 +29,60 @@ namespace Prez.Menus
         [SerializeField] private TMP_Text _activeHitsStatsUi;
         [SerializeField] private TMP_Text _activeDmgStatsUi;
 
-        [Tab("Speed")] 
-        [SerializeField] private Button _speedUpgradeButton;
+        [Tab("Speed")] [SerializeField] private Button _speedUpgradeButton;
+
         [SerializeField] private TMP_Text _speedUpgradeLevelUi;
         [SerializeField] private TMP_Text _speedUpgradeCurrentUi;
         [SerializeField] private TMP_Text _speedUpgradeNextUi;
         [SerializeField] private TMP_Text _speedUpgradeCostUi;
 
-        [Tab("Dmg")] 
-        [SerializeField] private Button _dmgUpgradeButton;
+        [Tab("Dmg")] [SerializeField] private Button _dmgUpgradeButton;
+
         [SerializeField] private TMP_Text _dmgUpgradeLevelUi;
         [SerializeField] private TMP_Text _dmgUpgradeCurrentUi;
         [SerializeField] private TMP_Text _dmgUpgradeNextUi;
         [SerializeField] private TMP_Text _dmgUpgradeCostUi;
 
-        [Tab("Critical")] 
-        [Foldout("Critical Hits")]
-        [SerializeField] private Button _chcUpgradeButton;
+        [Tab("Critical")] [Foldout("Critical Hits")] [SerializeField]
+        private Button _chcUpgradeButton;
+
         [SerializeField] private TMP_Text _chcUpgradeLevelUi;
         [SerializeField] private TMP_Text _chcUpgradeCurrentUi;
         [SerializeField] private TMP_Text _chcUpgradeNextUi;
         [SerializeField] private TMP_Text _chcUpgradeCostUi;
-        [Foldout("Critical Damage")]
-        [SerializeField] private Button _chdUpgradeButton;
+
+        [Foldout("Critical Damage")] [SerializeField]
+        private Button _chdUpgradeButton;
+
         [SerializeField] private TMP_Text _chdUpgradeLevelUi;
         [SerializeField] private TMP_Text _chdUpgradeCurrentUi;
         [SerializeField] private TMP_Text _chdUpgradeNextUi;
         [SerializeField] private TMP_Text _chdUpgradeCostUi;
 
-        [Tab("Active")]
-        [Foldout("Active Hits")]
-        [SerializeField] private Button _activeHitsUpgradeButton;
+        [Tab("Active")] [Foldout("Active Hits")] [SerializeField]
+        private Button _activeHitsUpgradeButton;
+
         [SerializeField] private TMP_Text _activeHitsUpgradeLevelUi;
         [SerializeField] private TMP_Text _activeHitsUpgradeCurrentUi;
         [SerializeField] private TMP_Text _activeHitsUpgradeNextUi;
         [SerializeField] private TMP_Text _activeHitsUpgradeCostUi;
-        [Foldout("Active Damage")]
-        [SerializeField] private Button _activeDmgUpgradeButton;
+
+        [Foldout("Active Damage")] [SerializeField]
+        private Button _activeDmgUpgradeButton;
+
         [SerializeField] private TMP_Text _activeDmgUpgradeLevelUi;
         [SerializeField] private TMP_Text _activeDmgUpgradeCurrentUi;
         [SerializeField] private TMP_Text _activeDmgUpgradeNextUi;
         [SerializeField] private TMP_Text _activeDmgUpgradeCostUi;
-        
-        public Ball Ball { get; private set; }
-        public BallData Data { get; private set; }
-        public bool IsUnlocked { get; private set; }
+        private Coroutine _dpsUiCoroutine;
 
         private bool _isUpgradeWindowVisible;
         private RectTransform _rect;
         private Vector2 _rectStartSize;
-        private Coroutine _dpsUiCoroutine;
+
+        public Ball Ball { get; private set; }
+        public BallData Data { get; private set; }
+        public bool IsUnlocked { get; private set; }
 
         private void Awake()
         {
@@ -97,14 +101,14 @@ namespace Prez.Menus
             _chdUpgradeButton.onClick.AddListener(OnCriticalDamageUpgradeButtonClicked);
             _activeHitsUpgradeButton.onClick.AddListener(OnCActiveHitsUpgradeButtonClicked);
             _activeDmgUpgradeButton.onClick.AddListener(OnCActiveDamageUpgradeButtonClicked);
-            
+
             if (!IsUnlocked)
                 _lockedUi.SetActive(true);
-            
+
             HideUpgradeWindow();
             StartCoroutine(UpdateStatsDpsUi());
         }
-        
+
         private void OnDisable()
         {
             EventManager.I.OnBottomMenuHidden -= OnBottomMenuHidden;
@@ -118,7 +122,7 @@ namespace Prez.Menus
             _activeDmgUpgradeButton.onClick.RemoveListener(OnCActiveDamageUpgradeButtonClicked);
             StopCoroutine(UpdateStatsDpsUi());
         }
-        
+
         private void OnBottomMenuHidden(MenuBase menu)
         {
             if (menu is BallsMenu)
@@ -154,7 +158,7 @@ namespace Prez.Menus
         {
             UpgradeCriticalChance();
         }
-        
+
         private void OnCriticalDamageUpgradeButtonClicked()
         {
             UpgradeCriticalDamage();
@@ -169,27 +173,27 @@ namespace Prez.Menus
         {
             UpgradeActiveDamage();
         }
-        
+
         #region Setup
 
         /// <summary>
-        /// Sets the related ball.
+        ///     Sets the related ball.
         /// </summary>
         /// <param name="ball"></param>
         public void SetBall(Ball ball)
         {
             Ball = ball;
         }
-        
+
         /// <summary>
-        /// Sets the related ball data.
+        ///     Sets the related ball data.
         /// </summary>
         /// <param name="data"></param>
         public void SetData(BallData data)
         {
             Data = data;
             Ball.SetData(data);
-            
+
             _ballNrUi.SetText($"Ball {Ball.Data.Id}");
             UpdateLockLevelUi();
         }
@@ -199,7 +203,7 @@ namespace Prez.Menus
         #region Upgrade Window
 
         /// <summary>
-        /// Unlocks ball.
+        ///     Unlocks ball.
         /// </summary>
         public void Unlock()
         {
@@ -210,18 +214,18 @@ namespace Prez.Menus
         }
 
         /// <summary>
-        /// Toggles the Upgrade window.
+        ///     Toggles the Upgrade window.
         /// </summary>
         private IEnumerator ToggleUpgradeWindow()
         {
             _isUpgradeWindowVisible = !_isUpgradeWindowVisible;
 
             var sequence = DOTween.Sequence();
-            
+
             if (_isUpgradeWindowVisible)
             {
                 UpdateAllUpgradesUi();
-                
+
                 sequence.Append(_rect.DOSizeDelta(new Vector2(_rectStartSize.x, _rectSizeOpenY), 0.25f)
                     .SetEase(Ease.InOutCirc));
                 sequence.Append(_upgrades.DOFade(1f, 0.1f));
@@ -240,7 +244,7 @@ namespace Prez.Menus
         }
 
         /// <summary>
-        /// Closes the upgrade window.
+        ///     Closes the upgrade window.
         /// </summary>
         private void HideUpgradeWindow()
         {
@@ -254,15 +258,15 @@ namespace Prez.Menus
         #region General Ui
 
         /// <summary>
-        /// Updates the unlock UI.
+        ///     Updates the unlock UI.
         /// </summary>
         private void UpdateLockLevelUi()
         {
             _lockLevelUi.SetText($"Unlocks at level {Data.UnlockLevel}");
         }
-        
+
         /// <summary>
-        /// Updates the stats UI.
+        ///     Updates the stats UI.
         /// </summary>
         private void UpdateStatsUi()
         {
@@ -276,7 +280,7 @@ namespace Prez.Menus
         }
 
         /// <summary>
-        /// Updates he stats Dps Ui
+        ///     Updates he stats Dps Ui
         /// </summary>
         /// <returns></returns>
         private IEnumerator UpdateStatsDpsUi()
@@ -287,9 +291,9 @@ namespace Prez.Menus
                 yield return new WaitForSeconds(3.33f);
             }
         }
-        
+
         /// <summary>
-        /// Updates all upgrade UIs
+        ///     Updates all upgrade UIs
         /// </summary>
         private void UpdateAllUpgradesUi()
         {
@@ -298,51 +302,51 @@ namespace Prez.Menus
 
             UpdateDamageButtonState();
             UpdateDamageUpgradeUi();
-            
+
             UpdateCriticalChanceButtonState();
             UpdateCriticalChanceUpgradeUi();
-            
+
             UpdateCriticalDamageButtonState();
             UpdateCriticalDamageUpgradeUi();
-            
+
             UpdateActiveHitsButtonState();
             UpdateActiveHitsUpgradeUi();
-            
+
             UpdateActiveDamageButtonState();
             UpdateActiveDamageUpgradeUi();
         }
 
         #endregion
-        
+
         #region Speed
-        
+
         /// <summary>
-        /// Upgrades ball speed.
+        ///     Upgrades ball speed.
         /// </summary>
         private void UpgradeSpeed()
         {
             if (!GameManager.Data.CanBallSpeedUpgrade(Ball))
                 return;
-            
+
             GameManager.Data.UpgradeBallSpeed(Ball);
             UpdateSpeedButtonState();
             UpdateSpeedUpgradeUi();
             UpdateStatsUi();
         }
-        
+
         /// <summary>
-        /// Updates the speed button state.
+        ///     Updates the speed button state.
         /// </summary>
         private void UpdateSpeedButtonState()
         {
             if (!_isUpgradeWindowVisible)
                 return;
-            
+
             _speedUpgradeButton.interactable = GameManager.Data.CanBallSpeedUpgrade(Ball);
         }
-        
+
         /// <summary>
-        /// Updates speed upgrade Ui.
+        ///     Updates speed upgrade Ui.
         /// </summary>
         private void UpdateSpeedUpgradeUi()
         {
@@ -363,36 +367,36 @@ namespace Prez.Menus
         }
 
         #endregion
-        
+
         #region Damage
-        
+
         /// <summary>
-        /// Upgrades ball damage.
+        ///     Upgrades ball damage.
         /// </summary>
         private void UpgradeDamage()
         {
             if (!GameManager.Data.CanBallDamageUpgrade(Ball))
                 return;
-            
+
             GameManager.Data.UpgradeBallDamage(Ball);
             UpdateDamageButtonState();
             UpdateDamageUpgradeUi();
             UpdateStatsUi();
         }
-        
+
         /// <summary>
-        /// Updates the Damage button state.
+        ///     Updates the Damage button state.
         /// </summary>
         private void UpdateDamageButtonState()
         {
             if (!_isUpgradeWindowVisible)
                 return;
-            
+
             _dmgUpgradeButton.interactable = GameManager.Data.CanBallDamageUpgrade(Ball);
         }
-        
+
         /// <summary>
-        /// Updates damage upgrade Ui.
+        ///     Updates damage upgrade Ui.
         /// </summary>
         private void UpdateDamageUpgradeUi()
         {
@@ -413,36 +417,36 @@ namespace Prez.Menus
         }
 
         #endregion
-        
+
         #region Critical Chance
-        
+
         /// <summary>
-        /// Upgrades ball critical chance.
+        ///     Upgrades ball critical chance.
         /// </summary>
         private void UpgradeCriticalChance()
         {
             if (!GameManager.Data.CanBallCriticalChanceUpgrade(Ball))
                 return;
-            
+
             GameManager.Data.UpgradeBallCriticalChance(Ball);
             UpdateCriticalChanceButtonState();
             UpdateCriticalChanceUpgradeUi();
             UpdateStatsUi();
         }
-        
+
         /// <summary>
-        /// Updates the critical chance button state.
+        ///     Updates the critical chance button state.
         /// </summary>
         private void UpdateCriticalChanceButtonState()
         {
             if (!_isUpgradeWindowVisible)
                 return;
-            
+
             _chcUpgradeButton.interactable = GameManager.Data.CanBallCriticalChanceUpgrade(Ball);
         }
-        
+
         /// <summary>
-        /// Updates critical chance upgrade Ui.
+        ///     Updates critical chance upgrade Ui.
         /// </summary>
         private void UpdateCriticalChanceUpgradeUi()
         {
@@ -463,36 +467,36 @@ namespace Prez.Menus
         }
 
         #endregion
-        
+
         #region Critical Damage
-        
+
         /// <summary>
-        /// Upgrades ball critical damage.
+        ///     Upgrades ball critical damage.
         /// </summary>
         private void UpgradeCriticalDamage()
         {
             if (!GameManager.Data.CanBallCriticalDamageUpgrade(Ball))
                 return;
-            
+
             GameManager.Data.UpgradeBallCriticalDamage(Ball);
             UpdateCriticalDamageButtonState();
             UpdateCriticalDamageUpgradeUi();
             UpdateStatsUi();
         }
-        
+
         /// <summary>
-        /// Updates the critical damage button state.
+        ///     Updates the critical damage button state.
         /// </summary>
         private void UpdateCriticalDamageButtonState()
         {
             if (!_isUpgradeWindowVisible)
                 return;
-            
+
             _chdUpgradeButton.interactable = GameManager.Data.CanBallCriticalDamageUpgrade(Ball);
         }
-        
+
         /// <summary>
-        /// Updates critical damage upgrade Ui.
+        ///     Updates critical damage upgrade Ui.
         /// </summary>
         private void UpdateCriticalDamageUpgradeUi()
         {
@@ -513,36 +517,36 @@ namespace Prez.Menus
         }
 
         #endregion
-        
+
         #region Active Hits
-        
+
         /// <summary>
-        /// Upgrades ball active hits.
+        ///     Upgrades ball active hits.
         /// </summary>
         private void UpgradeActiveHits()
         {
             if (!GameManager.Data.CanBallActiveHitsUpgrade(Ball))
                 return;
-            
+
             GameManager.Data.UpgradeBallActiveHits(Ball);
             UpdateActiveHitsButtonState();
             UpdateActiveHitsUpgradeUi();
             UpdateStatsUi();
         }
-        
+
         /// <summary>
-        /// Updates the active hits button state.
+        ///     Updates the active hits button state.
         /// </summary>
         private void UpdateActiveHitsButtonState()
         {
             if (!_isUpgradeWindowVisible)
                 return;
-            
+
             _activeHitsUpgradeButton.interactable = GameManager.Data.CanBallActiveHitsUpgrade(Ball);
         }
-        
+
         /// <summary>
-        /// Updates active hits upgrade Ui.
+        ///     Updates active hits upgrade Ui.
         /// </summary>
         private void UpdateActiveHitsUpgradeUi()
         {
@@ -563,36 +567,36 @@ namespace Prez.Menus
         }
 
         #endregion
-        
+
         #region Active Damage
-        
+
         /// <summary>
-        /// Upgrades ball active damage.
+        ///     Upgrades ball active damage.
         /// </summary>
         private void UpgradeActiveDamage()
         {
             if (!GameManager.Data.CanBallActiveDamageUpgrade(Ball))
                 return;
-            
+
             GameManager.Data.UpgradeBallActiveDamage(Ball);
             UpdateActiveDamageButtonState();
             UpdateActiveDamageUpgradeUi();
             UpdateStatsUi();
         }
-        
+
         /// <summary>
-        /// Updates the active damage button state.
+        ///     Updates the active damage button state.
         /// </summary>
         private void UpdateActiveDamageButtonState()
         {
             if (!_isUpgradeWindowVisible)
                 return;
-            
+
             _activeDmgUpgradeButton.interactable = GameManager.Data.CanBallActiveDamageUpgrade(Ball);
         }
-        
+
         /// <summary>
-        /// Updates active damage upgrade Ui.
+        ///     Updates active damage upgrade Ui.
         /// </summary>
         private void UpdateActiveDamageUpgradeUi()
         {

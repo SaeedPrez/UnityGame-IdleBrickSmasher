@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 
 namespace EpicToonFX
 {
@@ -9,30 +8,32 @@ namespace EpicToonFX
         public GameObject projectileParticle;
         public GameObject muzzleParticle;
         public GameObject[] trailParticles;
+
         [Header("Adjust if not using Sphere Collider")]
         public float colliderRadius = 1f;
-        [Range(0f, 1f)]
-        public float collideOffset = 0.15f;
+
+        [Range(0f, 1f)] public float collideOffset = 0.15f;
+
+        private bool destroyed;
+
+        private float destroyTimer;
+        private Transform myTransform;
 
         private Rigidbody rb;
-        private Transform myTransform;
         private SphereCollider sphereCollider;
 
-        private float destroyTimer = 0f;
-        private bool destroyed = false;
-
-        void Start()
+        private void Start()
         {
             rb = GetComponent<Rigidbody>();
             myTransform = transform;
             sphereCollider = GetComponent<SphereCollider>();
 
-            projectileParticle = Instantiate(projectileParticle, myTransform.position, myTransform.rotation) as GameObject;
+            projectileParticle = Instantiate(projectileParticle, myTransform.position, myTransform.rotation);
             projectileParticle.transform.parent = myTransform;
 
             if (muzzleParticle)
             {
-                muzzleParticle = Instantiate(muzzleParticle, myTransform.position, myTransform.rotation) as GameObject;
+                muzzleParticle = Instantiate(muzzleParticle, myTransform.position, myTransform.rotation);
                 Destroy(muzzleParticle, 1.5f); // Lifetime of muzzle effect.
             }
 
@@ -40,17 +41,14 @@ namespace EpicToonFX
             RotateTowardsDirection(true);
         }
 
-        void FixedUpdate()
+        private void FixedUpdate()
         {
-            if (destroyed)
-            {
-                return;
-            }
+            if (destroyed) return;
 
-            float rad = sphereCollider ? sphereCollider.radius : colliderRadius;
+            var rad = sphereCollider ? sphereCollider.radius : colliderRadius;
 
-            Vector3 dir = rb.linearVelocity; // Use rb.velocity instead of rb.linearVelocity
-            float dist = dir.magnitude * Time.deltaTime;
+            var dir = rb.linearVelocity; // Use rb.velocity instead of rb.linearVelocity
+            var dist = dir.magnitude * Time.deltaTime;
 
             if (rb.useGravity)
             {
@@ -62,25 +60,23 @@ namespace EpicToonFX
             RaycastHit hit;
             if (Physics.SphereCast(myTransform.position, rad, dir, out hit, dist))
             {
-                myTransform.position = hit.point + (hit.normal * collideOffset);
+                myTransform.position = hit.point + hit.normal * collideOffset;
 
-                GameObject impactP = Instantiate(impactParticle, myTransform.position, Quaternion.FromToRotation(Vector3.up, hit.normal)) as GameObject;
+                var impactP = Instantiate(impactParticle, myTransform.position, Quaternion.FromToRotation(Vector3.up, hit.normal));
 
                 if (hit.transform.tag == "Target") // Projectile will affect objects tagged as Target
                 {
-                    ETFXTarget etfxTarget = hit.transform.GetComponent<ETFXTarget>();
-                    if (etfxTarget != null)
-                    {
-                        etfxTarget.OnHit();
-                    }
+                    var etfxTarget = hit.transform.GetComponent<ETFXTarget>();
+                    if (etfxTarget != null) etfxTarget.OnHit();
                 }
 
-                foreach (GameObject trail in trailParticles)
+                foreach (var trail in trailParticles)
                 {
-                    GameObject curTrail = myTransform.Find(projectileParticle.name + "/" + trail.name).gameObject;
+                    var curTrail = myTransform.Find(projectileParticle.name + "/" + trail.name).gameObject;
                     curTrail.transform.parent = null;
                     Destroy(curTrail, 3f);
                 }
+
                 Destroy(projectileParticle, 3f);
                 Destroy(impactP, 5.0f);
                 DestroyMissile();
@@ -91,10 +87,7 @@ namespace EpicToonFX
                 destroyTimer += Time.deltaTime;
 
                 // Destroy the missile if the destroyTimer exceeds 5 seconds.
-                if (destroyTimer >= 5f)
-                {
-                    DestroyMissile();
-                }
+                if (destroyTimer >= 5f) DestroyMissile();
             }
 
             RotateTowardsDirection();
@@ -104,20 +97,21 @@ namespace EpicToonFX
         {
             destroyed = true;
 
-            foreach (GameObject trail in trailParticles)
+            foreach (var trail in trailParticles)
             {
-                GameObject curTrail = myTransform.Find(projectileParticle.name + "/" + trail.name).gameObject;
+                var curTrail = myTransform.Find(projectileParticle.name + "/" + trail.name).gameObject;
                 curTrail.transform.parent = null;
                 Destroy(curTrail, 3f);
             }
+
             Destroy(projectileParticle, 3f);
             Destroy(gameObject);
 
-            ParticleSystem[] trails = GetComponentsInChildren<ParticleSystem>();
+            var trails = GetComponentsInChildren<ParticleSystem>();
             // Component at [0] is that of the parent i.e. this object (if there is any)
-            for (int i = 1; i < trails.Length; i++)
+            for (var i = 1; i < trails.Length; i++)
             {
-                ParticleSystem trail = trails[i];
+                var trail = trails[i];
                 if (trail.gameObject.name.Contains("Trail"))
                 {
                     trail.transform.SetParent(null);
@@ -130,7 +124,7 @@ namespace EpicToonFX
         {
             if (rb.linearVelocity != Vector3.zero)
             {
-                Quaternion targetRotation = Quaternion.LookRotation(rb.linearVelocity.normalized, Vector3.up);
+                var targetRotation = Quaternion.LookRotation(rb.linearVelocity.normalized, Vector3.up);
 
                 if (immediate)
                 {
@@ -138,8 +132,8 @@ namespace EpicToonFX
                 }
                 else
                 {
-                    float angle = Vector3.Angle(myTransform.forward, rb.linearVelocity.normalized);
-                    float lerpFactor = angle * Time.deltaTime; // Use the angle as the interpolation factor
+                    var angle = Vector3.Angle(myTransform.forward, rb.linearVelocity.normalized);
+                    var lerpFactor = angle * Time.deltaTime; // Use the angle as the interpolation factor
                     myTransform.rotation = Quaternion.Slerp(myTransform.rotation, targetRotation, lerpFactor);
                 }
             }

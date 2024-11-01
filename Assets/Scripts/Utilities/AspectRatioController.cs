@@ -30,7 +30,7 @@ namespace Prez.Utilities
                     yield return new WaitForSeconds(_controlCooldown);
                     continue;
                 }
-                
+
                 _screenSize = new Vector2Int(Screen.width, Screen.height);
                 var targetAspectRatio = _targetAspectRatio.x / _targetAspectRatio.y;
                 var screenAspectRatio = _screenSize.x / (float)_screenSize.y;
@@ -38,7 +38,7 @@ namespace Prez.Utilities
                 var scaleWidth = 1f / scaleHeight;
 
                 var rect = _camera.rect;
-                
+
                 if (scaleHeight > 1f)
                 {
                     rect.width = 1f;

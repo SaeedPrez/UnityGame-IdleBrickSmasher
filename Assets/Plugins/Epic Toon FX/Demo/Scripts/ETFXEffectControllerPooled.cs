@@ -8,24 +8,22 @@ namespace EpicToonFX
     public class ETFXEffectControllerPooled : MonoBehaviour
     {
         public GameObject[] effects;
-        private List<GameObject> effectsPool;
-        private int effectIndex = 0;
 
-        [Space(10)]
+        [Space(10)] [Header("Spawn Settings")] public bool disableLights = true;
 
-        [Header("Spawn Settings")]
-        public bool disableLights = true;
         public bool disableSound = true;
         public float startDelay = 0.2f;
         public float respawnDelay = 0.5f;
-        public bool slideshowMode = false;
-        public bool autoRotation = false;
-        [Range(0.001f, 0.5f)]
-        public float autoRotationSpeed = 0.1f;
+        public bool slideshowMode;
+        public bool autoRotation;
+
+        [Range(0.001f, 0.5f)] public float autoRotationSpeed = 0.1f;
 
         private GameObject currentEffect;
-        private Text effectNameText;
+        private int effectIndex;
         private Text effectIndexText;
+        private Text effectNameText;
+        private List<GameObject> effectsPool;
 
         private ETFXMouseOrbit etfxMouseOrbit;
 
@@ -41,9 +39,9 @@ namespace EpicToonFX
             //Pooling
             effectsPool = new List<GameObject>();
 
-            for (int i = 0; i < effects.Length; i++)
+            for (var i = 0; i < effects.Length; i++)
             {
-                GameObject effect = Instantiate(effects[i], transform.position, Quaternion.identity);
+                var effect = Instantiate(effects[i], transform.position, Quaternion.identity);
                 effect.transform.parent = transform;
                 effectsPool.Add(effect);
 
@@ -58,15 +56,9 @@ namespace EpicToonFX
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
-            {
-                NextEffect();
-            }
+            if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) NextEffect();
 
-            if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
-            {
-                PreviousEffect();
-            }
+            if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) PreviousEffect();
         }
 
         private void FixedUpdate()
@@ -88,13 +80,9 @@ namespace EpicToonFX
         public void NextEffect()
         {
             if (effectIndex < effects.Length - 1)
-            {
                 effectIndex++;
-            }
             else
-            {
                 effectIndex = 0;
-            }
 
             CleanCurrentEffect();
         }
@@ -102,13 +90,9 @@ namespace EpicToonFX
         public void PreviousEffect()
         {
             if (effectIndex > 0)
-            {
                 effectIndex--;
-            }
             else
-            {
                 effectIndex = effects.Length - 1;
-            }
 
             CleanCurrentEffect();
         }
@@ -117,10 +101,7 @@ namespace EpicToonFX
         {
             StopAllCoroutines();
 
-            if (currentEffect != null)
-            {
-                currentEffect.SetActive(false);
-            }
+            if (currentEffect != null) currentEffect.SetActive(false);
 
             StartCoroutine(EffectLoop());
         }
@@ -131,21 +112,15 @@ namespace EpicToonFX
             currentEffect = effectsPool[effectIndex];
             currentEffect.SetActive(true);
 
-            if (disableLights && currentEffect.GetComponent<Light>())
-            {
-                currentEffect.GetComponent<Light>().enabled = false;
-            }
+            if (disableLights && currentEffect.GetComponent<Light>()) currentEffect.GetComponent<Light>().enabled = false;
 
-            if (disableSound && currentEffect.GetComponent<AudioSource>())
-            {
-                currentEffect.GetComponent<AudioSource>().enabled = false;
-            }
+            if (disableSound && currentEffect.GetComponent<AudioSource>()) currentEffect.GetComponent<AudioSource>().enabled = false;
 
             //Update UI
             effectNameText.text = effects[effectIndex].name;
-            effectIndexText.text = (effectIndex + 1) + " of " + effects.Length;
+            effectIndexText.text = effectIndex + 1 + " of " + effects.Length;
 
-            ParticleSystem particleSystem = currentEffect.GetComponent<ParticleSystem>();
+            var particleSystem = currentEffect.GetComponent<ParticleSystem>();
 
             while (true)
             {
@@ -162,10 +137,7 @@ namespace EpicToonFX
                 else
                 {
                     //Double delay for looping effects
-                    if (particleSystem.main.loop)
-                    {
-                        yield return new WaitForSeconds(respawnDelay);
-                    }
+                    if (particleSystem.main.loop) yield return new WaitForSeconds(respawnDelay);
 
                     NextEffect();
                 }
@@ -173,4 +145,3 @@ namespace EpicToonFX
         }
     }
 }
-

@@ -22,7 +22,7 @@ namespace Prez.Core
             EventManager.I.OnLeveledUp -= OnLeveledUp;
             EventManager.I.OnBallUpgraded -= OnBallUpgraded;
         }
-        
+
         private void OnGameStateChanged(EGameState state)
         {
             if (state is EGameState.Loaded)
@@ -38,9 +38,9 @@ namespace Prez.Core
         {
             SubtractUpgradePoints(cost);
         }
-        
+
         /// <summary>
-        /// Adds upgrade points.
+        ///     Adds upgrade points.
         /// </summary>
         /// <param name="amount"></param>
         private void AddUpgradePoints(double amount)
@@ -50,12 +50,12 @@ namespace Prez.Core
 
             GameManager.Data.UpgradePointsCurrent += amount;
             UpdateUpgradePointsValueUi();
-            
+
             EventManager.I.TriggerUpgradePointsUpdated(GameManager.Data.UpgradePointsCurrent, amount);
         }
 
         /// <summary>
-        /// Subtract upgrade points.
+        ///     Subtract upgrade points.
         /// </summary>
         /// <param name="amount"></param>
         private void SubtractUpgradePoints(double amount)
@@ -65,12 +65,12 @@ namespace Prez.Core
 
             GameManager.Data.UpgradePointsCurrent -= amount;
             UpdateUpgradePointsValueUi();
-            
+
             EventManager.I.TriggerUpgradePointsUpdated(GameManager.Data.UpgradePointsCurrent, -amount);
         }
 
         /// <summary>
-        /// Returns if there is enough upgrade points.
+        ///     Returns if there is enough upgrade points.
         /// </summary>
         /// <param name="amount"></param>
         /// <returns></returns>
@@ -78,9 +78,9 @@ namespace Prez.Core
         {
             return GameManager.Data.UpgradePointsCurrent >= amount;
         }
-        
+
         /// <summary>
-        /// Updates upgrade points value Ui.
+        ///     Updates upgrade points value Ui.
         /// </summary>
         private void UpdateUpgradePointsValueUi()
         {

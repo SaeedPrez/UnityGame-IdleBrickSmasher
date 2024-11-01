@@ -1,23 +1,25 @@
 #if UNITY_EDITOR
-using UnityEngine;
-using UnityEngine.UIElements;
-using System.Collections;
+using System;
 using System.Collections.Generic;
-using UnityEditor;
-using UnityEditor.ShortcutManagement;
-using System.Reflection;
 using System.Linq;
-using System.Text.RegularExpressions;
-using Type = System.Type;
+using UnityEditor;
+using UnityEngine;
 using static VInspector.Libs.VUtils;
 using static VInspector.Libs.VGUI;
-
+using Object = UnityEngine.Object;
 
 
 namespace VInspector
 {
     public class VInspectorSelectionHistory : ScriptableSingleton<VInspectorSelectionHistory>
     {
+        private static bool ignoreThisSelectionChange;
+
+
+        public List<SelectionState> prevStates = new();
+        public List<SelectionState> nextStates = new();
+        public SelectionState curState;
+
         public void MoveBack()
         {
             var prevState = prevStates.Last();
@@ -31,9 +33,9 @@ namespace VInspector
 
             ignoreThisSelectionChange = true;
 
-            prevState.selectedObjects.ToArray().SelectInInspector(frameInHierarchy: false, frameInProject: false);
-
+            prevState.selectedObjects.ToArray().SelectInInspector(false, false);
         }
+
         public void MoveForward()
         {
             var nextState = nextStates.Last();
@@ -47,13 +49,16 @@ namespace VInspector
 
             ignoreThisSelectionChange = true;
 
-            nextState.selectedObjects.ToArray().SelectInInspector(frameInHierarchy: false, frameInProject: false);
-
+            nextState.selectedObjects.ToArray().SelectInInspector(false, false);
         }
 
-        static void OnSelectionChange()
+        private static void OnSelectionChange()
         {
-            if (ignoreThisSelectionChange) { ignoreThisSelectionChange = false; return; }
+            if (ignoreThisSelectionChange)
+            {
+                ignoreThisSelectionChange = false;
+                return;
+            }
 
             if (curEvent.modifiers == EventModifiers.Command && curEvent.keyCode == KeyCode.Z) return;
             if (curEvent.modifiers == (EventModifiers.Command | EventModifiers.Shift) && curEvent.keyCode == KeyCode.Z) return;
@@ -65,28 +70,16 @@ namespace VInspector
             instance.RecordUndo(Undo.GetCurrentGroupName());
 
             instance.prevStates.Add(instance.curState);
-            instance.curState = new SelectionState() { selectedObjects = Selection.objects.ToList() };
+            instance.curState = new SelectionState { selectedObjects = Selection.objects.ToList() };
             instance.nextStates.Clear();
 
             if (instance.prevStates.Count > 50)
                 instance.prevStates.RemoveAt(0);
-
         }
-
-        static bool ignoreThisSelectionChange;
-
-
-        public List<SelectionState> prevStates = new();
-        public List<SelectionState> nextStates = new();
-        public SelectionState curState;
-
-        [System.Serializable]
-        public class SelectionState { public List<Object> selectedObjects = new(); }
-
 
 
         [InitializeOnLoadMethod]
-        static void Init()
+        private static void Init()
         {
             Selection.selectionChanged -= OnSelectionChange;
             Selection.selectionChanged += OnSelectionChange;
@@ -96,12 +89,14 @@ namespace VInspector
             // typeof(EditorApplication).SetFieldValue("globalEventHandler", ClearHistories + (globalEventHandler - ClearHistories));
 
 
-            instance.curState = new SelectionState() { selectedObjects = Selection.objects.ToList() };
-
+            instance.curState = new SelectionState { selectedObjects = Selection.objects.ToList() };
         }
 
-
-
+        [Serializable]
+        public class SelectionState
+        {
+            public List<Object> selectedObjects = new();
+        }
 
 
         // static void ClearHistories() // just for debug
@@ -117,9 +112,6 @@ namespace VInspector
         //     VInspectorMenu.RepaintInspectors();
 
         // }
-
-
-
     }
 }
 #endif

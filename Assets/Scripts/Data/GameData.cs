@@ -57,8 +57,8 @@ namespace Prez.Data
 
         #region Player
 
-        private readonly float _playerSpeedBase = 2f;
-        private readonly float _playerIdleCooldown = 2f;
+        private readonly float _playerSpeedBase = 1f;
+        private readonly float _playerIdleCooldown = 10f;
 
         public float GetPlayerSpeed()
         {
@@ -70,6 +70,35 @@ namespace Prez.Data
             return _playerIdleCooldown;
         }
 
+        #endregion
+
+        #region Player Bullet
+
+        public int PlayerBulletDamageLevel = 1;
+        private readonly float _playerBulletDamageBase = 1f;
+        private readonly float _playerBulletDamageGrowthPerLevel = 0.2f;
+
+        public int PlayerBulletSpeedLevel = 1;
+        private readonly float _playerBulletSpeedBase = 1.5f;
+        private readonly float _playerBulletSpeedGrowthPerLevel = 0.1f;
+
+        private float _playerBulletFireCooldownBase = 2f;
+        
+        public float GetPlayerBulletDamage()
+        {
+            return _playerBulletDamageBase + PlayerBulletDamageLevel * _playerBulletDamageGrowthPerLevel;
+        }
+
+        public float GetPlayerBulletSpeed()
+        {
+            return _playerBulletSpeedBase + PlayerBulletSpeedLevel * _playerBulletSpeedGrowthPerLevel;
+        }
+
+        public float GetPlayerBulletFireCooldown()
+        {
+            return _playerBulletFireCooldownBase;
+        }
+        
         #endregion
 
         #region Bricks

@@ -44,6 +44,7 @@ namespace Prez.Core
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
             EventManager.I.OnBallCollidedWithBrick += OnBallCollidedWithBrick;
+            EventManager.I.OnBulletCollidedWithBrick += OnBulletCollidedWithBrick;
             EventManager.I.OnBrickDamaged += OnBrickDamaged;
         }
 
@@ -51,6 +52,7 @@ namespace Prez.Core
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
             EventManager.I.OnBallCollidedWithBrick -= OnBallCollidedWithBrick;
+            EventManager.I.OnBulletCollidedWithBrick -= OnBulletCollidedWithBrick;
             EventManager.I.OnBrickDamaged -= OnBrickDamaged;
         }
 
@@ -61,6 +63,11 @@ namespace Prez.Core
         }
 
         private void OnBallCollidedWithBrick(Ball ball, Brick brick, Vector2 point)
+        {
+            SpawnBrickHitEffect(brick, point);
+        }
+
+        private void OnBulletCollidedWithBrick(Brick brick, Vector2 point)
         {
             SpawnBrickHitEffect(brick, point);
         }

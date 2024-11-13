@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using DG.Tweening;
 using Prez.Core;
 using Prez.Data;
@@ -16,7 +15,8 @@ namespace Prez
         [SerializeField] private float _movementLimitFromX;
         [SerializeField] private float _velocityMultiplierX;
         [SerializeField] private SpriteRenderer _borderImage;
-        [SerializeField] private Transform _cooldownIndicator;
+        [SerializeField] private Transform _idleIndicator;
+        [SerializeField] private Transform _fireIndicator;
         [SerializeField] [Range(0f, 1f)] private float _idleAlpha;
         [SerializeField] private Color _borderHitColor;
         [SerializeField] private Transform _weaponPointLeft;
@@ -27,8 +27,10 @@ namespace Prez
         private Color _borderStartColor;
         private CapsuleCollider2D _collider;
         private bool _isPlayerActive;
-        private float _playerIdleCooldown;
         private Vector2 _playerInput;
+        private Coroutine _idleCoroutine;
+        private Coroutine _fireCoroutine;
+        private bool _isFiring;
 
         private void Awake()
         {
@@ -36,21 +38,7 @@ namespace Prez
             _collider = GetComponent<CapsuleCollider2D>();
             _borderStartColor = _borderImage.color;
         }
-
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                var bulletLeft = _bulletPool.GetPooledObject();
-                bulletLeft.transform.position = _weaponPointLeft.position;
-                bulletLeft.gameObject.SetActive(true);
-                
-                var bulletRight = _bulletPool.GetPooledObject();
-                bulletRight.transform.position = _weaponPointRight.position;
-                bulletRight.gameObject.SetActive(true);
-            }
-        }
-
+        
         private void FixedUpdate()
         {
             MovePlayer();
@@ -83,16 +71,15 @@ namespace Prez
         private void OnGameStateChanged(EGameState state)
         {
             if (state is EGameState.Loaded)
-            {
                 SetPlayerActive();
-                StartCoroutine(SetPlayerIdle());
-            }
         }
 
         private void OnPlayerInputMove(Vector2 input)
         {
             _playerInput = new Vector2(input.x, 0);
         }
+
+        #region Movement
 
         /// <summary>
         ///     Moves the player.
@@ -109,13 +96,23 @@ namespace Prez
             SetPlayerActive();
         }
 
+        #endregion
+
+        #region Active / Idle
+
         /// <summary>
         ///     Sets the player to active state.
         /// </summary>
         private void SetPlayerActive()
         {
-            _playerIdleCooldown = GameManager.Data.GetPlayerIdleCooldown();
+            if (_idleCoroutine != null)
+                StopCoroutine(_idleCoroutine);
 
+            _idleCoroutine = StartCoroutine(SetPlayerIdle());
+
+            if (!_isFiring)
+                _fireCoroutine = StartCoroutine(FireBullets());
+            
             if (_isPlayerActive)
                 return;
 
@@ -124,43 +121,61 @@ namespace Prez
 
             _borderImage.sharedMaterial.SetFloat(Constants.Opacity, 1f);
 
-            // _borderImage.DOKill();
-            // _borderImage.DOFade(1, 0.1f);
         }
 
         /// <summary>
-        ///     Sets the player to idle state.
+        /// Sets the player to idle state.
         /// </summary>
         /// <returns></returns>
         private IEnumerator SetPlayerIdle()
         {
-            var checkDelay = 0.2f;
+            var idleCooldown = GameManager.Data.GetPlayerIdleCooldown();
+            
+            _idleIndicator.DOKill();
+            _idleIndicator.DOScaleX(0f, idleCooldown)
+                .From(1f)
+                .SetEase(Ease.Linear);
 
-            while (true)
+            yield return new WaitForSeconds(idleCooldown);
+
+            _isPlayerActive = false;
+            _collider.enabled = false;
+
+            StopCoroutine(_fireCoroutine);
+            _isFiring = false;
+
+            _borderImage.sharedMaterial.SetFloat(Constants.Opacity, _idleAlpha);
+        }
+
+        #endregion
+
+        #region Fire
+
+        private IEnumerator FireBullets()
+        {
+            _isFiring = true;
+            
+            while (_isFiring)
             {
-                yield return new WaitForSeconds(checkDelay);
-
-                if (!_isPlayerActive)
-                    continue;
-
-                _playerIdleCooldown -= checkDelay;
-                var percent = _playerIdleCooldown / GameManager.Data.GetPlayerIdleCooldown();
-
-                _cooldownIndicator.DOKill();
-                _cooldownIndicator.DOScaleX(percent, checkDelay)
+                var fireCooldown = GameManager.Data.GetPlayerBulletFireCooldown();
+                
+                _fireIndicator.DOKill();
+                _fireIndicator.DOScaleX(0f, fireCooldown)
+                    .From(1f)
                     .SetEase(Ease.Linear);
 
-                if (_playerIdleCooldown > 0f)
-                    continue;
-
-                _isPlayerActive = false;
-                _collider.enabled = false;
-
-                _borderImage.sharedMaterial.SetFloat(Constants.Opacity, _idleAlpha);
-
-                // _borderImage.DOKill();
-                // _borderImage.DOFade(_idleAlpha / 2f, checkDelay);
+                yield return new WaitForSeconds(fireCooldown);
+            
+                var bulletLeft = _bulletPool.GetPooledObject();
+                bulletLeft.transform.position = _weaponPointLeft.position;
+                bulletLeft.gameObject.SetActive(true);
+                
+                var bulletRight = _bulletPool.GetPooledObject();
+                bulletRight.transform.position = _weaponPointRight.position;
+                bulletRight.gameObject.SetActive(true);
             }
         }
+
+        #endregion
     }
 }

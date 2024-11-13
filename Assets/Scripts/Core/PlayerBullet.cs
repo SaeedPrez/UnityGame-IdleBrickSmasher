@@ -1,6 +1,4 @@
-﻿using System;
-using Prez.Data;
-using Prez.Enums;
+﻿using Prez.Data;
 using UnityEngine;
 
 namespace Prez.Core
@@ -16,10 +14,9 @@ namespace Prez.Core
             _rigidbody = GetComponent<Rigidbody2D>();
         }
 
-        private void FixedUpdate()
+        private void OnEnable()
         {
-            if (GameManager.State is EGameState.Playing)
-                Move();
+            _rigidbody.linearVelocityY = GameManager.Data.GetPlayerBulletSpeed();
         }
 
         private void OnCollisionEnter2D(Collision2D other)
@@ -34,11 +31,6 @@ namespace Prez.Core
             gameObject.SetActive(false);
         }
         
-        private void Move()
-        {
-            _rigidbody.MovePosition(_rigidbody.position + (_speed * Time.fixedDeltaTime * Vector2.up));
-        }
-        
         /// <summary>
         ///     Damages brick and reduces balls active player boost.
         /// </summary>
@@ -46,13 +38,11 @@ namespace Prez.Core
         /// <param name="point"></param>
         private void DamageBrick(Brick brick, Vector3 point)
         {
-            var damage = 10d;
-
             var data = new DamageData
             {
                 Brick = brick,
                 Point = point,
-                DamageRaw = damage,
+                DamageRaw = GameManager.Data.GetPlayerBulletDamage(),
                 CriticalHit = false
             };
 

@@ -215,6 +215,10 @@ namespace Prez
 
         #region Dps
 
+        /// <summary>
+        /// Adds the damage to damage history.
+        /// </summary>
+        /// <param name="damage"></param>
         private void AddDamageToHistory(double damage)
         {
             var damageTime = Time.time;

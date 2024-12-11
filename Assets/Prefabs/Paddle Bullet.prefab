@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3651287081871223054}
   - component: {fileID: 2499607374925830526}
   m_Layer: 14
-  m_Name: Player Bullet
+  m_Name: Paddle Bullet
   m_TagString: Projectile
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

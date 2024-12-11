@@ -9,19 +9,20 @@ using UnityEngine;
 namespace Prez
 {
     [SelectionBase]
-    public class Player : MonoBehaviour
+    public class Paddle : MonoBehaviour
     {
-        [SerializeField] private float _movementLimitToX;
         [SerializeField] private float _movementLimitFromX;
+        [SerializeField] private float _movementLimitToX;
         [SerializeField] private float _velocityMultiplierX;
         [SerializeField] private SpriteRenderer _borderImage;
         [SerializeField] private Transform _idleIndicator;
         [SerializeField] private Transform _fireIndicator;
         [SerializeField] [Range(0f, 1f)] private float _idleAlpha;
         [SerializeField] private Color _borderHitColor;
-        [SerializeField] private Transform _weaponPointLeft;
-        [SerializeField] private Transform _weaponPointRight;
         [SerializeField] private ObjectPool _bulletPool;
+        [SerializeField] private Transform _weapon;
+        [SerializeField] private Transform _weaponFirePoint;
+        [SerializeField] private float _weaponMovementRation;
 
         private Rigidbody2D _rigidbody;
         private Color _borderStartColor;
@@ -82,18 +83,25 @@ namespace Prez
         #region Movement
 
         /// <summary>
-        ///     Moves the player.
+        /// Moves the player.
         /// </summary>
         private void MovePlayer()
         {
             if (_playerInput.x == 0f)
                 return;
 
-            var x = _rigidbody.position.x + _playerInput.x * (GameManager.Data.GetPlayerSpeed() * Time.fixedDeltaTime);
-            x = Mathf.Clamp(x, _movementLimitToX, _movementLimitFromX);
+            var x = _rigidbody.position.x + _playerInput.x * (GameManager.Data.GetPaddleSpeed() * Time.fixedDeltaTime);
+            x = Mathf.Clamp(x, _movementLimitFromX, _movementLimitToX);
 
             _rigidbody.MovePosition(new Vector2(x, transform.position.y));
+
             SetPlayerActive();
+            MovePlayerWeapon();
+        }
+
+        private void MovePlayerWeapon()
+        {
+            _weapon.localPosition = new Vector3(transform.position.x / _weaponMovementRation, _weapon.localPosition.y, 0);
         }
 
         #endregion
@@ -129,7 +137,7 @@ namespace Prez
         /// <returns></returns>
         private IEnumerator SetPlayerIdle()
         {
-            var idleCooldown = GameManager.Data.GetPlayerIdleCooldown();
+            var idleCooldown = GameManager.Data.GetPaddleIdleCooldown();
             
             _idleIndicator.DOKill();
             _idleIndicator.DOScaleX(0f, idleCooldown)
@@ -157,7 +165,7 @@ namespace Prez
             
             while (_isFiring)
             {
-                var fireCooldown = GameManager.Data.GetPlayerBulletFireCooldown();
+                var fireCooldown = GameManager.Data.GetPaddleBulletFireCooldown();
                 
                 _fireIndicator.DOKill();
                 _fireIndicator.DOScaleX(0f, fireCooldown)
@@ -165,13 +173,9 @@ namespace Prez
                     .SetEase(Ease.Linear);
 
                 yield return new WaitForSeconds(fireCooldown);
-            
-                var bulletLeft = _bulletPool.GetPooledObject();
-                bulletLeft.transform.position = _weaponPointLeft.position;
-                bulletLeft.gameObject.SetActive(true);
                 
                 var bulletRight = _bulletPool.GetPooledObject();
-                bulletRight.transform.position = _weaponPointRight.position;
+                bulletRight.transform.position = _weaponFirePoint.position;
                 bulletRight.gameObject.SetActive(true);
             }
         }

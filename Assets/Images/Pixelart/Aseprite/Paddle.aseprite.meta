@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: e3520f042f1bcc94da4c6301bbdacd32
+guid: 3fc9f739cc1a39848a56f991accf92f9
 ScriptedImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -122,9 +122,9 @@ ScriptedImporter:
     tessellationDetail: 0
     uvTransform: {x: 0, y: 0}
   animatedSpriteImportData:
-  - name: PlayerWeaponBullet
+  - name: Player
     originalName: 
-    pivot: {x: 0.5, y: 0}
+    pivot: {x: 0.5, y: -7.5}
     alignment: 9
     border: {x: 0, y: 0, z: 0, w: 0}
     customData: 
@@ -132,9 +132,9 @@ ScriptedImporter:
       serializedVersion: 2
       x: 4
       y: 4
-      width: 4
-      height: 8
-    spriteID: 0d15956d06320bf458fc9b13b12c5517
+      width: 64
+      height: 2
+    spriteID: fbc0489c5c9f7e04a8365d7f91f43fab
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -146,21 +146,21 @@ ScriptedImporter:
   spriteSheetImportData: []
   asepriteLayers:
   - layerIndex: 0
-    guid: 2008744507
-    name: PlayerWeaponBullet
+    guid: 1687901567
+    name: Player
     layerFlags: 0
     layerType: 0
     blendMode: 0
     cells:
-    - name: PlayerWeaponBullet
+    - name: Paddle
       frameIndex: 0
       additiveSortOrder: 0
       cellRect:
-        x: 2
-        y: 0
-        width: 4
-        height: 8
-      spriteId: 0d15956d06320bf458fc9b13b12c5517
+        x: 32
+        y: 15
+        width: 64
+        height: 2
+      spriteId: fbc0489c5c9f7e04a8365d7f91f43fab
     linkedCells: []
     parentIndex: -1
   platformSettings:
@@ -179,4 +179,4 @@ ScriptedImporter:
   generatePhysicsShape: 0
   secondarySpriteTextures: []
   spritePackingTag: 
-  canvasSize: {x: 8, y: 8}
+  canvasSize: {x: 128, y: 32}

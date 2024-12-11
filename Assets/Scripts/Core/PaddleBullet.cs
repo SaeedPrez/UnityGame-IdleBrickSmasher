@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Prez.Core
 {
-    public class PlayerBullet : MonoBehaviour
+    public class PaddleBullet : MonoBehaviour
     {
         [SerializeField] private float _speed;
         
@@ -16,7 +16,7 @@ namespace Prez.Core
 
         private void OnEnable()
         {
-            _rigidbody.linearVelocityY = GameManager.Data.GetPlayerBulletSpeed();
+            _rigidbody.linearVelocityY = GameManager.Data.GetPaddleBulletSpeed();
         }
 
         private void OnCollisionEnter2D(Collision2D other)
@@ -42,7 +42,7 @@ namespace Prez.Core
             {
                 Brick = brick,
                 Point = point,
-                DamageRaw = GameManager.Data.GetPlayerBulletDamage(),
+                DamageRaw = GameManager.Data.GetPaddleBulletDamage(),
                 CriticalHit = false
             };
 

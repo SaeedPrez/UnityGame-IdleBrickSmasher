@@ -55,48 +55,48 @@ namespace Prez.Data
 
         #endregion
 
-        #region Player
+        #region Paddle
 
-        private readonly float _playerSpeedBase = 1f;
-        private readonly float _playerIdleCooldown = 10f;
+        private readonly float _paddleSpeedBase = 1f;
+        private readonly float _paddleIdleCooldown = 10f;
 
-        public float GetPlayerSpeed()
+        public float GetPaddleSpeed()
         {
-            return _playerSpeedBase;
+            return _paddleSpeedBase;
         }
 
-        public float GetPlayerIdleCooldown()
+        public float GetPaddleIdleCooldown()
         {
-            return _playerIdleCooldown;
+            return _paddleIdleCooldown;
         }
 
         #endregion
 
-        #region Player Bullet
+        #region Paddle Bullet
 
-        public int PlayerBulletDamageLevel = 1;
-        private readonly float _playerBulletDamageBase = 1f;
-        private readonly float _playerBulletDamageGrowthPerLevel = 0.2f;
+        public int PaddleBulletDamageLevel = 1;
+        private readonly float _paddleBulletDamageBase = 1f;
+        private readonly float _paddleBulletDamageGrowthPerLevel = 0.2f;
 
-        public int PlayerBulletSpeedLevel = 1;
-        private readonly float _playerBulletSpeedBase = 1.5f;
-        private readonly float _playerBulletSpeedGrowthPerLevel = 0.1f;
+        public int PaddleBulletSpeedLevel = 1;
+        private readonly float _paddleBulletSpeedBase = 1.5f;
+        private readonly float _paddleBulletSpeedGrowthPerLevel = 0.1f;
 
-        private float _playerBulletFireCooldownBase = 2f;
+        private float _paddleBulletFireCooldownBase = 2f;
         
-        public float GetPlayerBulletDamage()
+        public float GetPaddleBulletDamage()
         {
-            return _playerBulletDamageBase + PlayerBulletDamageLevel * _playerBulletDamageGrowthPerLevel;
+            return _paddleBulletDamageBase + PaddleBulletDamageLevel * _paddleBulletDamageGrowthPerLevel;
         }
 
-        public float GetPlayerBulletSpeed()
+        public float GetPaddleBulletSpeed()
         {
-            return _playerBulletSpeedBase + PlayerBulletSpeedLevel * _playerBulletSpeedGrowthPerLevel;
+            return _paddleBulletSpeedBase + PaddleBulletSpeedLevel * _paddleBulletSpeedGrowthPerLevel;
         }
 
-        public float GetPlayerBulletFireCooldown()
+        public float GetPaddleBulletFireCooldown()
         {
-            return _playerBulletFireCooldownBase;
+            return _paddleBulletFireCooldownBase;
         }
         
         #endregion

@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Player Material
+  m_Name: Paddle Material
   m_Shader: {fileID: -6465566751694194690, guid: b3a83dfb3b948a44a8e0144fdeaba982, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -62,7 +62,7 @@ Material:
     - _Alpha: 1
     - _Cutoff: 0
     - _EnableExternalAlpha: 0
-    - _Opacity: 0.1
+    - _Opacity: 1
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ZWrite: 0

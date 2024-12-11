@@ -32161,7 +32161,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1164200170361835330, guid: 543fa20d01b74454992563a3884e6d12, type: 3}
       propertyPath: m_Name
-      value: Player
+      value: Paddle
       objectReference: {fileID: 0}
     - target: {fileID: 1164200170361835330, guid: 543fa20d01b74454992563a3884e6d12, type: 3}
       propertyPath: m_IsActive

@@ -148,7 +148,7 @@ GameObject:
   - component: {fileID: 6455929832226721986}
   - component: {fileID: 8387199202550821922}
   m_Layer: 5
-  m_Name: Upgrade Menu Row Stat
+  m_Name: Menu Row Stat
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

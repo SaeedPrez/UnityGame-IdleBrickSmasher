@@ -935,7 +935,7 @@ GameObject:
   - component: {fileID: 613949200275247498}
   - component: {fileID: 6675479121670882661}
   m_Layer: 5
-  m_Name: Upgrade Menu Row
+  m_Name: Ball Menu Row
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1544,7 +1544,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6974495639680481037, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_Name
-      value: Ball Upgrade - Speed
+      value: Ball Upgrade - Move Speed
       objectReference: {fileID: 0}
     - target: {fileID: 7536029417876561877, guid: 00ef0067f51eaf143bfe5f4b2b5c9f9d, type: 3}
       propertyPath: m_text
@@ -2136,11 +2136,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3135758726906896897, guid: 267156feacf02344799f25beb6c80704, type: 3}
       propertyPath: m_Name
-      value: Stats - Speed
+      value: Stats - Move Speed
       objectReference: {fileID: 0}
     - target: {fileID: 6554628926337127085, guid: 267156feacf02344799f25beb6c80704, type: 3}
       propertyPath: m_text
-      value: Speed
+      value: Move Speed
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

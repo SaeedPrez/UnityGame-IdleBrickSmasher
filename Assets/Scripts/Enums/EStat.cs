@@ -3,12 +3,12 @@
     public enum EStat
     {
         Experience,
-        BrickHealth,
-        BallSpeed,
-        BallDamage,
-        BallCriticalChance,
-        BallCriticalDamage,
-        BallActiveHits,
-        BallActiveDamage
+        Health,
+        Speed,
+        Damage,
+        CriticalChance,
+        CriticalDamage,
+        ActiveHits,
+        ActiveDamage,
     }
 }

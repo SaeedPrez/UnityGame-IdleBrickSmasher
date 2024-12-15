@@ -159,17 +159,21 @@ namespace Prez
 
         #region Fire
 
+        /// <summary>
+        /// File bullets coroutine.
+        /// </summary>
+        /// <returns></returns>
         private IEnumerator FireBullets()
         {
             _isFiring = true;
             
             while (_isFiring)
             {
-                var fireCooldown = GameManager.Data.GetPaddleBulletFireCooldown();
+                var fireCooldown = 1f / GameManager.Data.GetPaddleBulletFireRate();
                 
                 _fireIndicator.DOKill();
-                _fireIndicator.DOScaleX(0f, fireCooldown)
-                    .From(1f)
+                _fireIndicator.DOScaleY(10.3f, fireCooldown)
+                    .From(0)
                     .SetEase(Ease.Linear);
 
                 yield return new WaitForSeconds(fireCooldown);

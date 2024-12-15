@@ -47,6 +47,14 @@ namespace Prez.Core
         public event Action<double, double> OnTalentPointsUpdated = delegate { };
         public void TriggerTalentPointsUpdated(double total, double amount) => OnTalentPointsUpdated?.Invoke(total, amount);
 
+        // Paddle
+        
+        public event Action<EStat, double> OnPaddleUpgraded = delegate { };
+        public void TriggerPaddleUpgraded(EStat stat, double cost) => OnPaddleUpgraded?.Invoke(stat, cost);
+        
+        public event Action<EStat, double> OnPaddleBulletUpgraded = delegate { };
+        public void TriggerPaddleBulletUpgraded(EStat stat, double cost) => OnPaddleBulletUpgraded?.Invoke(stat, cost);
+        
         // Balls
 
         public event Action<BallMenuRow> OnBallMenuRowUnlocked = delegate { };

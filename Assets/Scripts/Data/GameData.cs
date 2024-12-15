@@ -55,15 +55,9 @@ namespace Prez.Data
 
         #endregion
 
-        #region Paddle
+        #region Paddle Cooldown
 
-        private readonly float _paddleSpeedBase = 1f;
         private readonly float _paddleIdleCooldown = 10f;
-
-        public float GetPaddleSpeed()
-        {
-            return _paddleSpeedBase;
-        }
 
         public float GetPaddleIdleCooldown()
         {
@@ -71,32 +65,327 @@ namespace Prez.Data
         }
 
         #endregion
+        
+        #region Paddle Speed
 
-        #region Paddle Bullet
+        public int PaddleSpeedLevel = 1;
+        private readonly float _paddleSpeedBase = 1f;
+        private readonly float _paddleSpeedGrowthPerLevel = 0.1f;
+        private readonly int _paddleSpeedMaxLevel = 100;
+        private readonly float _paddleSpeedCostBase = 1.0f;
+        private readonly float _paddleSpeedCostGrowthPerLevel = 0.25f;
+        
+        public float GetPaddleSpeed(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleSpeedLevel;
+            
+            return _paddleSpeedBase + _paddleSpeedGrowthPerLevel * (level - 1);
+        }
+
+        public bool IsPaddleSpeedMaxLevel()
+        {
+            return PaddleSpeedLevel >= _paddleSpeedMaxLevel;
+        }
+
+        public bool CanPaddleSpeedUpgrade()
+        {
+            if (IsPaddleSpeedMaxLevel())
+                return false;
+
+            if (UpgradePointsCurrent < GetPaddleSpeedUpgradeCost())
+                return false;
+
+            return true;
+        }
+        
+        public double GetPaddleSpeedUpgradeCost(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleSpeedLevel;
+
+            return _paddleSpeedCostBase + _paddleSpeedCostGrowthPerLevel * (level - 1);
+        }
+
+        public void UpgradePaddleSpeed()
+        {
+            if (!CanPaddleSpeedUpgrade())
+                return;
+
+            var cost = GetPaddleSpeedUpgradeCost();
+
+            PaddleSpeedLevel++;
+            EventManager.I.TriggerPaddleUpgraded(EStat.Speed, cost);
+        }
+        
+        #endregion
+
+        #region Paddle Bullet Damage
 
         public int PaddleBulletDamageLevel = 1;
-        private readonly float _paddleBulletDamageBase = 1f;
-        private readonly float _paddleBulletDamageGrowthPerLevel = 0.2f;
+        private readonly float _paddleBulletDamageBase = 2f;
+        private readonly float _paddleBulletDamageGrowthPerLevel = 2f;
+        private readonly int _paddleBulletDamageMaxLevel = 1000;
+        private readonly float _paddleBulletDamageCostBase = 1.0f;
+        private readonly float _paddleBulletDamageCostGrowthPerLevel = 0.25f;
+        
+        public float GetPaddleBulletDamage(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletDamageLevel;
+            
+            return _paddleBulletDamageBase + _paddleBulletDamageGrowthPerLevel * (level - 1);
+        }
+        
+        public bool IsPaddleBulletDamageMaxLevel()
+        {
+            return PaddleBulletDamageLevel >= _paddleBulletDamageMaxLevel;
+        }
+
+        public bool CanPaddleBulletDamageUpgrade()
+        {
+            if (IsPaddleBulletDamageMaxLevel())
+                return false;
+
+            if (UpgradePointsCurrent < GetPaddleBulletDamageUpgradeCost())
+                return false;
+
+            return true;
+        }
+
+        public double GetPaddleBulletDamageUpgradeCost(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletDamageLevel;
+
+            return _paddleBulletDamageCostBase + _paddleBulletDamageCostGrowthPerLevel * (level - 1);
+        }
+
+        public void UpgradePaddleBulletDamage()
+        {
+            if (!CanPaddleBulletDamageUpgrade())
+                return;
+
+            var cost = GetPaddleBulletDamageUpgradeCost();
+
+            PaddleBulletDamageLevel++;
+            EventManager.I.TriggerPaddleBulletUpgraded(EStat.Speed, cost);
+        }
+
+        #endregion
+
+        #region Paddle Bullet Critical Chance
+
+        public int PaddleBulletCriticalChanceLevel = 1;
+        private readonly float _paddleBulletCriticalChanceBase = 0f;
+        private readonly float _paddleBulletCriticalChanceGrowthPerLevel = 1f;
+        private readonly int _paddleBulletCriticalChanceMaxLevel = 100;
+        private readonly float _paddleBulletCriticalChanceCostBase = 1.0f;
+        private readonly float _paddleBulletCriticalChanceCostGrowthPerLevel = 0.25f;
+
+        public double GetPaddleBulletCriticalChance(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletCriticalChanceLevel;
+
+            return _paddleBulletCriticalChanceBase + _paddleBulletCriticalChanceGrowthPerLevel * (level - 1);
+        }
+
+        public bool IsPaddleBulletCriticalChanceMaxLevel()
+        {
+            return PaddleBulletCriticalChanceLevel >= _paddleBulletCriticalChanceMaxLevel;
+        }
+
+        public bool CanPaddleBulletCriticalChanceUpgrade()
+        {
+            if (IsPaddleBulletCriticalChanceMaxLevel())
+                return false;
+
+            if (UpgradePointsCurrent < GetPaddleBulletCriticalChanceUpgradeCost())
+                return false;
+
+            return true;
+        }
+
+        public double GetPaddleBulletCriticalChanceUpgradeCost(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletCriticalChanceLevel;
+
+            return _paddleBulletCriticalChanceCostBase + _paddleBulletCriticalChanceCostGrowthPerLevel * (level - 1);
+        }
+
+        public void UpgradePaddleBulletCriticalChance()
+        {
+            if (!CanPaddleBulletCriticalChanceUpgrade())
+                return;
+
+            var cost = GetPaddleBulletCriticalChanceUpgradeCost();
+
+            PaddleBulletCriticalChanceLevel++;
+            EventManager.I.TriggerPaddleBulletUpgraded(EStat.CriticalChance, cost);
+        }
+        
+        #endregion
+
+        #region Paddle Bullet Critical Damage
+
+        public int PaddleBulletCriticalDamageLevel = 1;
+        private readonly float _paddleBulletCriticalDamageBase = 1f;
+        private readonly float _paddleBulletCriticalDamageGrowthPerLevel = 0.1f;
+        private readonly int _paddleBulletCriticalDamageMaxLevel = 1000;
+        private readonly float _paddleBulletCriticalDamageCostBase = 1.0f;
+        private readonly float _paddleBulletCriticalDamageCostGrowthPerLevel = 0.25f;
+
+        public double GetPaddleBulletCriticalDamage(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletCriticalDamageLevel;
+
+            return _paddleBulletCriticalDamageBase +  _paddleBulletCriticalDamageGrowthPerLevel * (level - 1);
+        }
+
+        public bool IsPaddleBulletCriticalDamageMaxLevel()
+        {
+            return PaddleBulletCriticalDamageLevel >= _paddleBulletCriticalDamageMaxLevel;
+        }
+
+        public bool CanPaddleBulletCriticalDamageUpgrade()
+        {
+            if (IsPaddleBulletCriticalDamageMaxLevel())
+                return false;
+
+            if (UpgradePointsCurrent < GetPaddleBulletCriticalDamageUpgradeCost())
+                return false;
+
+            return true;
+        }
+
+        public double GetPaddleBulletCriticalDamageUpgradeCost(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletCriticalDamageLevel;
+
+            return _paddleBulletCriticalDamageCostBase + _paddleBulletCriticalDamageCostGrowthPerLevel * (level - 1);
+        }
+
+        public void UpgradePaddleBulletCriticalDamage()
+        {
+            if (!CanPaddleBulletCriticalDamageUpgrade())
+                return;
+
+            var cost = GetPaddleBulletCriticalDamageUpgradeCost();
+
+            PaddleBulletCriticalDamageLevel++;
+            EventManager.I.TriggerPaddleBulletUpgraded(EStat.CriticalDamage, cost);
+        }
+
+        #endregion
+        
+        #region Paddle Fire Rate
+
+        public int PaddleBulletFireRateLevel = 1;
+        private readonly float _paddleBulletFireRateBase = 0.2f;
+        private readonly float _paddleBulletFireRateGrowthPerLevel = 0.02f;
+        private readonly int _paddleBulletFireRateMaxLevel = 100;
+        private readonly float _paddleBulletFireRateCostBase = 1.0f;
+        private readonly float _paddleBulletFireRateCostGrowthPerLevel = 0.25f;
+        
+        public float GetPaddleBulletFireRate(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletFireRateLevel;
+            
+            return _paddleBulletFireRateBase + _paddleBulletFireRateGrowthPerLevel * (level - 1);
+        }
+
+        public bool IsPaddleBulletFireRateMaxLevel()
+        {
+            return PaddleBulletFireRateLevel >= _paddleBulletFireRateMaxLevel;
+        }
+
+        public bool CanPaddleBulletFireRateUpgrade()
+        {
+            if (IsPaddleBulletFireRateMaxLevel())
+                return false;
+
+            if (UpgradePointsCurrent < GetPaddleBulletFireRateUpgradeCost())
+                return false;
+
+            return true;
+        }
+        
+        public double GetPaddleBulletFireRateUpgradeCost(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletFireRateLevel;
+
+            return _paddleBulletFireRateCostBase + _paddleBulletFireRateCostGrowthPerLevel * (level - 1);
+        }
+
+        public void UpgradePaddleBulletFireRate()
+        {
+            if (!CanPaddleBulletFireRateUpgrade())
+                return;
+
+            var cost = GetPaddleBulletFireRateUpgradeCost();
+
+            PaddleBulletFireRateLevel++;
+            EventManager.I.TriggerPaddleBulletUpgraded(EStat.Speed, cost);
+        }
+
+        #endregion
+        
+        #region Paddle Bullet Speed
 
         public int PaddleBulletSpeedLevel = 1;
         private readonly float _paddleBulletSpeedBase = 1.5f;
         private readonly float _paddleBulletSpeedGrowthPerLevel = 0.1f;
-
-        private float _paddleBulletFireCooldownBase = 2f;
+        private readonly int _paddleBulletSpeedMaxLevel = 100;
+        private readonly float _paddleBulletSpeedCostBase = 1.0f;
+        private readonly float _paddleBulletSpeedCostGrowthPerLevel = 0.25f;
         
-        public float GetPaddleBulletDamage()
+        public float GetPaddleBulletSpeed(int level = -1)
         {
-            return _paddleBulletDamageBase + PaddleBulletDamageLevel * _paddleBulletDamageGrowthPerLevel;
+            if (level == -1)
+                level = PaddleBulletSpeedLevel;
+            
+            return _paddleBulletSpeedBase + _paddleBulletSpeedGrowthPerLevel * (level - 1);
         }
 
-        public float GetPaddleBulletSpeed()
+        public bool IsPaddleBulletSpeedMaxLevel()
         {
-            return _paddleBulletSpeedBase + PaddleBulletSpeedLevel * _paddleBulletSpeedGrowthPerLevel;
+            return PaddleBulletSpeedLevel >= _paddleBulletSpeedMaxLevel;
         }
 
-        public float GetPaddleBulletFireCooldown()
+        public bool CanPaddleBulletSpeedUpgrade()
         {
-            return _paddleBulletFireCooldownBase;
+            if (IsPaddleBulletSpeedMaxLevel())
+                return false;
+
+            if (UpgradePointsCurrent < GetPaddleBulletSpeedUpgradeCost())
+                return false;
+
+            return true;
+        }
+        
+        public double GetPaddleBulletSpeedUpgradeCost(int level = -1)
+        {
+            if (level == -1)
+                level = PaddleBulletSpeedLevel;
+
+            return _paddleBulletSpeedCostBase + _paddleBulletSpeedCostGrowthPerLevel * (level - 1);
+        }
+
+        public void UpgradePaddleBulletSpeed()
+        {
+            if (!CanPaddleBulletSpeedUpgrade())
+                return;
+
+            var cost = GetPaddleBulletSpeedUpgradeCost();
+
+            PaddleBulletSpeedLevel++;
+            EventManager.I.TriggerPaddleBulletUpgraded(EStat.Speed, cost);
         }
         
         #endregion
@@ -177,7 +466,7 @@ namespace Prez.Data
             if (level == -1)
                 level = ball.Data.SpeedLevel;
 
-            return _ballSpeedBase + _ballSpeedBase * _ballSpeedGrowthPerLevel * (level - 1);
+            return _ballSpeedBase + _ballSpeedGrowthPerLevel * (level - 1);
         }
 
         public bool IsBallSpeedMaxLevel(Ball ball)
@@ -212,7 +501,7 @@ namespace Prez.Data
             var cost = GetBallSpeedUpgradeCost(ball);
 
             ball.Data.SpeedLevel++;
-            EventManager.I.TriggerBallUpgraded(ball, EStat.BallSpeed, cost);
+            EventManager.I.TriggerBallUpgraded(ball, EStat.Speed, cost);
         }
 
         #endregion
@@ -265,7 +554,7 @@ namespace Prez.Data
             var cost = GetBallDamageUpgradeCost(ball);
 
             ball.Data.DamageLevel++;
-            EventManager.I.TriggerBallUpgraded(ball, EStat.BallDamage, cost);
+            EventManager.I.TriggerBallUpgraded(ball, EStat.Damage, cost);
         }
 
         #endregion
@@ -318,7 +607,7 @@ namespace Prez.Data
             var cost = GetBallCriticalChanceUpgradeCost(ball);
 
             ball.Data.CriticalChanceLevel++;
-            EventManager.I.TriggerBallUpgraded(ball, EStat.BallCriticalChance, cost);
+            EventManager.I.TriggerBallUpgraded(ball, EStat.CriticalChance, cost);
         }
 
         #endregion
@@ -371,7 +660,7 @@ namespace Prez.Data
             var cost = GetBallCriticalDamageUpgradeCost(ball);
 
             ball.Data.CriticalDamageLevel++;
-            EventManager.I.TriggerBallUpgraded(ball, EStat.BallCriticalDamage, cost);
+            EventManager.I.TriggerBallUpgraded(ball, EStat.CriticalDamage, cost);
         }
 
         #endregion
@@ -424,7 +713,7 @@ namespace Prez.Data
             var cost = GetBallActiveHitsUpgradeCost(ball);
 
             ball.Data.ActiveHitsLevel++;
-            EventManager.I.TriggerBallUpgraded(ball, EStat.BallActiveHits, cost);
+            EventManager.I.TriggerBallUpgraded(ball, EStat.ActiveHits, cost);
         }
 
         #endregion
@@ -477,7 +766,7 @@ namespace Prez.Data
             var cost = GetBallActiveDamageUpgradeCost(ball);
 
             ball.Data.ActiveDamageLevel++;
-            EventManager.I.TriggerBallUpgraded(ball, EStat.BallActiveDamage, cost);
+            EventManager.I.TriggerBallUpgraded(ball, EStat.ActiveDamage, cost);
         }
 
         #endregion

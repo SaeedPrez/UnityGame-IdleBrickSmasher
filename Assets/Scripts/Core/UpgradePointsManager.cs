@@ -14,13 +14,17 @@ namespace Prez.Core
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
             EventManager.I.OnLeveledUp += OnLeveledUp;
             EventManager.I.OnBallUpgraded += OnBallUpgraded;
+            EventManager.I.OnPaddleUpgraded += OnPaddleUpgraded;
+            EventManager.I.OnPaddleBulletUpgraded += OnPaddleUpgraded;
         }
-
+        
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
             EventManager.I.OnLeveledUp -= OnLeveledUp;
             EventManager.I.OnBallUpgraded -= OnBallUpgraded;
+            EventManager.I.OnPaddleUpgraded -= OnPaddleUpgraded;
+            EventManager.I.OnPaddleBulletUpgraded -= OnPaddleUpgraded;
         }
 
         private void OnGameStateChanged(EGameState state)
@@ -35,6 +39,11 @@ namespace Prez.Core
         }
 
         private void OnBallUpgraded(Ball ball, EStat stat, double cost)
+        {
+            SubtractUpgradePoints(cost);
+        }
+        
+        private void OnPaddleUpgraded(EStat stat, double cost)
         {
             SubtractUpgradePoints(cost);
         }

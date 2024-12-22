@@ -28,8 +28,6 @@ namespace Prez.Data
         public double TimeCurrentLevel = 0d;
         public double TimeTotal = 0d;
 
-        // private readonly float _experienceBase = 20f;
-        // private readonly float _experienceGrowthPerLevel = 1.07f;
         private readonly float _experienceGainedPerBrickBase = 0.1f;
         public double ExperienceCurrent;
         public double ExperienceRequiredToLevel = 0d;
@@ -70,7 +68,7 @@ namespace Prez.Data
 
         public int PaddleSpeedLevel = 1;
         private readonly float _paddleSpeedBase = 1f;
-        private readonly float _paddleSpeedGrowthPerLevel = 0.1f;
+        private readonly float _paddleSpeedGrowthPerLevel = 0.0101f;
         private readonly int _paddleSpeedMaxLevel = 100;
         private readonly float _paddleSpeedCostBase = 1.0f;
         private readonly float _paddleSpeedCostGrowthPerLevel = 0.25f;
@@ -99,7 +97,7 @@ namespace Prez.Data
             return true;
         }
         
-        public double GetPaddleSpeedUpgradeCost(int level = -1)
+        public float GetPaddleSpeedUpgradeCost(int level = -1)
         {
             if (level == -1)
                 level = PaddleSpeedLevel;
@@ -153,7 +151,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetPaddleBulletDamageUpgradeCost(int level = -1)
+        public float GetPaddleBulletDamageUpgradeCost(int level = -1)
         {
             if (level == -1)
                 level = PaddleBulletDamageLevel;
@@ -178,12 +176,12 @@ namespace Prez.Data
 
         public int PaddleBulletCriticalChanceLevel = 1;
         private readonly float _paddleBulletCriticalChanceBase = 0f;
-        private readonly float _paddleBulletCriticalChanceGrowthPerLevel = 1f;
+        private readonly float _paddleBulletCriticalChanceGrowthPerLevel = 1.0101f;
         private readonly int _paddleBulletCriticalChanceMaxLevel = 100;
         private readonly float _paddleBulletCriticalChanceCostBase = 1.0f;
         private readonly float _paddleBulletCriticalChanceCostGrowthPerLevel = 0.25f;
 
-        public double GetPaddleBulletCriticalChance(int level = -1)
+        public float GetPaddleBulletCriticalChance(int level = -1)
         {
             if (level == -1)
                 level = PaddleBulletCriticalChanceLevel;
@@ -207,7 +205,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetPaddleBulletCriticalChanceUpgradeCost(int level = -1)
+        public float GetPaddleBulletCriticalChanceUpgradeCost(int level = -1)
         {
             if (level == -1)
                 level = PaddleBulletCriticalChanceLevel;
@@ -261,7 +259,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetPaddleBulletCriticalDamageUpgradeCost(int level = -1)
+        public float GetPaddleBulletCriticalDamageUpgradeCost(int level = -1)
         {
             if (level == -1)
                 level = PaddleBulletCriticalDamageLevel;
@@ -286,7 +284,7 @@ namespace Prez.Data
 
         public int PaddleBulletFireRateLevel = 1;
         private readonly float _paddleBulletFireRateBase = 0.2f;
-        private readonly float _paddleBulletFireRateGrowthPerLevel = 0.02f;
+        private readonly float _paddleBulletFireRateGrowthPerLevel = 0.01822f;
         private readonly int _paddleBulletFireRateMaxLevel = 100;
         private readonly float _paddleBulletFireRateCostBase = 1.0f;
         private readonly float _paddleBulletFireRateCostGrowthPerLevel = 0.25f;
@@ -315,7 +313,7 @@ namespace Prez.Data
             return true;
         }
         
-        public double GetPaddleBulletFireRateUpgradeCost(int level = -1)
+        public float GetPaddleBulletFireRateUpgradeCost(int level = -1)
         {
             if (level == -1)
                 level = PaddleBulletFireRateLevel;
@@ -340,7 +338,7 @@ namespace Prez.Data
 
         public int PaddleBulletSpeedLevel = 1;
         private readonly float _paddleBulletSpeedBase = 1.5f;
-        private readonly float _paddleBulletSpeedGrowthPerLevel = 0.1f;
+        private readonly float _paddleBulletSpeedGrowthPerLevel = 0.0859f;
         private readonly int _paddleBulletSpeedMaxLevel = 100;
         private readonly float _paddleBulletSpeedCostBase = 1.0f;
         private readonly float _paddleBulletSpeedCostGrowthPerLevel = 0.25f;
@@ -369,7 +367,7 @@ namespace Prez.Data
             return true;
         }
         
-        public double GetPaddleBulletSpeedUpgradeCost(int level = -1)
+        public float GetPaddleBulletSpeedUpgradeCost(int level = -1)
         {
             if (level == -1)
                 level = PaddleBulletSpeedLevel;
@@ -485,7 +483,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetBallSpeedUpgradeCost(Ball ball, int level = -1)
+        public float GetBallSpeedUpgradeCost(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.SpeedLevel;
@@ -538,7 +536,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetBallDamageUpgradeCost(Ball ball, int level = -1)
+        public float GetBallDamageUpgradeCost(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.DamageLevel;
@@ -567,7 +565,7 @@ namespace Prez.Data
         private readonly float _ballCriticalChanceCostBase = 1.0f;
         private readonly float _ballCriticalChanceCostGrowthPerLevel = 0.25f;
 
-        public double GetBallCriticalChance(Ball ball, int level = -1)
+        public float GetBallCriticalChance(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.CriticalChanceLevel;
@@ -591,7 +589,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetBallCriticalChanceUpgradeCost(Ball ball, int level = -1)
+        public float GetBallCriticalChanceUpgradeCost(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.CriticalChanceLevel;
@@ -644,7 +642,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetBallCriticalDamageUpgradeCost(Ball ball, int level = -1)
+        public float GetBallCriticalDamageUpgradeCost(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.CriticalDamageLevel;
@@ -697,7 +695,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetBallActiveHitsUpgradeCost(Ball ball, int level = -1)
+        public float GetBallActiveHitsUpgradeCost(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.ActiveHitsLevel;
@@ -731,7 +729,7 @@ namespace Prez.Data
             if (level == -1)
                 level = ball.Data.ActiveDamageLevel;
 
-            return _ballActiveDamageBase + (level - 1) * _ballActiveDamageGrowthPerLevel;
+            return _ballActiveDamageBase + _ballActiveDamageGrowthPerLevel * (level - 1);
         }
 
         public bool IsBallActiveDamageMaxLevel(Ball ball)
@@ -750,7 +748,7 @@ namespace Prez.Data
             return true;
         }
 
-        public double GetBallActiveDamageUpgradeCost(Ball ball, int level = -1)
+        public float GetBallActiveDamageUpgradeCost(Ball ball, int level = -1)
         {
             if (level == -1)
                 level = ball.Data.ActiveDamageLevel;
@@ -773,20 +771,16 @@ namespace Prez.Data
 
         #region Upgrade Points
 
-        public double UpgradePointsCurrent = 0d;
+        public float UpgradePointsCurrent = 0;
+        private readonly float _upgradePointsBase = 2f;
+        private readonly float _upgradePointsGrowthPerLevel = 0.075f;
 
-        public double GetUpgradePointsForLevel(double level = -1)
+        public float GetUpgradePointsForLevel(int level = -1)
         {
             if (level == -1)
                 level = LevelCurrent - 1;
 
-            return level switch
-            {
-                >= 100 => 3,
-                >= 50 => 2.75,
-                >= 25 => 2.5,
-                _ => 2.25
-            };
+            return _upgradePointsBase + (level - 1) * _upgradePointsGrowthPerLevel;
         }
 
         #endregion

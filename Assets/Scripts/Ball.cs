@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Prez.Core;
 using Prez.Data;
+using Prez.Utilities;
 using TMPro;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -100,13 +101,15 @@ namespace Prez
                 Point = point,
                 DamageRaw = damage,
                 ActiveHit = IsPlayerBoostActive,
-                CriticalHit = false
+                CriticalHit = Helper.IsHitCritical(GameManager.Data.GetBallCriticalChance(this)),
             };
+
+            data = Helper.CalculateDamage(data);
 
             brick.TakeDamage(data);
             ReduceActivePlayBoostHits();
-            Data.TotalDamage += damage;
-            AddDamageToHistory(damage);
+            Data.TotalDamage += data.Damage;
+            AddDamageToHistory(data.Damage);
         }
 
         #endregion

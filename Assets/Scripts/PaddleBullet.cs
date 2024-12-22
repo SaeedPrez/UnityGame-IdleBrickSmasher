@@ -1,7 +1,9 @@
-﻿using Prez.Data;
+﻿using Prez.Core;
+using Prez.Data;
+using Prez.Utilities;
 using UnityEngine;
 
-namespace Prez.Core
+namespace Prez
 {
     public class PaddleBullet : MonoBehaviour
     {
@@ -43,9 +45,10 @@ namespace Prez.Core
                 Brick = brick,
                 Point = point,
                 DamageRaw = GameManager.Data.GetPaddleBulletDamage(),
-                CriticalHit = false
+                CriticalHit = Helper.IsHitCritical(GameManager.Data.GetPaddleBulletCriticalChance()),
             };
 
+            data = Helper.CalculateDamage(data);
             brick.TakeDamage(data);
         }
     }

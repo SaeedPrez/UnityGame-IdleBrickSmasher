@@ -1,7 +1,8 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using Prez.Core;
+using Prez.Data;
 using Prez.Enums;
+using UnityEngine;
 
 namespace Prez.Utilities
 {
@@ -78,7 +79,46 @@ namespace Prez.Utilities
         /// <returns></returns>
         public static double CalculateExponentialGrowthCost(EStat stat, double baseCost, double growth, double level)
         {
-            return baseCost + Math.Pow(growth, level);
+            return baseCost + System.Math.Pow(growth, level);
+        }
+
+        /// <summary>
+        /// Calculate if a hit is critical.
+        /// </summary>
+        /// <param name="criticalChance"></param>
+        /// <returns></returns>
+        public static bool IsHitCritical(float criticalChance)
+        {
+            return Random.Range(0f, 100f) < criticalChance;
+        }
+
+        /// <summary>
+        /// Calculates damage based on critical damage and active hits.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static DamageData CalculateDamage(DamageData data)
+        {
+            var damage = data.DamageRaw;
+
+            if (data.CriticalHit)
+            {
+                var criticalDamage = data.Ball != null
+                    ? GameManager.Data.GetBallCriticalDamage(data.Ball)
+                    : GameManager.Data.GetPaddleBulletCriticalDamage();
+
+                damage += data.DamageRaw * criticalDamage;
+            }
+
+            if (data.ActiveHit)
+            {
+                var activeDamage = GameManager.Data.GetBallActiveDamage(data.Ball);
+                damage += data.DamageRaw * activeDamage;
+            }
+            
+            data.Damage = damage;
+            
+            return data;
         }
     }
 }

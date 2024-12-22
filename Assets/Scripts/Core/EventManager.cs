@@ -49,11 +49,11 @@ namespace Prez.Core
 
         // Paddle
         
-        public event Action<EStat, double> OnPaddleUpgraded = delegate { };
-        public void TriggerPaddleUpgraded(EStat stat, double cost) => OnPaddleUpgraded?.Invoke(stat, cost);
+        public event Action<EStat, float> OnPaddleUpgraded = delegate { };
+        public void TriggerPaddleUpgraded(EStat stat, float cost) => OnPaddleUpgraded?.Invoke(stat, cost);
         
-        public event Action<EStat, double> OnPaddleBulletUpgraded = delegate { };
-        public void TriggerPaddleBulletUpgraded(EStat stat, double cost) => OnPaddleBulletUpgraded?.Invoke(stat, cost);
+        public event Action<EStat, float> OnPaddleBulletUpgraded = delegate { };
+        public void TriggerPaddleBulletUpgraded(EStat stat, float cost) => OnPaddleBulletUpgraded?.Invoke(stat, cost);
         
         // Balls
 
@@ -72,8 +72,8 @@ namespace Prez.Core
         public event Action<Ball> OnBallRequestRespawn = delegate { };
         public void TriggerBallRequestRespawn(Ball ball) => OnBallRequestRespawn?.Invoke(ball);
 
-        public event Action<Ball, EStat, double> OnBallUpgraded = delegate { };
-        public void TriggerBallUpgraded(Ball ball, EStat stat, double cost) => OnBallUpgraded?.Invoke(ball, stat, cost);
+        public event Action<Ball, EStat, float> OnBallUpgraded = delegate { };
+        public void TriggerBallUpgraded(Ball ball, EStat stat, float cost) => OnBallUpgraded?.Invoke(ball, stat, cost);
 
         // Bullets
         

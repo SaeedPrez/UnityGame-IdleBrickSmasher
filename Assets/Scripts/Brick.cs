@@ -100,11 +100,11 @@ namespace Prez
         /// <param name="data"></param>
         public void TakeDamage(DamageData data)
         {
-            data.Damage = data.DamageRaw > _currentHealth
+            var damage = data.Damage > _currentHealth
                 ? _currentHealth
-                : data.DamageRaw;
+                : data.Damage;
 
-            _currentHealth -= Math.Round(data.Damage, 2);
+            _currentHealth -= Math.Round(damage, 2);
             UpdateHealthUi();
 
             if (_currentHealth <= 0.1d)

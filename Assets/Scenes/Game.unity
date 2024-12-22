@@ -176,7 +176,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 8c938dd2e2ba9c449b1bab9f0ee637b8, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 968d78cd8bc34bf49a407ededbccd4d8, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -524,7 +524,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 8c938dd2e2ba9c449b1bab9f0ee637b8, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 968d78cd8bc34bf49a407ededbccd4d8, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2417,7 +2417,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 600000922}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
   m_Name: 
@@ -27833,7 +27833,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Talents
+  m_text: Phase 2
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e87ec1646d93ef249990b204b0862329, type: 2}
   m_sharedMaterial: {fileID: 7537189319098357063, guid: e87ec1646d93ef249990b204b0862329, type: 2}
@@ -31624,7 +31624,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Secret
+  m_text: Phase 3
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e87ec1646d93ef249990b204b0862329, type: 2}
   m_sharedMaterial: {fileID: 7537189319098357063, guid: e87ec1646d93ef249990b204b0862329, type: 2}

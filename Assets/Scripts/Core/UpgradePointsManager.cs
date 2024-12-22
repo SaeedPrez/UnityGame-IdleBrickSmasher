@@ -38,12 +38,12 @@ namespace Prez.Core
             AddUpgradePoints(GameManager.Data.GetUpgradePointsForLevel());
         }
 
-        private void OnBallUpgraded(Ball ball, EStat stat, double cost)
+        private void OnBallUpgraded(Ball ball, EStat stat, float cost)
         {
             SubtractUpgradePoints(cost);
         }
         
-        private void OnPaddleUpgraded(EStat stat, double cost)
+        private void OnPaddleUpgraded(EStat stat, float cost)
         {
             SubtractUpgradePoints(cost);
         }
@@ -52,7 +52,7 @@ namespace Prez.Core
         ///     Adds upgrade points.
         /// </summary>
         /// <param name="amount"></param>
-        private void AddUpgradePoints(double amount)
+        private void AddUpgradePoints(float amount)
         {
             if (amount == 0)
                 return;
@@ -67,7 +67,7 @@ namespace Prez.Core
         ///     Subtract upgrade points.
         /// </summary>
         /// <param name="amount"></param>
-        private void SubtractUpgradePoints(double amount)
+        private void SubtractUpgradePoints(float amount)
         {
             if (amount == 0)
                 return;

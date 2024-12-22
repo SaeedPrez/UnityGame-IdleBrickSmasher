@@ -217,10 +217,10 @@ namespace Prez.Menus
             _speedStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetPaddleSpeed()));
             _dmgStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetPaddleBulletDamage()));
             _chcStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetPaddleBulletCriticalChance()));
-            // _chdStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallCriticalDamage(Ball) * 100));
-            // _fireRateStatsUi.SetText(GameManager.Data.GetBallActiveHits(Ball).ToString());
-            // _bulletSpeedStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball) * 100));
-            // _dpsStatsUi.SetText(Helper.GetNumberAsString(Ball.Dps));
+            _chdStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetPaddleBulletCriticalDamage() * 100));
+            _fireRateStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetPaddleBulletFireRate()));
+            _bulletSpeedStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetPaddleBulletSpeed()));
+            // _dpsStatsUi.SetText(Helper.GetNumberAsString());
         }
 
         /// <summary>
@@ -495,7 +495,7 @@ namespace Prez.Menus
         private void UpdateFireRateUpgradeUi()
         {
             _fireRateUpgradeLevelUi.SetText(GameManager.Data.PaddleBulletFireRateLevel.ToString());
-            _fireRateUpgradeCurrentUi.SetText(GameManager.Data.GetPaddleBulletFireRate().ToString());
+            _fireRateUpgradeCurrentUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetPaddleBulletFireRate()));
 
             var next = Constants.Maxed;
             var cost = Constants.Maxed;

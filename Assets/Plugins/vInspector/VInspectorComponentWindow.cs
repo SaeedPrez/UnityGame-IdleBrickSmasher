@@ -1,84 +1,44 @@
 #if UNITY_EDITOR
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEditor;
+using UnityEditor.ShortcutManagement;
+using System.Reflection;
+using System.Linq;
+using UnityEditor.UIElements;
+using UnityEngine.UIElements;
+using UnityEngine.SceneManagement;
+using UnityEditor.SceneManagement;
 using Type = System.Type;
 using static VInspector.VInspector;
 using static VInspector.Libs.VUtils;
 using static VInspector.Libs.VGUI;
+// using static VTools.VDebug;
 
 
 namespace VInspector
 {
     public class VInspectorComponentWindow : EditorWindow
     {
-        private static readonly Dictionary<Type, Texture> componentIcons_byType = new();
 
-        public static List<VInspectorComponentWindow> instances = new();
-
-        public static VInspectorComponentWindow draggedInstance;
-        public Vector2 dragStartMousePos;
-        public Vector2 dragStartWindowPos;
-
-        public bool isResizingHorizontally;
-        public bool isResizingVertically;
-        public Vector2 resizeStartMousePos;
-        public Vector2 resizeStartWindowSize;
-
-        public float scrollPosition;
-
-        public float targetHeight;
-        public float maxHeight;
-        public float prevHeight;
-
-        public Component component;
-        public Editor editor;
-        private bool hasCustomUITKEditor;
-        public InspectorElement inspectorElement;
-
-        private bool skipHeightUpdate;
-
-        public bool isDragged => draggedInstance == this;
-
-        private bool useUITK => editor.target is MonoBehaviour && (HasUITKOnlyDrawers(editor.serializedObject) || hasCustomUITKEditor);
-
-        private void OnDestroy()
+        void OnGUI()
         {
-            editor?.DestroyImmediate();
-
-            if (instances.Contains(this))
-                instances.Remove(this);
-        }
-
-        private void OnGUI()
-        {
-            if (!component)
-            {
-                Close();
-                return;
-            }
-
-            if (!editor)
-            {
-                Init(component);
-                skipHeightUpdate = true;
-            }
+            if (!component) { Close(); return; }
+            if (!editor) { Init(component); skipHeightUpdate = true; }
 
 
             void background()
             {
                 position.SetPos(0, 0).Draw(GUIColors.windowBackground);
             }
-
             void outline()
             {
                 if (Application.platform == RuntimePlatform.OSXEditor) return;
 
                 position.SetPos(0, 0).DrawOutline(Greyscale(.1f));
-            }
 
+            }
             void header()
             {
                 var headerRect = ExpandWidthLabelRect(18).Resize(-1).AddWidthFromMid(6);
@@ -99,8 +59,8 @@ namespace VInspector
 
                     dragStartMousePos = curEvent.mousePosition_screenSpace;
                     dragStartWindowPos = position.position;
-                }
 
+                }
                 void updateDragging()
                 {
                     if (!isDragged) return;
@@ -112,9 +72,9 @@ namespace VInspector
                         position = position.SetPos(draggedPosition);
 
 
-                    GUIUtility.hotControl = GUIUtility.GetControlID(FocusType.Passive);
-                }
+                    EditorGUIUtility.hotControl = EditorGUIUtility.GetControlID(FocusType.Passive);
 
+                }
                 void stopDragging()
                 {
                     if (!isDragged) return;
@@ -123,7 +83,8 @@ namespace VInspector
 
                     draggedInstance = null;
 
-                    GUIUtility.hotControl = 0;
+                    EditorGUIUtility.hotControl = 0;
+
                 }
 
                 void background()
@@ -131,8 +92,8 @@ namespace VInspector
                     headerRect.Draw(backgroundColor);
 
                     headerRect.SetHeightFromBottom(1).Draw(isDarkTheme ? Greyscale(.2f) : Greyscale(.7f));
-                }
 
+                }
                 void icon()
                 {
                     var iconRect = headerRect.SetWidth(20).MoveX(14).MoveY(-1);
@@ -141,8 +102,8 @@ namespace VInspector
                         componentIcons_byType[component.GetType()] = EditorGUIUtility.ObjectContent(component, component.GetType()).image;
 
                     GUI.Label(iconRect, componentIcons_byType[component.GetType()]);
-                }
 
+                }
                 void toggle()
                 {
                     var toggleRect = headerRect.MoveX(36).SetSize(20, 20);
@@ -163,8 +124,8 @@ namespace VInspector
 
                     component.RecordUndo();
                     pi_enabled.SetValue(component, !enabled);
-                }
 
+                }
                 void name()
                 {
                     var nameRect = headerRect.MoveX(54).MoveY(-1);
@@ -183,8 +144,8 @@ namespace VInspector
                     GUI.Label(nameRect, s);
 
                     ResetLabelStyle();
-                }
 
+                }
                 void nameCurtain()
                 {
                     var flatColorRect = headerRect.SetX(closeButtonRect.x + 3).SetXMax(headerRect.xMax);
@@ -192,8 +153,8 @@ namespace VInspector
 
                     flatColorRect.Draw(backgroundColor);
                     gradientRect.DrawCurtainLeft(backgroundColor);
-                }
 
+                }
                 void closeButton()
                 {
                     var iconName = "CrossIcon";
@@ -207,13 +168,13 @@ namespace VInspector
 
                     Close();
 
-                    GUIUtility.ExitGUI();
-                }
+                    EditorGUIUtility.ExitGUI();
 
+                }
                 void escHint()
                 {
                     if (!closeButtonRect.IsHovered()) return;
-                    if (focusedWindow != this) return;
+                    if (EditorWindow.focusedWindow != this) return;
 
                     var textRect = headerRect.SetWidthFromRight(42).MoveY(-.5f);
                     var fontSize = 11;
@@ -227,6 +188,7 @@ namespace VInspector
 
                     ResetGUIColor();
                     ResetLabelStyle();
+
                 }
 
                 startDragging();
@@ -240,14 +202,14 @@ namespace VInspector
                 nameCurtain();
                 closeButton();
                 escHint();
-            }
 
+            }
             void body_imgui()
             {
                 if (useUITK) return;
 
 
-                EditorGUIUtility.labelWidth = (position.width * .4f).Max(120);
+                EditorGUIUtility.labelWidth = (this.position.width * .4f).Max(120);
 
 
                 scrollPosition = EditorGUILayout.BeginScrollView(Vector2.up * scrollPosition).y;
@@ -264,6 +226,7 @@ namespace VInspector
 
 
                 EditorGUIUtility.labelWidth = 0;
+
             }
 
             void updateHeight_imgui()
@@ -271,7 +234,7 @@ namespace VInspector
                 if (useUITK) return;
 
 
-                ExpandWidthLabelRect(-5);
+                ExpandWidthLabelRect(height: -5);
 
                 if (!curEvent.isRepaint) return;
                 if (isResizingVertically) return;
@@ -283,17 +246,13 @@ namespace VInspector
 
 
                 prevHeight = position.height;
-            }
 
+            }
             void updateHeight_uitk()
             {
                 if (!useUITK) return;
                 if (!curEvent.isRepaint) return;
-                if (skipHeightUpdate)
-                {
-                    skipHeightUpdate = false;
-                    return;
-                } // crashses otherwise
+                if (skipHeightUpdate) { skipHeightUpdate = false; return; } // crashses otherwise
 
 
                 var lastElement = inspectorElement[inspectorElement.childCount - 1];
@@ -301,8 +260,8 @@ namespace VInspector
                 targetHeight = lastElement.contentRect.yMax + 33;
 
                 position = position.SetHeight(targetHeight);
-            }
 
+            }
             void closeOnEscape()
             {
                 if (!curEvent.isKeyDown) return;
@@ -310,14 +269,15 @@ namespace VInspector
 
                 Close();
 
-                GUIUtility.ExitGUI();
+                EditorGUIUtility.ExitGUI();
+
             }
 
             void horizontalResize()
             {
                 var showingScrollbar = targetHeight > maxHeight;
 
-                var resizeArea = position.SetPos(0, 0).SetWidthFromRight(showingScrollbar ? 3 : 5).AddHeightFromBottom(-20);
+                var resizeArea = this.position.SetPos(0, 0).SetWidthFromRight(showingScrollbar ? 3 : 5).AddHeightFromBottom(-20);
 
                 void startResize()
                 {
@@ -329,9 +289,9 @@ namespace VInspector
                     isResizingHorizontally = true;
 
                     resizeStartMousePos = curEvent.mousePosition_screenSpace;
-                    resizeStartWindowSize = position.size;
-                }
+                    resizeStartWindowSize = this.position.size;
 
+                }
                 void updateResize()
                 {
                     if (!isResizingHorizontally) return;
@@ -345,10 +305,10 @@ namespace VInspector
                         position = position.SetWidth(width);
 
 
-                    GUIUtility.hotControl = GUIUtility.GetControlID(FocusType.Passive);
+                    EditorGUIUtility.hotControl = EditorGUIUtility.GetControlID(FocusType.Passive);
                     // GUI.focused
-                }
 
+                }
                 void stopResize()
                 {
                     if (!isResizingHorizontally) return;
@@ -356,7 +316,8 @@ namespace VInspector
 
                     isResizingHorizontally = false;
 
-                    GUIUtility.hotControl = 0;
+                    EditorGUIUtility.hotControl = 0;
+
                 }
 
 
@@ -365,11 +326,11 @@ namespace VInspector
                 startResize();
                 updateResize();
                 stopResize();
-            }
 
+            }
             void verticalResize()
             {
-                var resizeArea = position.SetPos(0, 0).SetHeightFromBottom(5);
+                var resizeArea = this.position.SetPos(0, 0).SetHeightFromBottom(5);
 
                 void startResize()
                 {
@@ -381,9 +342,9 @@ namespace VInspector
                     isResizingVertically = true;
 
                     resizeStartMousePos = curEvent.mousePosition_screenSpace;
-                    resizeStartWindowSize = position.size;
-                }
+                    resizeStartWindowSize = this.position.size;
 
+                }
                 void updateResize()
                 {
                     if (!isResizingVertically) return;
@@ -399,9 +360,9 @@ namespace VInspector
                     maxHeight = height;
 
 
-                    GUIUtility.hotControl = GUIUtility.GetControlID(FocusType.Passive);
-                }
+                    EditorGUIUtility.hotControl = EditorGUIUtility.GetControlID(FocusType.Passive);
 
+                }
                 void stopResize()
                 {
                     if (!isResizingVertically) return;
@@ -409,7 +370,8 @@ namespace VInspector
 
                     isResizingVertically = false;
 
-                    GUIUtility.hotControl = 0;
+                    EditorGUIUtility.hotControl = 0;
+
                 }
 
 
@@ -418,7 +380,9 @@ namespace VInspector
                 startResize();
                 updateResize();
                 stopResize();
+
             }
+
 
 
             background();
@@ -440,7 +404,33 @@ namespace VInspector
 
             if (isDragged)
                 Repaint();
+
         }
+
+        public bool isDragged => draggedInstance == this;
+        public Vector2 dragStartMousePos;
+        public Vector2 dragStartWindowPos;
+
+        public bool isResizingHorizontally;
+        public bool isResizingVertically;
+        public Vector2 resizeStartMousePos;
+        public Vector2 resizeStartWindowSize;
+
+        public float scrollPosition;
+
+        bool skipHeightUpdate;
+
+        public float targetHeight;
+        public float maxHeight;
+        public float prevHeight;
+
+        static Dictionary<System.Type, Texture> componentIcons_byType = new();
+
+
+
+
+
+
 
 
         public void Init(Component component)
@@ -449,12 +439,13 @@ namespace VInspector
                 editor.DestroyImmediate();
 
             this.component = component;
-            editor = Editor.CreateEditor(component);
+            this.editor = Editor.CreateEditor(component);
 
             hasCustomUITKEditor = editor.GetType().GetMethod("CreateInspectorGUI", maxBindingFlags) != null;
 
             if (!instances.Contains(this))
                 instances.Add(this);
+
 
 
             if (!useUITK) return;
@@ -463,13 +454,35 @@ namespace VInspector
 
             inspectorElement.style.marginTop = 23;
 
-            rootVisualElement.Add(inspectorElement);
+            this.rootVisualElement.Add(inspectorElement);
+
         }
+
+        void OnDestroy()
+        {
+            editor?.DestroyImmediate();
+
+            if (instances.Contains(this))
+                instances.Remove(this);
+
+        }
+
+        public Component component;
+        public Editor editor;
+        public InspectorElement inspectorElement;
+
+        bool useUITK => editor.target is MonoBehaviour && (HasUITKOnlyDrawers(editor.serializedObject) || hasCustomUITKEditor);
+        bool hasCustomUITKEditor;
+
+        public static List<VInspectorComponentWindow> instances = new();
+
+
+
 
 
         public static void CreateDraggedInstance(Component component, Vector2 windowPosition, float windowWidth)
         {
-            draggedInstance = CreateInstance<VInspectorComponentWindow>();
+            draggedInstance = ScriptableObject.CreateInstance<VInspectorComponentWindow>();
 
             draggedInstance.ShowPopup();
             draggedInstance.Init(component);
@@ -487,7 +500,11 @@ namespace VInspector
 
             draggedInstance.dragStartMousePos = curEvent.mousePosition_screenSpace;
             draggedInstance.dragStartWindowPos = windowPosition;
+
         }
+
+        public static VInspectorComponentWindow draggedInstance;
+
     }
 }
 #endif

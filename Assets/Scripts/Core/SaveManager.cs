@@ -1,21 +1,38 @@
 ﻿using System;
+using System.Collections;
+using System.IO;
 using Prez.Data;
 using Prez.Enums;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Prez.Core
 {
     public class SaveManager : MonoBehaviour
     {
+        [SerializeField] private float _saveInterval;
+        
+        public static SaveManager I { get; private set; }
+
+        private string _filePath;
+
+        private void Awake()
+        {
+            SetupSingleton();
+        }
+        
         private void OnEnable()
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
+            StartCoroutine(Save());
+
+            _filePath = Application.persistentDataPath + "/" + "SaveFile.es3";
         }
 
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
-            SaveGameData();
+            StopAllCoroutines();
         }
 
         private void OnGameStateChanged(EGameState state)
@@ -24,6 +41,24 @@ namespace Prez.Core
                 LoadOrCreateGameData();
         }
 
+        #region Singleton
+
+        /// <summary>
+        ///     Setups the singleton.
+        /// </summary>
+        private void SetupSingleton()
+        {
+            if (I)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            I = this;
+        }
+
+        #endregion
+        
         /// <summary>
         ///     Loads or creates game data.
         /// </summary>
@@ -55,6 +90,21 @@ namespace Prez.Core
         }
 
         /// <summary>
+        /// Save game after interval.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator Save()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(_saveInterval);
+                
+                if (GameManager.State is EGameState.Playing)
+                    SaveGameData();
+            }
+        }
+        
+        /// <summary>
         ///     Saves game data.
         /// </summary>
         private void SaveGameData()
@@ -74,6 +124,24 @@ namespace Prez.Core
 
             ES3.Save(Constants.SaveGameName, GameManager.Data);
             EventManager.I.TriggerGameDataSaved(GameManager.Data);
+        }
+
+        public string GetGameDataAsString()
+        {
+            SaveGameData();
+            return Convert.ToBase64String(File.ReadAllBytes(_filePath));
+        }
+
+        public void SaveGameDataFromString(string data)
+        {
+            File.WriteAllBytes(_filePath, Convert.FromBase64String(data));
+            SceneManager.LoadScene(0);
+        }
+
+        public void Reset()
+        {
+            File.Delete(_filePath);
+            SceneManager.LoadScene(0);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using Prez.Core;
 using Prez.Data;
@@ -32,6 +33,7 @@ namespace Prez
         private Coroutine _idleCoroutine;
         private Coroutine _fireCoroutine;
         private bool _isFiring;
+        private Dictionary<float, double> _damageHistory = new();
 
         private void Awake()
         {

@@ -1,5 +1,9 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
 using System;
 using UnityEngine;
+// using static VTools.VDebug;
 #if UNITY_EDITOR
 using static VInspector.Libs.VUtils;
 #endif
@@ -7,95 +11,68 @@ using static VInspector.Libs.VUtils;
 
 namespace VInspector
 {
+
     public class FoldoutAttribute : Attribute
     {
         public string name;
 
-        public FoldoutAttribute(string name)
-        {
-            this.name = name;
-        }
-    }
+        public FoldoutAttribute(string name) => this.name = name;
 
-    public class EndFoldoutAttribute : Attribute
-    {
     }
+    public class EndFoldoutAttribute : Attribute { }
+
 
 
     public class TabAttribute : Attribute
     {
         public string name;
 
-        public TabAttribute(string name)
-        {
-            this.name = name;
-        }
-    }
+        public TabAttribute(string name) => this.name = name;
 
-    public class EndTabAttribute : Attribute
-    {
     }
+    public class EndTabAttribute : Attribute { }
+
 
 
     public class ButtonAttribute : Attribute
     {
-        public string color = "Grey";
         public string name = "";
         public int size = 30;
         public int space = 0;
+        public string color = "Grey";
 
-        public ButtonAttribute()
-        {
-            name = "";
-        }
+        public ButtonAttribute() => this.name = "";
+        public ButtonAttribute(string name) => this.name = name;
 
-        public ButtonAttribute(string name)
-        {
-            this.name = name;
-        }
     }
+
 
 
     public class VariantsAttribute : PropertyAttribute
     {
         public object[] variants;
 
-        public VariantsAttribute(params object[] variants)
-        {
-            this.variants = variants;
-        }
+        public VariantsAttribute(params object[] variants) => this.variants = variants;
+
     }
+
 
 
     public class MinMaxSliderAttribute : PropertyAttribute
     {
-        public float max;
         public float min;
+        public float max;
 
-        public MinMaxSliderAttribute(float min, float max)
-        {
-            this.min = min;
-            this.max = max;
-        }
+        public MinMaxSliderAttribute(float min, float max) { this.min = min; this.max = max; }
+
     }
+
 
 
     public abstract class IfAttribute : Attribute
     {
         public string variableName;
         public object variableValue;
-
-        public IfAttribute(string boolName)
-        {
-            variableName = boolName;
-            variableValue = true;
-        }
-
-        public IfAttribute(string variableName, object variableValue)
-        {
-            this.variableName = variableName;
-            this.variableValue = variableValue;
-        }
 
 #if UNITY_EDITOR
         public bool Evaluate(object target)
@@ -106,68 +83,45 @@ namespace VInspector
 
             var curValue = target.GetMemberValue(variableName);
 
-            return Equals(curValue, variableValue);
+            return object.Equals(curValue, variableValue);
+
         }
 #endif
-    }
 
-    public class EndIfAttribute : Attribute
-    {
+        public IfAttribute(string boolName) { this.variableName = boolName; this.variableValue = true; }
+        public IfAttribute(string variableName, object variableValue) { this.variableName = variableName; this.variableValue = variableValue; }
+
     }
+    public class EndIfAttribute : Attribute { }
 
     public class HideIfAttribute : IfAttribute
     {
-        public HideIfAttribute(string boolName) : base(boolName)
-        {
-        }
-
-        public HideIfAttribute(string variableName, object variableValue) : base(variableName, variableValue)
-        {
-        }
+        public HideIfAttribute(string boolName) : base(boolName) { }
+        public HideIfAttribute(string variableName, object variableValue) : base(variableName, variableValue) { }
     }
-
     public class ShowIfAttribute : IfAttribute
     {
-        public ShowIfAttribute(string boolName) : base(boolName)
-        {
-        }
-
-        public ShowIfAttribute(string variableName, object variableValue) : base(variableName, variableValue)
-        {
-        }
+        public ShowIfAttribute(string boolName) : base(boolName) { }
+        public ShowIfAttribute(string variableName, object variableValue) : base(variableName, variableValue) { }
     }
-
     public class EnableIfAttribute : IfAttribute
     {
-        public EnableIfAttribute(string boolName) : base(boolName)
-        {
-        }
-
-        public EnableIfAttribute(string variableName, object variableValue) : base(variableName, variableValue)
-        {
-        }
+        public EnableIfAttribute(string boolName) : base(boolName) { }
+        public EnableIfAttribute(string variableName, object variableValue) : base(variableName, variableValue) { }
     }
-
     public class DisableIfAttribute : IfAttribute
     {
-        public DisableIfAttribute(string boolName) : base(boolName)
-        {
-        }
-
-        public DisableIfAttribute(string variableName, object variableValue) : base(variableName, variableValue)
-        {
-        }
+        public DisableIfAttribute(string boolName) : base(boolName) { }
+        public DisableIfAttribute(string variableName, object variableValue) : base(variableName, variableValue) { }
     }
 
 
-    public class ReadOnlyAttribute : Attribute
-    {
-    }
+
+    public class ReadOnlyAttribute : Attribute { }
 
 
-    public class ShowInInspectorAttribute : Attribute
-    {
-    }
+
+    public class ShowInInspectorAttribute : Attribute { }
 
 
     [AttributeUsage(AttributeTargets.Method)]
@@ -175,14 +129,11 @@ namespace VInspector
     {
         public string[] variableOrGroupNames;
 
-        public OnValueChangedAttribute(string name)
-        {
-            variableOrGroupNames = new[] { name };
-        }
+        public OnValueChangedAttribute(string name) => this.variableOrGroupNames = new[] { name };
+        public OnValueChangedAttribute(params string[] names) => this.variableOrGroupNames = names;
 
-        public OnValueChangedAttribute(params string[] names)
-        {
-            variableOrGroupNames = names;
-        }
     }
+
+
+
 }

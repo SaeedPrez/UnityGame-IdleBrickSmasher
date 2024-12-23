@@ -1,24 +1,19 @@
-﻿using System;
-using System.ComponentModel;
-using System.IO;
-using System.Text;
+﻿using UnityEngine;
 using ES3Internal;
-using Unity.VisualScripting;
-using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 #if UNITY_VISUAL_SCRIPTING
-[IncludeInSettings(true)]
+[Unity.VisualScripting.IncludeInSettings(true)]
 #elif BOLT_VISUAL_SCRIPTING
 [Ludiq.IncludeInSettings(true)]
 #endif
-public class ES3Settings : ICloneable
+public class ES3Settings : System.ICloneable
 {
-    #region Default settings
 
-    private static ES3Settings _defaults;
+    #region Default settings
+    private static ES3Settings _defaults = null;
     private static ES3Defaults _defaultSettingsScriptableObject;
     private const string defaultSettingsPath = "ES3/ES3Defaults";
 
@@ -58,7 +53,6 @@ public class ES3Settings : ICloneable
                 }
 #endif
             }
-
             return _defaultSettingsScriptableObject;
         }
     }
@@ -67,15 +61,16 @@ public class ES3Settings : ICloneable
     {
         get
         {
-            if (_defaults == null)
-                if (defaultSettingsScriptableObject != null)
+            if(_defaults == null)
+            {
+                if(defaultSettingsScriptableObject != null)
                     _defaults = defaultSettingsScriptableObject.settings;
+            }
             return _defaults;
         }
     }
 
-    private static ES3Settings _unencryptedUncompressedSettings;
-
+    private static ES3Settings _unencryptedUncompressedSettings = null; 
     internal static ES3Settings unencryptedUncompressedSettings
     {
         get
@@ -90,124 +85,110 @@ public class ES3Settings : ICloneable
 
     #region Fields
 
-    private static readonly string[] resourcesExtensions = { ".txt", ".htm", ".html", ".xml", ".bytes", ".json", ".csv", ".yaml", ".fnt" };
+    private static readonly string[] resourcesExtensions = new string[]{".txt", ".htm", ".html", ".xml", ".bytes", ".json", ".csv", ".yaml", ".fnt" };
 
-    [SerializeField] private ES3.Location _location;
+	[SerializeField]
+	private ES3.Location _location;
+	/// <summary>The location where we wish to store data. As it's not possible to save/load from File in WebGL, if the default location is File it will use PlayerPrefs instead.</summary>
+	public ES3.Location location
+	{
+		get
+		{
+			if(_location == ES3.Location.File && (Application.platform == RuntimePlatform.WebGLPlayer || Application.platform == RuntimePlatform.tvOS))
+				return ES3.Location.PlayerPrefs;
+			return _location;
+		}
+		set{ _location = value; }
+	}
 
-    /// <summary>The location where we wish to store data. As it's not possible to save/load from File in WebGL, if the default location is File it will use PlayerPrefs instead.</summary>
-    public ES3.Location location
-    {
-        get
-        {
-            if (_location == ES3.Location.File && (Application.platform == RuntimePlatform.WebGLPlayer || Application.platform == RuntimePlatform.tvOS))
-                return ES3.Location.PlayerPrefs;
-            return _location;
-        }
-        set => _location = value;
-    }
-
-    /// <summary>The path associated with this ES3Settings object, if any.</summary>
-    public string path = "SaveFile.es3";
-
+	/// <summary>The path associated with this ES3Settings object, if any.</summary>
+	public string path = "SaveFile.es3";
+	/// <summary>The type of encryption to use when encrypting data, if any.</summary>
+	public ES3.EncryptionType encryptionType = ES3.EncryptionType.None;
     /// <summary>The type of encryption to use when encrypting data, if any.</summary>
-    public ES3.EncryptionType encryptionType = ES3.EncryptionType.None;
-
-    /// <summary>The type of encryption to use when encrypting data, if any.</summary>
-    public ES3.CompressionType compressionType = ES3.CompressionType.None;
-
+	public ES3.CompressionType compressionType = ES3.CompressionType.None;
     /// <summary>The password to use when encrypting data.</summary>
     public string encryptionPassword = "password";
-
-    /// <summary>The default directory in which to store files, and the location which relative paths should be relative to.</summary>
-    public ES3.Directory directory = ES3.Directory.PersistentDataPath;
-
-    /// <summary>What format to use when serialising and deserialising data.</summary>
-    public ES3.Format format = ES3.Format.JSON;
-
+	/// <summary>The default directory in which to store files, and the location which relative paths should be relative to.</summary>
+	public ES3.Directory directory = ES3.Directory.PersistentDataPath;
+	/// <summary>What format to use when serialising and deserialising data.</summary>
+	public ES3.Format format = ES3.Format.JSON;
     /// <summary>Whether we want to pretty print JSON.</summary>
-    public bool prettyPrint = true;
-
+	public bool prettyPrint = true;
     /// <summary>Any stream buffers will be set to this length in bytes.</summary>
     public int bufferSize = 2048;
-
-    /// <summary>The text encoding to use for text-based format. Note that changing this may invalidate previous save data.</summary>
-    public Encoding encoding = Encoding.UTF8;
-
+	/// <summary>The text encoding to use for text-based format. Note that changing this may invalidate previous save data.</summary>
+	public System.Text.Encoding encoding = System.Text.Encoding.UTF8;
     // <summary>Whether we should serialise children when serialising a GameObject.</summary>
     public bool saveChildren = true;
-
     // <summary>Whether we should apply encryption and/or compression to raw cached data if they're specified in the cached data's settings.</summary>
-    public bool postprocessRawCachedData;
+    public bool postprocessRawCachedData = false;
 
     /// <summary>Whether we should check that the data we are loading from a file matches the method we are using to load it.</summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public bool typeChecking = true;
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+	public bool typeChecking = true;
 
-    /// <summary>Enabling this ensures that only serialisable fields are serialised. Otherwise, possibly unsafe fields and properties will be serialised.</summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public bool safeReflection = true;
-
-    /// <summary>Whether UnityEngine.Object members should be stored by value, reference or both.</summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public ES3.ReferenceMode memberReferenceMode = ES3.ReferenceMode.ByRef;
-
-    /// <summary>Whether the main save methods should save UnityEngine.Objects by value, reference, or both.</summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public ES3.ReferenceMode referenceMode = ES3.ReferenceMode.ByRefAndValue;
+	/// <summary>Enabling this ensures that only serialisable fields are serialised. Otherwise, possibly unsafe fields and properties will be serialised.</summary>
+	[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+	public bool safeReflection = true;
+	/// <summary>Whether UnityEngine.Object members should be stored by value, reference or both.</summary>
+	[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+	public ES3.ReferenceMode memberReferenceMode = ES3.ReferenceMode.ByRef;
+	/// <summary>Whether the main save methods should save UnityEngine.Objects by value, reference, or both.</summary>
+	[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+	public ES3.ReferenceMode referenceMode = ES3.ReferenceMode.ByRefAndValue;
 
     /// <summary>How many levels of hierarchy Easy Save will serialise. This is used to protect against cyclic references.</summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
+	[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public int serializationDepthLimit = 64;
 
     /// <summary>The names of the Assemblies we should try to load our ES3Types from.</summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public string[] assemblyNames = { "Assembly-CSharp-firstpass", "Assembly-CSharp" };
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+	public string[] assemblyNames = new string[] { "Assembly-CSharp-firstpass", "Assembly-CSharp"};
 
     /// <summary>Gets the full, absolute path which this ES3Settings object identifies.</summary>
     public string FullPath
-    {
-        get
-        {
+	{
+		get
+		{
             if (path == null)
-                throw new NullReferenceException(
-                    "The 'path' field of this ES3Settings is null, indicating that it was not possible to load the default settings from Resources. Please check that the ES3 Default Settings.prefab exists in Assets/Plugins/Resources/ES3/");
+                throw new System.NullReferenceException("The 'path' field of this ES3Settings is null, indicating that it was not possible to load the default settings from Resources. Please check that the ES3 Default Settings.prefab exists in Assets/Plugins/Resources/ES3/");
 
-            if (IsAbsolute(path))
-                return path;
+			if(IsAbsolute(path))
+				return path;
 
-            if (location == ES3.Location.File)
-            {
-                if (directory == ES3.Directory.PersistentDataPath)
-                    return ES3IO.persistentDataPath + "/" + path;
-                if (directory == ES3.Directory.DataPath)
-                    return Application.dataPath + "/" + path;
-                throw new NotImplementedException("File directory \"" + directory + "\" has not been implemented.");
-            }
-
-            if (location == ES3.Location.Resources)
-            {
+			if(location == ES3.Location.File)
+			{
+				if(directory == ES3.Directory.PersistentDataPath)
+					return ES3IO.persistentDataPath + "/" + path;
+				if(directory == ES3.Directory.DataPath)
+					return Application.dataPath + "/" + path;
+				throw new System.NotImplementedException("File directory \""+directory+"\" has not been implemented.");
+			}
+			if(location == ES3.Location.Resources)
+			{
                 // Check that it has valid extension
-                var extension = Path.GetExtension(path);
-                var hasValidExtension = false;
+                var extension = System.IO.Path.GetExtension(path);
+                bool hasValidExtension = false;
                 foreach (var ext in resourcesExtensions)
+                {
                     if (extension == ext)
                     {
                         hasValidExtension = true;
                         break;
                     }
+                }
 
-                if (!hasValidExtension)
-                    throw new ArgumentException(
-                        "Extension of file in Resources must be .json, .bytes, .txt, .csv, .htm, .html, .xml, .yaml or .fnt, but path given was \"" + path + "\"");
+                if(!hasValidExtension)
+                    throw new System.ArgumentException("Extension of file in Resources must be .json, .bytes, .txt, .csv, .htm, .html, .xml, .yaml or .fnt, but path given was \"" + path + "\"");
 
                 // Remove extension
-                var resourcesPath = path.Replace(extension, "");
-                return resourcesPath;
-            }
-
-            return path;
-        }
-    }
+                string resourcesPath = path.Replace(extension, "");
+				return resourcesPath;
+			}
+			return path;
+		}
+	}
 
     #endregion
 
@@ -229,7 +210,7 @@ public class ES3Settings : ICloneable
     /// <summary>Creates a new ES3Settings object with the given path.</summary>
     /// <param name="path">The path associated with this ES3Settings object.</param>
     /// <param name="enums">Accepts an ES3.EncryptionType, ES3.CompressionType, ES3.Location, ES3.Directory or ES3.ReferenceMode.</param>
-    public ES3Settings(string path, params Enum[] enums) : this(enums)
+    public ES3Settings(string path, params System.Enum[] enums) : this(enums)
     {
         if (path != null)
             this.path = path;
@@ -239,21 +220,23 @@ public class ES3Settings : ICloneable
     /// <summary>Creates a new ES3Settings object with the given path.</summary>
     /// <param name="path">The path associated with this ES3Settings object.</param>
     /// <param name="enums">Accepts an ES3.EncryptionType, ES3.CompressionType, ES3.Location, ES3.Directory or ES3.ReferenceMode.</param>
-    public ES3Settings(params Enum[] enums) : this(true)
+    public ES3Settings(params System.Enum[] enums) : this(true)
     {
         foreach (var setting in enums)
+        {
             if (setting is ES3.EncryptionType)
-                encryptionType = (ES3.EncryptionType)setting;
+                this.encryptionType = (ES3.EncryptionType)setting;
             else if (setting is ES3.Location)
-                location = (ES3.Location)setting;
+                this.location = (ES3.Location)setting;
             else if (setting is ES3.CompressionType)
-                compressionType = (ES3.CompressionType)setting;
+                this.compressionType = (ES3.CompressionType)setting;
             else if (setting is ES3.ReferenceMode)
-                referenceMode = (ES3.ReferenceMode)setting;
+                this.referenceMode = (ES3.ReferenceMode)setting;
             else if (setting is ES3.Format)
-                format = (ES3.Format)setting;
+                this.format = (ES3.Format)setting;
             else if (setting is ES3.Directory)
-                directory = (ES3.Directory)setting;
+                this.directory = (ES3.Directory)setting;
+        }
     }
 
     /// <summary>Creates a new ES3Settings object with the given encryption settings.</summary>
@@ -277,7 +260,7 @@ public class ES3Settings : ICloneable
     }
 
     /* Base constructor which allows us to bypass defaults so it can be called by Editor serialization */
-    [EditorBrowsable(EditorBrowsableState.Never)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public ES3Settings(bool applyDefaults)
     {
         if (applyDefaults)
@@ -288,31 +271,28 @@ public class ES3Settings : ICloneable
     #endregion
 
     #region Editor methods
-
 #if UNITY_EDITOR
-    public static string pathToEasySaveFolder;
+    public static string pathToEasySaveFolder = null;
 
     public static string PathToEasySaveFolder()
     {
         // If the path has not yet been cached, get the path and cache it.
         if (string.IsNullOrEmpty(pathToEasySaveFolder))
         {
-            var guids = AssetDatabase.FindAssets("ES3Window");
+            string[] guids = AssetDatabase.FindAssets("ES3Window");
             if (guids.Length == 0)
                 ES3Debug.LogError("Could not locate the Easy Save 3 folder because the ES3Window script has been moved or removed.");
             if (guids.Length > 1)
-                ES3Debug.LogError(
-                    "Could not locate the Easy Save 3 folder because more than one ES3Window script exists in the project, but this needs to be unique to locate the folder.");
+                ES3Debug.LogError("Could not locate the Easy Save 3 folder because more than one ES3Window script exists in the project, but this needs to be unique to locate the folder.");
 
-            pathToEasySaveFolder = AssetDatabase.GUIDToAssetPath(guids[0]).Split(new[] { "Editor" }, StringSplitOptions.RemoveEmptyEntries)[0];
+            pathToEasySaveFolder = AssetDatabase.GUIDToAssetPath(guids[0]).Split(new string[] { "Editor" }, System.StringSplitOptions.RemoveEmptyEntries)[0];
         }
-
         return pathToEasySaveFolder;
     }
 
     internal static string PathToDefaultSettings()
     {
-        return PathToEasySaveFolder() + "Resources/" + defaultSettingsPath + ".asset";
+        return PathToEasySaveFolder() + "Resources/"+defaultSettingsPath+".asset";
     }
 
     internal static void CreateDefaultSettingsFolder()
@@ -327,13 +307,12 @@ public class ES3Settings : ICloneable
     private static ES3SerializableSettings GetOldSettings()
     {
         var go = Resources.Load<GameObject>(defaultSettingsPath.Replace("ES3Defaults", "ES3 Default Settings"));
-        if (go != null)
+        if(go != null)
         {
             var c = go.GetComponent<ES3DefaultSettings>();
             if (c != null && c.settings != null)
                 return c.settings;
         }
-
         return null;
     }
 
@@ -342,7 +321,6 @@ public class ES3Settings : ICloneable
         AssetDatabase.DeleteAsset(PathToDefaultSettings().Replace("ES3Defaults.asset", "ES3 Default Settings.prefab"));
     }
 #endif
-
     #endregion
 
     #region Utility methods
@@ -356,7 +334,7 @@ public class ES3Settings : ICloneable
         return false;
     }
 
-    [EditorBrowsable(EditorBrowsableState.Never)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public object Clone()
     {
         var settings = new ES3Settings();
@@ -393,28 +371,16 @@ public class ES3Settings : ICloneable
  * 	A serializable version of the settings we can use as a field in the Editor, which doesn't automatically
  * 	assign defaults to itself, so we get no serialization errors.
  */
-[EditorBrowsable(EditorBrowsableState.Never)]
-[Serializable]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[System.Serializable]
 public class ES3SerializableSettings : ES3Settings
 {
+	public ES3SerializableSettings() : base(false){}
+	public ES3SerializableSettings(bool applyDefaults) : base(applyDefaults){}
+    public ES3SerializableSettings(string path) : base(false) { this.path = path; }
+    public ES3SerializableSettings(string path, ES3.Location location) : base(false) { this.location = location; }
+
 #if UNITY_EDITOR
-    public bool showAdvancedSettings;
+    public bool showAdvancedSettings = false;
 #endif
-    public ES3SerializableSettings() : base(false)
-    {
-    }
-
-    public ES3SerializableSettings(bool applyDefaults) : base(applyDefaults)
-    {
-    }
-
-    public ES3SerializableSettings(string path) : base(false)
-    {
-        this.path = path;
-    }
-
-    public ES3SerializableSettings(string path, ES3.Location location) : base(false)
-    {
-        this.location = location;
-    }
 }

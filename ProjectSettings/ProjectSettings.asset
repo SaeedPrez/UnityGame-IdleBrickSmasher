@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: Prez Dev AB
-  productName: Idle Brick Breaker
+  productName: Idle Brick Smasher
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -579,24 +579,24 @@ PlayerSettings:
   webGLCloseOnQuit: 0
   webWasm2023: 0
   scriptingDefineSymbols:
-    Android: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    EmbeddedLinux: DOTWEEN;UNITY_VISUAL_SCRIPTING
+    Android: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    EmbeddedLinux: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
     GameCoreScarlett: DOTWEEN
     GameCoreXboxOne: DOTWEEN
-    LinuxHeadlessSimulation: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    Nintendo Switch: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    PS4: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    PS5: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    QNX: DOTWEEN;UNITY_VISUAL_SCRIPTING
+    LinuxHeadlessSimulation: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    Nintendo Switch: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    PS4: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    PS5: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    QNX: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
     ReservedCFE: DOTWEEN
-    Server: UNITY_VISUAL_SCRIPTING
-    Standalone: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    VisionOS: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    WebGL: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    Windows Store Apps: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    XboxOne: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    iPhone: DOTWEEN;UNITY_VISUAL_SCRIPTING
-    tvOS: DOTWEEN;UNITY_VISUAL_SCRIPTING
+    Server: UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    Standalone: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    VisionOS: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    WebGL: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    Windows Store Apps: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    XboxOne: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    iPhone: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
+    tvOS: DOTWEEN;UNITY_VISUAL_SCRIPTING;ES3_TMPRO;ES3_UGUI
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
@@ -632,14 +632,14 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: Idle Brick Breaker
+  metroPackageName: Idle Brick Smasher
   metroPackageVersion: 
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
   metroCertificateIssuer: 
   metroCertificateNotAfter: 0000000000000000
-  metroApplicationDescription: Idle Brick Breaker
+  metroApplicationDescription: Idle Brick Smasher
   wsaImages: {}
   metroTileShortName: 
   metroTileShowName: 0

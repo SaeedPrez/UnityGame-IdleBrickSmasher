@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Prez.Data;
 using Prez.Enums;
 using Prez.Menus;
@@ -80,6 +81,11 @@ namespace Prez.Core
         public event Action<Brick, Vector2> OnBulletCollidedWithBrick = delegate { };
         public void TriggerBulletCollidedWithBrick(Brick brick, Vector2 point) => OnBulletCollidedWithBrick?.Invoke(brick, point);
 
+        // Dps
+
+        public event Action<Dictionary<int, double>> OnDpsUpdated = delegate { };
+        public void TriggerDpsUpdated(Dictionary<int, double> dps) => OnDpsUpdated(dps);
+        
         // Menus
 
         public event Action<MenuBase> OnBottomMenuHidden = delegate { };

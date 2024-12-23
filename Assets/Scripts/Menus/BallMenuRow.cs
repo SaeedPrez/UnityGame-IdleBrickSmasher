@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using Prez.Core;
 using Prez.Data;
@@ -73,7 +74,6 @@ namespace Prez.Menus
         [SerializeField] private TMP_Text _activeDmgUpgradeNextUi;
         [SerializeField] private TMP_Text _activeDmgUpgradeCostUi;
 
-        private Coroutine _dpsUiCoroutine;
         private bool _isUpgradeWindowVisible;
         private RectTransform _rect;
         private Vector2 _rectStartSize;
@@ -92,6 +92,7 @@ namespace Prez.Menus
         {
             EventManager.I.OnBottomMenuHidden += OnBottomMenuHidden;
             EventManager.I.OnUpgradePointsUpdated += OnUpgradePointsUpdated;
+            EventManager.I.OnDpsUpdated += OnDpsUpdated;
             _talentsButton.onClick.AddListener(OnTalentButtonClicked);
             _speedUpgradeButton.onClick.AddListener(OnSpeedUpgradeButtonClicked);
             _dmgUpgradeButton.onClick.AddListener(OnDamageUpgradeButtonClicked);
@@ -105,13 +106,13 @@ namespace Prez.Menus
 
             UpdateStatsUi();
             HideUpgradeWindow();
-            StartCoroutine(UpdateStatsDpsUi());
         }
 
         private void OnDisable()
         {
             EventManager.I.OnBottomMenuHidden -= OnBottomMenuHidden;
             EventManager.I.OnUpgradePointsUpdated -= OnUpgradePointsUpdated;
+            EventManager.I.OnDpsUpdated -= OnDpsUpdated;
             _talentsButton.onClick.RemoveListener(OnTalentButtonClicked);
             _speedUpgradeButton.onClick.RemoveListener(OnSpeedUpgradeButtonClicked);
             _dmgUpgradeButton.onClick.RemoveListener(OnDamageUpgradeButtonClicked);
@@ -119,7 +120,6 @@ namespace Prez.Menus
             _chdUpgradeButton.onClick.RemoveListener(OnCriticalDamageUpgradeButtonClicked);
             _activeHitsUpgradeButton.onClick.RemoveListener(OnCActiveHitsUpgradeButtonClicked);
             _activeDmgUpgradeButton.onClick.RemoveListener(OnCActiveDamageUpgradeButtonClicked);
-            StopCoroutine(UpdateStatsDpsUi());
         }
 
         private void OnBottomMenuHidden(MenuBase menu)
@@ -136,6 +136,12 @@ namespace Prez.Menus
             UpdateCriticalDamageButtonState();
             UpdateActiveHitsButtonState();
             UpdateActiveDamageButtonState();
+        }
+        
+        private void OnDpsUpdated(Dictionary<int, double> dps)
+        {
+            if (dps.ContainsKey(Ball.Data.Id))
+                UpdateStatsDpsUi(dps[Ball.Data.Id]);
         }
 
         private void OnTalentButtonClicked()
@@ -275,20 +281,15 @@ namespace Prez.Menus
             _chdStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallCriticalDamage(Ball) * 100));
             _activeHitsStatsUi.SetText(GameManager.Data.GetBallActiveHits(Ball).ToString());
             _activeDmgStatsUi.SetText(Helper.GetNumberAsString(GameManager.Data.GetBallActiveDamage(Ball) * 100));
-            _dpsStatsUi.SetText(Helper.GetNumberAsString(Ball.Dps));
         }
 
         /// <summary>
         ///     Updates the stats Dps Ui
         /// </summary>
         /// <returns></returns>
-        private IEnumerator UpdateStatsDpsUi()
+        private void UpdateStatsDpsUi(double dps)
         {
-            while (true)
-            {
-                _dpsStatsUi.SetText(Helper.GetNumberAsString(Ball.Dps));
-                yield return new WaitForSeconds(3.33f);
-            }
+            _dpsStatsUi.SetText(Helper.GetNumberAsString(dps));
         }
 
         /// <summary>

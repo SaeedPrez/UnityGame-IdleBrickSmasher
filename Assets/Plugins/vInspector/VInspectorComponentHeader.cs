@@ -1,67 +1,24 @@
 #if UNITY_EDITOR
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using UnityEditor;
-using UnityEditor.UIElements;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEditor.UIElements;
+using System.Reflection;
+using UnityEditor;
 using static VInspector.Libs.VUtils;
 using static VInspector.Libs.VGUI;
+// using static VTools.VDebug;
+
 
 
 namespace VInspector
 {
     public class VInspectorComponentHeader
     {
-        private static IList buttonsList;
-        private static Rect buttonMaskRect;
 
-        private static GUIStyle headerContentStyle;
-        private static GUIStyle headerFoldoutStyle;
-
-        private static int headerContentStyle_defaultLeftPadding;
-        private static int headerFoldoutStyle_defaultLeftMargin;
-        public Component component;
-        private Action defaultHeaderGUIAction;
-
-        public bool editingMultiselection;
-
-        public Editor editor;
-
-        private IMGUIContainer imguiContainer;
-
-        public Vector2 mouseDownPos;
-
-        public bool mousePressedOnBackground;
-        public Vector2 mousePressedOnBackground_initPos;
-        public bool mousePressedOnScriptIcon;
-        public Vector2 mousePressedOnScriptIcon_initPos;
-        public List<Component> multiselectedComponents;
-
-        private EditorWindow window;
-
-
-        public VInspectorComponentHeader(Component component, Editor editor)
-        {
-            this.component = component;
-            this.editor = editor;
-        }
-
-        public Rect headerRect
-        {
-            get
-            {
-                var contentRect = imguiContainer.contentRect;
-
-                if (contentRect.height == 42) // with extra lines like "Multi-object editing not supported"
-                    return contentRect.SetHeight(22);
-                return contentRect.SetHeightFromBottom(22); // fixes offset on transform header in 6000
-            }
-        }
-
-        private void OnGUI()
+        void OnGUI()
         {
             void masks()
             {
@@ -79,8 +36,8 @@ namespace VInspector
 
                     if (headerRect.IsHovered() && !mousePressedOnBackground && EditorWindow.mouseOverWindow == window)
                         backgroundColor = hovered;
-                }
 
+                }
                 void set_buttonMaskSize()
                 {
                     buttonsList ??= typeof(EditorGUIUtility).GetMemberValue<IList>("s_EditorHeaderItemsMethods");
@@ -92,6 +49,7 @@ namespace VInspector
 
 
                     buttonMaskRect = headerRect.AddHeightFromMid(-2).SetXMax(headerRect.xMax - 3).SetWidthFromRight(buttonsCount * 20);
+
                 }
 
                 void hideArrow()
@@ -100,16 +58,16 @@ namespace VInspector
                     if (!VInspectorMenu.minimalModeEnabled) return;
 
                     headerRect.SetWidth(17).MoveX(-2).AddHeightFromMid(-2).AddWidthFromRight(-4).Draw(backgroundColor);
-                }
 
+                }
                 void hideButtons()
                 {
                     if (headerRect.IsHovered()) return;
                     if (!VInspectorMenu.minimalModeEnabled) return;
 
                     buttonMaskRect.Draw(backgroundColor);
-                }
 
+                }
                 void hideScriptText()
                 {
                     if (component is not MonoBehaviour) return;
@@ -117,14 +75,14 @@ namespace VInspector
 
                     var name = component.GetType().Name.Decamelcase();
 
-                    var rect = headerRect.AddHeightFromMid(-2).SetWidth(60).MoveX(name.GetLabelWidth(12, true) + 60 - 3);
+                    var rect = headerRect.AddHeightFromMid(-2).SetWidth(60).MoveX(name.GetLabelWidth(fontSize: 12, isBold: true) + 60 - 3);
 
                     rect.xMax = rect.xMax.Min(buttonMaskRect.x).Max(rect.xMin);
 
 
                     rect.Draw(backgroundColor);
-                }
 
+                }
                 void tintScriptIcon()
                 {
                     if (component is not MonoBehaviour) return;
@@ -133,13 +91,14 @@ namespace VInspector
                     var iconRect = headerRect.MoveX(18).SetWidth(22);
 
                     iconRect.Draw(backgroundColor.SetAlpha(EditorGUIUtility.isProSkin ? .3f : .45f));
-                }
 
+                }
                 void nameCurtain()
                 {
                     var rect = headerRect.AddHeightFromMid(-2).SetXMax(buttonMaskRect.x + 2).SetWidthFromRight(18);
 
                     rect.DrawCurtainLeft(backgroundColor);
+
                 }
 
 
@@ -151,6 +110,7 @@ namespace VInspector
                 hideScriptText();
                 tintScriptIcon();
                 nameCurtain();
+
             }
 
             void scriptIconClicks()
@@ -182,8 +142,8 @@ namespace VInspector
 
 
                     curEvent.Use();
-                }
 
+                }
                 void mouseUp()
                 {
                     if (!curEvent.isMouseUp) return;
@@ -199,8 +159,8 @@ namespace VInspector
                     window.Repaint();
 
                     curEvent.Use();
-                }
 
+                }
                 void startDrag()
                 {
                     if (!curEvent.isMouseDrag) return;
@@ -213,12 +173,14 @@ namespace VInspector
 
                     mousePressedOnScriptIcon = false;
                     mousePressedOnBackground = false;
+
                 }
 
 
                 mosueDown();
                 mouseUp();
                 startDrag();
+
             }
 
             void expandWithAnimation()
@@ -243,9 +205,9 @@ namespace VInspector
 
                 curEvent.Use();
 
-                GUIUtility.hotControl = 0;
-            }
+                EditorGUIUtility.hotControl = 0;
 
+            }
             void createComponentWindow()
             {
                 if (!mousePressedOnBackground) return;
@@ -257,14 +219,19 @@ namespace VInspector
                 if (VInspectorComponentWindow.draggedInstance != null) return;
 
 
-                var position = GUIUtility.GUIToScreenPoint(headerRect.position + (curEvent.mousePosition - mousePressedOnBackground_initPos));
+
+                var position = EditorGUIUtility.GUIToScreenPoint(headerRect.position + (curEvent.mousePosition - mousePressedOnBackground_initPos));
 
                 VInspectorComponentWindow.CreateDraggedInstance(component, position, headerRect.width);
 
 
-                GUIUtility.hotControl = 0;
+
+                EditorGUIUtility.hotControl = 0;
 
                 mousePressedOnBackground = false;
+
+
+
             }
 
             void set_mousePressedOnBackground()
@@ -280,8 +247,8 @@ namespace VInspector
 
                 if (!imguiContainer.contentRect.IsHovered())
                     mousePressedOnBackground = false;
-            }
 
+            }
             void set_hoveredComponentHeader()
             {
                 if (!curEvent.isRepaint) return;
@@ -291,6 +258,7 @@ namespace VInspector
 
                 if (headerRect.IsHovered())
                     VInspector.hoveredComponentHeader = this;
+
             }
 
             void defaultHeaderGUI()
@@ -305,28 +273,30 @@ namespace VInspector
 
                     headerContentStyle_defaultLeftPadding = headerContentStyle.padding.left;
                     headerFoldoutStyle_defaultLeftMargin = headerFoldoutStyle.margin.left;
-                }
 
+                }
                 void setAdjustedOffsets()
                 {
                     if (!VInspectorMenu.minimalModeEnabled) return;
 
                     headerContentStyle.padding.left = headerContentStyle_defaultLeftPadding - 2;
                     headerFoldoutStyle.margin.left = headerFoldoutStyle_defaultLeftMargin - 1;
-                }
 
+                }
                 void setDefaultOffsets()
                 {
                     if (!VInspectorMenu.minimalModeEnabled) return;
 
                     headerContentStyle.padding.left = headerContentStyle_defaultLeftPadding;
                     headerFoldoutStyle.margin.left = headerFoldoutStyle_defaultLeftMargin;
+
                 }
 
                 initOffsets();
                 setAdjustedOffsets();
                 defaultHeaderGUIAction.Invoke();
                 setDefaultOffsets();
+
             }
 
             void preventKeyboardFocus()
@@ -338,7 +308,9 @@ namespace VInspector
                 GUIUtility.keyboardControl = 0;
 
                 // removes that annoying blue highlight after clicking on header
+
             }
+
 
 
             if (curEvent.isRepaint)
@@ -357,17 +329,46 @@ namespace VInspector
                 defaultHeaderGUI();
 
             preventKeyboardFocus();
+
         }
+
+        static IList buttonsList;
+        static Rect buttonMaskRect;
+
+        public bool mousePressedOnBackground;
+        public bool mousePressedOnScriptIcon;
+        public Vector2 mousePressedOnBackground_initPos;
+        public Vector2 mousePressedOnScriptIcon_initPos;
+
+        public Rect headerRect
+        {
+            get
+            {
+                var contentRect = imguiContainer.contentRect;
+
+                if (contentRect.height == 42) // with extra lines like "Multi-object editing not supported"
+                    return contentRect.SetHeight(22);
+                else
+                    return contentRect.SetHeightFromBottom(22); // fixes offset on transform header in 6000
+            }
+        }
+
+        static GUIStyle headerContentStyle;
+        static GUIStyle headerFoldoutStyle;
+
+        static int headerContentStyle_defaultLeftPadding;
+        static int headerFoldoutStyle_defaultLeftMargin;
+
+        public Vector2 mouseDownPos;
+
+
+
+
 
 
         public void Update()
         {
-            if (imguiContainer is VisualElement v && v.panel == null)
-            {
-                imguiContainer.onGUIHandler = defaultHeaderGUIAction;
-                imguiContainer = null;
-            }
-
+            if (imguiContainer is VisualElement v && v.panel == null) { imguiContainer.onGUIHandler = defaultHeaderGUIAction; imguiContainer = null; }
             if (imguiContainer?.onGUIHandler.Method.DeclaringType == typeof(VInspectorComponentHeader)) return;
             if (imguiContainer?.onGUIHandler.Method.DeclaringType.FullName.StartsWith("Sisus") == true) return;
             if (typeof(ScriptableObject).IsAssignableFrom(component.GetType())) return;
@@ -386,8 +387,8 @@ namespace VInspector
                 // in some versions wrong inspector may be returned by propertyViewer when there are multiple inspectors
                 // also the same instance of an editor may be used on all inspectors
                 // here we fix it for cases when multiple inspectors are in the same dock area
-            }
 
+            }
             void findHeader(VisualElement element)
             {
                 if (element == null) return;
@@ -411,14 +412,16 @@ namespace VInspector
                             multiselectedComponents = editor.targets.Cast<Component>().ToList();
 
                         return;
+
                     }
+
                 }
 
                 foreach (var r in element.Children())
                     if (imguiContainer == null)
                         findHeader(r);
-            }
 
+            }
             void setupGUICallbacks()
             {
                 if (imguiContainer == null) return;
@@ -430,7 +433,28 @@ namespace VInspector
             fixWrongWindow();
             findHeader(window.rootVisualElement);
             setupGUICallbacks();
+
         }
+
+        public bool editingMultiselection;
+        public List<Component> multiselectedComponents;
+
+        IMGUIContainer imguiContainer;
+        System.Action defaultHeaderGUIAction;
+
+        EditorWindow window;
+
+
+
+
+
+
+
+        public VInspectorComponentHeader(Component component, Editor editor) { this.component = component; this.editor = editor; }
+
+        public Editor editor;
+        public Component component;
+
     }
 }
 #endif

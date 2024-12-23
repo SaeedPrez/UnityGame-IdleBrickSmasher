@@ -3,9 +3,9 @@
 /workspace.xml
 # Rider ignored files
 /contentModel.xml
-/modules.xml
-/.idea.UnityGame-IdleBrickBreaker.iml
 /projectSettingsUpdater.xml
+/.idea.UnityGame-IdleBrickSmasher.iml
+/modules.xml
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml

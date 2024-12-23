@@ -1,544 +1,25 @@
 #if UNITY_EDITOR
-using System;
-using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
-using System.Reflection;
-using UnityEditor;
-using UnityEditor.UIElements;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEditor.UIElements;
+using System.Reflection;
+using UnityEditor;
 using Type = System.Type;
 using Attribute = System.Attribute;
 using static VInspector.VInspector;
 using static VInspector.VInspectorState;
 using static VInspector.Libs.VUtils;
 using static VInspector.Libs.VGUI;
-using Object = UnityEngine.Object;
+// using static VTools.VDebug;
 
 
 namespace VInspector
 {
-    internal class VInspectorEditor
+    class VInspectorEditor
     {
-        private static readonly Dictionary<int, Rect> fieldRects_byLastControlId = new();
-
-
-        private static readonly Dictionary<Type, List<MemberInfo>> drawableMemberLists_byTargetType = new();
-
-        private static readonly Dictionary<Type, List<FieldInfo>> fieldsWithButtonAttributes_byTargetType = new();
-        private static readonly Dictionary<Type, List<MethodInfo>> methodsWithButtonAttributes_byTargetType = new();
-        private static readonly Dictionary<Type, List<TabAttribute>> tabAttributes_byTargetType = new();
-        private static readonly Dictionary<Type, List<FoldoutAttribute>> foldoutAttributes_byTargetType = new();
-        private static Dictionary<Type, List<MemberInfo>> showInInspectorMembers_byTargetType = new();
-        private static Dictionary<FieldInfo, List<MethodInfo>> valueChangedCallbacks_byFieldInfo;
-        private static Dictionary<string, List<MethodInfo>> valueChangedCallbacks_byGroupPath;
-
-
-        [EndFoldout] [EndTab] [EndIf] private static object declaringTypeChangeMarker;
-
-        public Type _targetType;
-
-        public int baseIndentLevel;
-        public List<Button> buttons = new();
-        public Dictionary<string, VInspectorEditor> nestedEditors_byPropertyPath = new();
-        public Foldout rootFoldout;
-        public Func<SerializedProperty> rootPropertyGetter;
-
-        public Tab rootTab;
-
-        public SerializedProperty scriptFieldProperty;
-        public Dictionary<MemberInfo, SerializedProperty> serializedProperties_byMemberInfos = new();
-
-        public Func<IEnumerable<object>> targetsGetter;
-
-
-        public VInspectorEditor(Func<SerializedProperty> rootPropertyGetter, Func<IEnumerable<object>> targetsGetter)
-        {
-            this.rootPropertyGetter = rootPropertyGetter;
-            this.targetsGetter = targetsGetter;
-
-
-            void createTabs()
-            {
-                void setupTab(Tab tab, IEnumerable<string> allSubtabPaths)
-                {
-                    void refreshSubtabs()
-                    {
-                        var names = allSubtabPaths.Select(r => r.Split('/').First()).ToList();
-
-                        foreach (var name in names)
-                            if (!tab.subtabs.Any(r => r.name == name))
-                                tab.subtabs.Add(new Tab { name = name });
-
-                        foreach (var subtab in tab.subtabs.ToList())
-                            if (!names.Any(r => r == subtab.name))
-                                tab.subtabs.Remove(subtab);
-
-                        tab.subtabs.SortBy(r => names.IndexOf(r.name));
-                    }
-
-                    void setupSubtabs()
-                    {
-                        foreach (var subtab in tab.subtabs)
-                            setupTab(subtab, allSubtabPaths.Where(r => r.StartsWith(subtab.name + "/")).Select(r => r.Remove(subtab.name + "/")).ToList());
-                    }
-
-                    refreshSubtabs();
-                    setupSubtabs();
-                }
-
-                void findAttributes()
-                {
-                    if (tabAttributes_byTargetType.ContainsKey(targetType)) return;
-
-                    var attributes = TypeCache.GetFieldsWithAttribute<TabAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType))
-                        .OrderBy(r => r.MetadataToken)
-                        .Select(r => r.GetCustomAttributeCached<TabAttribute>());
-
-                    tabAttributes_byTargetType[targetType] = attributes.ToList();
-                }
-
-                void createTabs()
-                {
-                    rootTab = new Tab { isRootTab = true };
-
-                    var allTabPaths = tabAttributes_byTargetType[targetType].Select(r => r.name);
-
-                    setupTab(rootTab, allTabPaths);
-                }
-
-
-                findAttributes();
-                createTabs();
-            }
-
-            void createFoldouts()
-            {
-                void setupFoldout(Foldout foldout, IEnumerable<string> allSubfoldoutPaths)
-                {
-                    void refreshSubfoldouts()
-                    {
-                        var names = allSubfoldoutPaths.Select(r => r.Split('/').First()).ToList();
-
-                        foreach (var name in names)
-                            if (foldout.subfoldouts.Find(r => r.name == name) == null)
-                                foldout.subfoldouts.Add(new Foldout { name = name });
-
-                        foreach (var subtab in foldout.subfoldouts.ToList())
-                            if (names.Find(r => r == subtab.name) == null)
-                                foldout.subfoldouts.Remove(subtab);
-
-                        foldout.subfoldouts.SortBy(r => names.IndexOf(r.name));
-                    }
-
-                    void setupSubfoldouts()
-                    {
-                        foreach (var subtab in foldout.subfoldouts)
-                            setupFoldout(subtab, allSubfoldoutPaths.Where(r => r.StartsWith(subtab.name + "/")).Select(r => r.Remove(subtab.name + "/")).ToList());
-                    }
-
-                    refreshSubfoldouts();
-                    setupSubfoldouts();
-                }
-
-                void findAttributes()
-                {
-                    if (foldoutAttributes_byTargetType.ContainsKey(targetType)) return;
-
-                    var attributes = TypeCache.GetFieldsWithAttribute<FoldoutAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType))
-                        .OrderBy(r => r.MetadataToken)
-                        .Select(r => r.GetCustomAttributeCached<FoldoutAttribute>());
-
-                    foldoutAttributes_byTargetType[targetType] = attributes.ToList();
-                }
-
-                void createFoldouts()
-                {
-                    rootFoldout = new Foldout { isRootFoldout = true };
-
-                    var allFoldoutPaths = foldoutAttributes_byTargetType[targetType].Select(r => r.name);
-
-                    setupFoldout(rootFoldout, allFoldoutPaths);
-                }
-
-
-                findAttributes();
-                createFoldouts();
-            }
-
-            void createButtons()
-            {
-                void createButton(MemberInfo member, ButtonAttribute buttonAttribute)
-                {
-                    var button = new Button();
-
-                    button.size = buttonAttribute.size;
-                    button.space = buttonAttribute.space;
-                    button.color = buttonAttribute.color;
-
-
-                    if (member.GetCustomAttributeCached<TabAttribute>() is TabAttribute tabAttribute)
-                        button.tabAttribute = tabAttribute;
-
-                    if (member.GetCustomAttributeCached<FoldoutAttribute>() is FoldoutAttribute foldoutAttribute)
-                        button.foldoutAttribute = foldoutAttribute;
-
-                    if (member.GetCustomAttributeCached<IfAttribute>() is IfAttribute ifAttribute)
-                        button.ifAttribute = ifAttribute;
-
-
-                    if (member is FieldInfo field && field.FieldType == typeof(bool))
-                    {
-                        var fieldTarget = field.IsStatic ? null : target;
-
-                        button.action = o => field.SetValue(o, !(bool)field.GetValue(o));
-                        button.name = buttonAttribute.name != "" ? buttonAttribute.name : field.Name.FormatVariableName(false);
-                        button.isPressed = () => (bool)field.GetValue(fieldTarget);
-                    }
-
-                    if (member is MethodInfo method)
-                        if (!method.GetParameters().Any())
-                        {
-                            var methodTarget = method.IsStatic ? null : target;
-
-                            button.action = methodTarget => method.Invoke(methodTarget, null);
-                            button.name = buttonAttribute.name != "" ? buttonAttribute.name : method.Name.FormatVariableName(false);
-                            button.isPressed = () => false;
-                        }
-                        else
-                        {
-                            var methodTarget = method.IsStatic ? null : target;
-
-                            button.action = methodTarget => method.Invoke(methodTarget,
-                                Enumerable.Range(0, button.parameterInfos.Count).Select(i => button.GetParameterValue(i)).ToArray());
-                            button.name = buttonAttribute.name != "" ? buttonAttribute.name : method.Name.FormatVariableName(false);
-                            button.isPressed = () => false;
-
-                            button.parameterInfos = method.GetParameters().ToList();
-                        }
-
-
-                    if (button.action != null)
-                        if (button.foldoutAttribute != null && rootFoldout.GetSubfoldout(button.foldoutAttribute.name) is Foldout foldout)
-                            foldout.buttons.Add(button);
-                        else
-                            buttons.Add(button);
-                }
-
-                void findFields()
-                {
-                    if (fieldsWithButtonAttributes_byTargetType.ContainsKey(targetType)) return;
-
-                    var fields = TypeCache.GetFieldsWithAttribute<ButtonAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType))
-                        .OrderBy(r => r.MetadataToken);
-
-                    fieldsWithButtonAttributes_byTargetType[targetType] = fields.ToList();
-                }
-
-                void findMethods()
-                {
-                    if (methodsWithButtonAttributes_byTargetType.ContainsKey(targetType)) return;
-
-                    var methods = TypeCache.GetMethodsWithAttribute<ButtonAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType) ||
-                                    (targetType.BaseType.IsGenericType && targetType.BaseType.GetGenericTypeDefinition() == r.DeclaringType))
-                        .OrderBy(r => r.MetadataToken);
-
-                    methodsWithButtonAttributes_byTargetType[targetType] = methods.ToList();
-                }
-
-                void createButtons()
-                {
-                    buttons = new List<Button>();
-
-                    foreach (var method in methodsWithButtonAttributes_byTargetType[targetType])
-                        createButton(method, method.GetCustomAttributeCached<ButtonAttribute>());
-
-                    foreach (var field in fieldsWithButtonAttributes_byTargetType[targetType])
-                        createButton(field, field.GetCustomAttributeCached<ButtonAttribute>());
-                }
-
-
-                findFields();
-                findMethods();
-                createButtons();
-            }
-
-            void linkToState()
-            {
-                if (!rootTab.subtabs.Any() && !rootFoldout.subfoldouts.Any() && !buttons.Any(r => r.parameterInfos.Any())) return;
-
-
-                AttributesState attributesState;
-
-                void set_attributesState()
-                {
-                    var scriptName = rootProperty.serializedObject.targetObject.GetType().Name;
-
-                    if (!VInspectorState.instance.attributeStates_byScriptName.ContainsKey(scriptName))
-                        VInspectorState.instance.attributeStates_byScriptName[scriptName] = new AttributesState();
-
-                    attributesState = VInspectorState.instance.attributeStates_byScriptName[scriptName];
-                }
-
-                void linkTab(Tab tab, string parentPath)
-                {
-                    tab.attributesState = attributesState;
-                    tab.path = parentPath + "/" + tab.name;
-
-                    attributesState.selectedSubtabIndexes_byTabPath.TryGetValue(tab.path, out tab._selectedSubtabIndex);
-
-                    foreach (var subtab in tab.subtabs)
-                        linkTab(subtab, tab.path);
-                }
-
-                void linkFoldout(Foldout foldout, string parentPath)
-                {
-                    foldout.attributesState = attributesState;
-                    foldout.path = parentPath + "/" + foldout.name;
-
-                    attributesState.isExpandeds_byFoldoutPath.TryGetValue(foldout.path, out foldout._isExpanded);
-
-                    foreach (var subfoldout in foldout.subfoldouts)
-                        linkFoldout(subfoldout, foldout.path);
-                }
-
-                void linkButton(Button button, string parentPath)
-                {
-                    button.attributesState = attributesState;
-                    button.path = parentPath + "/" + button.name;
-
-                    attributesState.isExpandeds_byButtonPath.TryGetValue(button.path, out button._isExpanded);
-                }
-
-
-                set_attributesState();
-                linkTab(rootTab, rootProperty.propertyPath);
-                linkFoldout(rootFoldout, rootProperty.propertyPath);
-
-                foreach (var r in buttons.Where(r => r.parameterInfos.Any()))
-                    linkButton(r, rootProperty.propertyPath);
-            }
-
-            void createValueChangedCallbacks()
-            {
-                if (valueChangedCallbacks_byFieldInfo != null) return;
-
-                valueChangedCallbacks_byFieldInfo = new Dictionary<FieldInfo, List<MethodInfo>>();
-                valueChangedCallbacks_byGroupPath = new Dictionary<string, List<MethodInfo>>();
-
-                var methodInfos = TypeCache.GetMethodsWithAttribute<OnValueChangedAttribute>()
-                    .Where(r => r.GetParameters().Length == 0)
-                    .OrderBy(r => r.MetadataToken);
-
-
-                void Add<T1, T2>(Dictionary<T1, List<T2>> dictionary, T1 key, T2 value)
-                {
-                    if (dictionary.TryGetValue(key, out var alreadyCreatedList))
-                        alreadyCreatedList.Add(value);
-                    else
-                        dictionary[key] = new List<T2> { value };
-                }
-
-                foreach (var methodInfo in methodInfos)
-                foreach (var attribute in methodInfo.GetCustomAttributes<OnValueChangedAttribute>())
-                foreach (var name in attribute.variableOrGroupNames)
-
-                    if (methodInfo.DeclaringType.GetFieldInfo(name) is FieldInfo fieldInfo)
-                        Add(valueChangedCallbacks_byFieldInfo, fieldInfo, methodInfo);
-                    else
-                        Add(valueChangedCallbacks_byGroupPath, name, methodInfo);
-            }
-
-            void fillPropertiesDictionary()
-            {
-                serializedProperties_byMemberInfos = new Dictionary<MemberInfo, SerializedProperty>();
-
-
-                var curProperty = rootProperty.Copy();
-
-                curProperty.NextVisible(true);
-
-                if (curProperty.name == "m_Script")
-                {
-                    scriptFieldProperty = curProperty.Copy();
-                    if (!curProperty.NextVisible(false)) return;
-                }
-
-
-                do
-                {
-                    if (targetType.GetFieldInfo(curProperty.name) is FieldInfo fieldInfo)
-                        if (curProperty.propertyPath.StartsWith(rootProperty.propertyPath) ||
-                            rootProperty.propertyPath == "") // fixes bug where nested editors could contain members with the same name from parent editors
-                            serializedProperties_byMemberInfos[fieldInfo] = curProperty.Copy();
-                } while (curProperty.NextVisible(false));
-            }
-
-            void fillDrawableMembers()
-            {
-                if (drawableMemberLists_byTargetType.ContainsKey(targetType)) return;
-
-
-                var membersHashset = new HashSet<MemberInfo>();
-
-                void serializedFields()
-                {
-                    var curProperty = rootProperty.Copy();
-
-                    curProperty.NextVisible(true);
-
-                    if (curProperty.name == "m_Script")
-                        if (!curProperty.NextVisible(false))
-                            return;
-
-                    do
-                    {
-                        if (targetType.GetFieldInfo(curProperty.name) is FieldInfo fieldInfo)
-                            membersHashset.Add(fieldInfo);
-                    } while (curProperty.NextVisible(false));
-                }
-
-                void showInInspectorFields()
-                {
-                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<ShowInInspectorAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType))
-                        .Select(r => r as MemberInfo));
-                }
-
-                void showInInspectorProperties()
-                {
-                    membersHashset.UnionWith(targetType
-                        .GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
-                        .Where(r => Attribute.IsDefined(r, typeof(ShowInInspectorAttribute)))
-                        .Where(r => r.CanRead)
-                        .Select(r => r as MemberInfo));
-                }
-
-                void groupingAttributesMembers()
-                {
-                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<TabAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
-
-                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<EndTabAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
-
-
-                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<FoldoutAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
-
-                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<EndFoldoutAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
-
-
-                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<IfAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
-
-                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<EndIfAttribute>()
-                        .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
-
-
-                    // these members aren't necessarily visible 
-                    // but need to be drawn anyway for grouping to work as users would expect
-                }
-
-
-                var membersList = new List<MemberInfo>();
-
-                void orderByDeclaration()
-                {
-                    membersList = membersHashset.OrderBy(r => r.DeclaringType == targetType)
-                        .ThenBy(r => r.MetadataToken)
-                        .ToList();
-                }
-
-                void insertTypeChangeMarkers()
-                {
-                    var prevDeclaringType = default(Type);
-
-                    for (var i = 0; i < membersList.Count; i++)
-                    {
-                        if (prevDeclaringType != membersList[i].DeclaringType && prevDeclaringType != null)
-                        {
-                            membersList.Insert(i, typeof(VInspectorEditor).GetFieldInfo(nameof(declaringTypeChangeMarker)));
-                            i++;
-                        }
-
-                        prevDeclaringType = membersList[i].DeclaringType;
-                    }
-                }
-
-                void mergeFoldouts()
-                {
-                    var endedFoldouts = new HashSet<string>();
-                    var lastMemberInFoldout_byFoldoutPath = new Dictionary<string, MemberInfo>();
-
-                    var curFoldoutPath = "";
-                    var prevFoldoutPath = "";
-
-                    for (var i = 0; i < membersList.Count; i++)
-                    {
-                        if (membersList[i].GetCustomAttributeCached<EndFoldoutAttribute>() is EndFoldoutAttribute)
-                            curFoldoutPath = "";
-
-                        if (membersList[i].GetCustomAttributeCached<FoldoutAttribute>() is FoldoutAttribute foldoutAttribute)
-                            curFoldoutPath = foldoutAttribute.name;
-
-
-                        if (prevFoldoutPath != curFoldoutPath && prevFoldoutPath != "")
-                        {
-                            endedFoldouts.Add(prevFoldoutPath);
-                            lastMemberInFoldout_byFoldoutPath[prevFoldoutPath] = membersList[i - 1];
-                        }
-
-                        if (endedFoldouts.Contains(curFoldoutPath))
-                        {
-                            var member = membersList[i];
-
-                            var foldoutEndsAt = membersList.IndexOf(lastMemberInFoldout_byFoldoutPath[curFoldoutPath]);
-
-                            membersList.RemoveAt(i);
-                            membersList.AddAt(member, foldoutEndsAt + 1);
-                        }
-
-
-                        prevFoldoutPath = curFoldoutPath;
-                    }
-                }
-
-
-                serializedFields();
-                showInInspectorFields();
-                showInInspectorProperties();
-                groupingAttributesMembers();
-
-                orderByDeclaration();
-                insertTypeChangeMarkers();
-                mergeFoldouts();
-
-                drawableMemberLists_byTargetType[targetType] = membersList;
-            }
-
-
-            createTabs();
-            createFoldouts();
-            createButtons();
-            linkToState();
-
-            createValueChangedCallbacks();
-
-            fillPropertiesDictionary();
-            fillDrawableMembers();
-        }
-
-        public SerializedProperty rootProperty => rootPropertyGetter.Invoke();
-        public IEnumerable<object> targets => targetsGetter.Invoke();
-        public object target => targets.FirstOrDefault();
-
-        public Type targetType => _targetType ??= target?.GetType();
 
         public void OnGUI()
         {
@@ -550,8 +31,10 @@ namespace VInspector
             var selectedTabPath = rootTab.GetSelectedTabPath();
 
 
+
             void drawMember(MemberInfo memberInfo)
             {
+
                 void ifs()
                 {
                     var endIfAttribute = memberInfo.GetCustomAttributeCached<EndIfAttribute>();
@@ -565,8 +48,8 @@ namespace VInspector
                     if (ifAttribute is ShowIfAttribute) hideField = !ifAttribute.Evaluate(target);
                     if (ifAttribute is DisableIfAttribute) disableField = ifAttribute.Evaluate(target);
                     if (ifAttribute is EnableIfAttribute) disableField = !ifAttribute.Evaluate(target);
-                }
 
+                }
                 void tabs()
                 {
                     void drawSubtabs(Tab tab)
@@ -586,12 +69,14 @@ namespace VInspector
                             tab.selectedSubtabIndex = tab.subtabs.IndexOfFirst(r => r.name == selName);
 
                             selectedTabPath = rootTab.GetSelectedTabPath();
+
                         }
 
 
                         GUI.backgroundColor = Color.white;
 
                         tab.subtabsDrawn = true;
+
                     }
 
                     void endTab()
@@ -602,8 +87,8 @@ namespace VInspector
                         drawingFoldoutPath = "";
                         hideField = false;
                         disableField = false;
-                    }
 
+                    }
                     void beginTab()
                     {
                         if (memberInfo.GetCustomAttributeCached<TabAttribute>() is not TabAttribute tabAttribute) return;
@@ -612,8 +97,8 @@ namespace VInspector
                         drawingFoldoutPath = "";
                         hideField = false;
                         disableField = false;
-                    }
 
+                    }
                     void ensureNeededTabsDrawn()
                     {
                         if (!selectedTabPath.StartsWith(drawingTabPath)) return;
@@ -627,15 +112,17 @@ namespace VInspector
                                 drawSubtabs(curTab);
 
                             curTab = curTab.subtabs.Find(r => r.name == name);
+
                         }
+
                     }
 
 
                     endTab();
                     beginTab();
                     ensureNeededTabsDrawn();
-                }
 
+                }
                 void foldouts()
                 {
                     bool drawFoldout(string name, bool isExpanded, Foldout foldout)
@@ -643,8 +130,8 @@ namespace VInspector
                         var controlRect = EditorGUILayout.GetControlRect();
                         var fullRect = controlRect.AddWidthFromRight(-15 * EditorGUI.indentLevel).AddWidthFromRight(18).AddWidth(3);
 
-                        var controlId = GUIUtility.GetControlID(FocusType.Passive);
-                        var isPressed = GUIUtility.hotControl == controlId;
+                        var controlId = EditorGUIUtility.GetControlID(FocusType.Passive);
+                        var isPressed = EditorGUIUtility.hotControl == controlId;
 
                         void name_()
                         {
@@ -657,8 +144,9 @@ namespace VInspector
                             GUI.Label(labelRect, name);
 
                             ResetLabelStyle();
-                        }
 
+
+                        }
                         void triangle()
                         {
                             // return;
@@ -667,8 +155,8 @@ namespace VInspector
                             var unityFoldoutRect = controlRect.MoveX(-.5f);
 
                             isExpanded = EditorGUI.Foldout(unityFoldoutRect, isExpanded, "");
-                        }
 
+                        }
                         void highlight()
                         {
                             var hoveredColor = Greyscale(1, .06f);
@@ -682,6 +170,7 @@ namespace VInspector
 
                             else if (fullRect.IsHovered())
                                 fullRect.Draw(hoveredColor);
+
                         }
 
                         void mouseDown()
@@ -689,11 +178,11 @@ namespace VInspector
                             if (!curEvent.isMouseDown) return;
                             if (!fullRect.IsHovered()) return;
 
-                            GUIUtility.hotControl = controlId;
+                            EditorGUIUtility.hotControl = controlId;
 
                             curEvent.Use();
-                        }
 
+                        }
                         void mouseUp()
                         {
                             if (!curEvent.isMouseUp) return;
@@ -702,11 +191,12 @@ namespace VInspector
                             if (fullRect.IsHovered())
                                 isExpanded = !isExpanded;
 
-                            GUIUtility.hotControl = 0;
+                            EditorGUIUtility.hotControl = 0;
 
-                            GUIUtility.keyboardControl = 0;
+                            EditorGUIUtility.keyboardControl = 0;
 
                             curEvent.Use();
+
                         }
 
 
@@ -720,8 +210,9 @@ namespace VInspector
 
 
                         return isExpanded;
-                    }
 
+
+                    }
                     void drawButtons(Foldout foldout)
                     {
                         var noButtonsToShow = true;
@@ -736,6 +227,7 @@ namespace VInspector
                             Space(-10);
                         else
                             Space(5);
+
                     }
 
                     void beginFoldout(string name)
@@ -743,16 +235,18 @@ namespace VInspector
                         if (!rootFoldout.IsSubfoldoutContentVisible(drawingFoldoutPath)) return;
 
 
+
                         updateIndentLevel();
 
                         drawingFoldoutPath = drawingFoldoutPath.CombinePath(name);
 
 
+
                         var foldout = rootFoldout.GetSubfoldout(drawingFoldoutPath);
 
                         foldout.isExpanded = drawFoldout(foldout.name, foldout.isExpanded, foldout);
-                    }
 
+                    }
                     void endFoldout()
                     {
                         var foldout = rootFoldout.GetSubfoldout(drawingFoldoutPath);
@@ -761,7 +255,9 @@ namespace VInspector
                             drawButtons(foldout);
 
                         drawingFoldoutPath = drawingFoldoutPath.HasParentPath() ? drawingFoldoutPath.GetParentPath() : "";
+
                     }
+
 
 
                     var newFoldoutPath = drawingFoldoutPath;
@@ -775,23 +271,28 @@ namespace VInspector
                     if (newFoldoutPath == drawingFoldoutPath) return;
 
 
+
+
                     var drawingPathNames = drawingFoldoutPath.Split('/').Where(r => r != "").ToList();
 
                     var newPathNames = newFoldoutPath.Split('/').Where(r => r != "").ToList();
 
                     var sharedPathNames = new List<string>();
 
-                    for (var i = 0; i < drawingPathNames.Count && i < newPathNames.Count; i++)
+                    for (int i = 0; i < drawingPathNames.Count && i < newPathNames.Count; i++)
                         if (drawingPathNames[i] == newPathNames[i])
                             sharedPathNames.Add(drawingPathNames[i]);
                         else break;
 
 
-                    for (var i = drawingPathNames.Count; i > sharedPathNames.Count; i--)
+
+
+                    for (int i = drawingPathNames.Count; i > sharedPathNames.Count; i--)
                         endFoldout();
 
-                    for (var i = sharedPathNames.Count; i < newPathNames.Count; i++)
+                    for (int i = sharedPathNames.Count; i < newPathNames.Count; i++)
                         beginFoldout(newPathNames[i]);
+
                 }
 
                 void updateIndentLevel()
@@ -812,7 +313,7 @@ namespace VInspector
                     var isSerialized = serializedProperties_byMemberInfos.TryGetValue(memberInfo, out var serializedProeprty);
                     var isNestedEditor = isSerialized && HasVInspectorAttribtues(fieldInfo.FieldType);
                     var isResettable = isSerialized && VInspectorResettableVariables.IsResettable(fieldInfo);
-                    var isReadOnly = Attribute.IsDefined(memberInfo, typeof(ReadOnlyAttribute)) || (memberInfo is PropertyInfo && !propertyInfo.CanWrite);
+                    var isReadOnly = Attribute.IsDefined(memberInfo, typeof(ReadOnlyAttribute)) || memberInfo is PropertyInfo && !propertyInfo.CanWrite;
 
                     void serialized_default()
                     {
@@ -822,8 +323,8 @@ namespace VInspector
                         if (Attribute.IsDefined(memberInfo, typeof(ButtonAttribute))) return;
 
                         EditorGUILayout.PropertyField(serializedProeprty, true);
-                    }
 
+                    }
                     void serialized_resettable()
                     {
                         if (!isSerialized) return;
@@ -834,22 +335,26 @@ namespace VInspector
                         var lastControlId = typeof(EditorGUIUtility).GetFieldValue<int>("s_LastControlID");
 
 
+
                         if (!curEvent.isRepaint)
                             if (fieldRects_byLastControlId.ContainsKey(lastControlId))
                                 VInspectorResettableVariables.ResetButtonGUI(fieldRects_byLastControlId[lastControlId], serializedProeprty, fieldInfo, targets);
 
 
+
                         EditorGUILayout.PropertyField(serializedProeprty, true);
 
                         if (curEvent.isRepaint)
-                            fieldRects_byLastControlId[lastControlId] = lastRect.AddWidthFromRight(-EditorGUIUtility.labelWidth - 2)
-                                .SetHeightFromBottom(EditorGUIUtility.singleLineHeight);
+                            fieldRects_byLastControlId[lastControlId] = lastRect.AddWidthFromRight(-EditorGUIUtility.labelWidth - 2).SetHeightFromBottom(EditorGUIUtility.singleLineHeight);
+
 
 
                         if (curEvent.isRepaint)
                             VInspectorResettableVariables.ResetButtonGUI(fieldRects_byLastControlId[lastControlId], serializedProeprty, fieldInfo, targets);
-                    }
 
+
+
+                    }
                     void serialized_nestedEditor()
                     {
                         if (!isSerialized) return;
@@ -861,12 +366,12 @@ namespace VInspector
                         if (!serializedProeprty.isExpanded) return;
 
                         if (!nestedEditors_byPropertyPath.TryGetValue(serializedProeprty.propertyPath, out var nestedEditor))
-                            nestedEditor = nestedEditors_byPropertyPath[serializedProeprty.propertyPath] = new VInspectorEditor(() => serializedProeprty,
-                                () => targets.Select(r => fieldInfo.GetValue(r)));
+                            nestedEditor = nestedEditors_byPropertyPath[serializedProeprty.propertyPath] = new VInspectorEditor(rootPropertyGetter: () => serializedProeprty,
+                                                                                                                                   targetsGetter: () => targets.Select(r => fieldInfo.GetValue(r)));
                         nestedEditor.baseIndentLevel = EditorGUI.indentLevel + 1;
                         nestedEditor.OnGUI();
-                    }
 
+                    }
                     void nonSerialized_field()
                     {
                         if (isSerialized) return;
@@ -896,7 +401,7 @@ namespace VInspector
                         else if (type == typeof(BoundsInt)) newValue = EditorGUILayout.BoundsIntField(name, (BoundsInt)curValue);
                         else if (type == typeof(Vector2Int)) newValue = EditorGUILayout.Vector2IntField(name, (Vector2Int)curValue);
                         else if (type == typeof(Vector3Int)) newValue = EditorGUILayout.Vector3IntField(name, (Vector3Int)curValue);
-                        else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (Enum)curValue);
+                        else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (System.Enum)curValue);
                         else if (typeof(Object).IsAssignableFrom(type)) newValue = EditorGUILayout.ObjectField(name, (Object)curValue, type, true);
                         else EditorGUILayout.TextField(name, curValue?.ToString());
 
@@ -904,8 +409,8 @@ namespace VInspector
                         fieldInfo.SetValue(fieldInfo.IsStatic ? null : target, newValue);
 
                         noVariablesShown = false;
-                    }
 
+                    }
                     void nonSerialized_property()
                     {
                         if (isSerialized) return;
@@ -935,16 +440,17 @@ namespace VInspector
                         else if (type == typeof(BoundsInt)) newValue = EditorGUILayout.BoundsIntField(name, (BoundsInt)curValue);
                         else if (type == typeof(Vector2Int)) newValue = EditorGUILayout.Vector2IntField(name, (Vector2Int)curValue);
                         else if (type == typeof(Vector3Int)) newValue = EditorGUILayout.Vector3IntField(name, (Vector3Int)curValue);
-                        else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (Enum)curValue);
+                        else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (System.Enum)curValue);
                         else if (typeof(Object).IsAssignableFrom(type)) newValue = EditorGUILayout.ObjectField(name, (Object)curValue, type, true);
                         else EditorGUILayout.TextField(name, curValue?.ToString());
 
 
                         if (propertyInfo.CanWrite && !Attribute.IsDefined(propertyInfo, typeof(ReadOnlyAttribute)))
-                            if (!Equals(newValue, curValue))
+                            if (!object.Equals(newValue, curValue))
                                 propertyInfo.SetValue(propertyInfo.GetAccessors(true).First().IsStatic ? null : target, newValue);
 
                         noVariablesShown = false;
+
                     }
 
                     void invokeValueChangedCallbacks()
@@ -953,18 +459,15 @@ namespace VInspector
 
                         if (!valueChangedCallbacks_byFieldInfo.TryGetValue(fieldInfo, out var methodInfos))
                             if (!valueChangedCallbacks_byGroupPath.TryGetValue(drawingTabPath, out methodInfos))
-                                if (!valueChangedCallbacks_byGroupPath.TryGetValue(drawingFoldoutPath, out methodInfos))
-                                    return;
+                                if (!valueChangedCallbacks_byGroupPath.TryGetValue(drawingFoldoutPath, out methodInfos)) return;
 
 
-                        void invokeCallbacks()
-                        {
-                            methodInfos.ForEach(r => targets.ForEach(rr => r.Invoke(rr, null)));
-                        }
+                        void invokeCallbacks() => methodInfos.ForEach(r => targets.ForEach(rr => r.Invoke(rr, null)));
 
                         invokeCallbacks();
 
                         valueChangedCallbacks_byUndoPosition[EditorUtils.GetCurrendUndoGroupIndex()] = invokeCallbacks;
+
                     }
 
 
@@ -982,7 +485,11 @@ namespace VInspector
                         invokeValueChangedCallbacks();
 
                     ResetGUIEnabled();
+
                 }
+
+
+
 
 
                 ifs();
@@ -992,6 +499,8 @@ namespace VInspector
                 GUI.enabled = !disableField;
 
 
+
+
                 tabs();
 
                 if (selectedTabPath != drawingTabPath && !selectedTabPath.StartsWith(drawingTabPath + "/") && drawingTabPath != "") return;
@@ -999,14 +508,20 @@ namespace VInspector
                 noVariablesShown = false;
 
 
+
+
                 foldouts();
 
                 if (!rootFoldout.IsSubfoldoutContentVisible(drawingFoldoutPath)) return;
 
 
+
+
+
                 updateIndentLevel();
 
                 field();
+
             }
 
             void drawButton(Button button, ref bool noButtonsShown)
@@ -1017,13 +532,16 @@ namespace VInspector
                 if (button.ifAttribute is ShowIfAttribute && !button.ifAttribute.Evaluate(target)) return;
 
 
+
                 var prevGuiEnabled = GUI.enabled;
                 if (button.ifAttribute is DisableIfAttribute && button.ifAttribute.Evaluate(target)) GUI.enabled = false;
                 if (button.ifAttribute is EnableIfAttribute && !button.ifAttribute.Evaluate(target)) GUI.enabled = false;
 
 
+
+
                 Rect buttonRect;
-                var color = Color.white;
+                Color color = Color.white;
 
                 void set_buttonRect()
                 {
@@ -1031,11 +549,11 @@ namespace VInspector
 
                     GUILayout.Space(EditorGUI.indentLevel * 15);
 
-                    buttonRect = ExpandWidthLabelRect(button.size);
+                    buttonRect = ExpandWidthLabelRect(height: button.size);
 
                     GUILayout.EndHorizontal();
-                }
 
+                }
                 void set_color()
                 {
                     if (button.color.ToLower() == "grey" || button.color.ToLower() == "gray") return;
@@ -1045,42 +563,21 @@ namespace VInspector
                     var saturation = .6f;
                     var lightness = isDarkTheme ? .57f : .64f;
 
-                    if (button.color.ToLower() == "red")
-                    {
-                        hue = 0;
-                    }
-                    else if (button.color.ToLower() == "orange")
-                    {
-                        hue = .08f;
-                    }
-                    else if (button.color.ToLower() == "yellow")
-                    {
-                        hue = .13f;
-                    }
-                    else if (button.color.ToLower() == "green")
-                    {
-                        hue = .32f;
-                        saturation = .49f;
-                        lightness = isDarkTheme ? .56f : .6f;
-                    }
-                    else if (button.color.ToLower() == "blue")
-                    {
-                        hue = .55f;
-                    }
-                    else if (button.color.ToLower() == "pink")
-                    {
-                        hue = .94f;
-                    }
-                    else
-                    {
-                        return;
-                    }
+                    if (button.color.ToLower() == "red") hue = 0;
+                    else if (button.color.ToLower() == "orange") hue = .08f;
+                    else if (button.color.ToLower() == "yellow") hue = .13f;
+                    else if (button.color.ToLower() == "green") { hue = .32f; saturation = .49f; lightness = isDarkTheme ? .56f : .6f; }
+                    else if (button.color.ToLower() == "blue") hue = .55f;
+                    else if (button.color.ToLower() == "pink") hue = .94f;
+                    else return;
+
 
 
                     color = ColorUtils.HSLToRGB(hue, saturation, lightness);
 
                     color *= 2f;
                     color.a = 1;
+
                 }
 
                 void argumentsBackground()
@@ -1098,8 +595,8 @@ namespace VInspector
 
                     backgroundRect.DrawRounded(outlineColor, cornerRadius);
                     backgroundRect.Resize(1).DrawRounded(backgroundColor, cornerRadius - 1);
-                }
 
+                }
                 void buttonItself()
                 {
                     var prevBackgroundColor = GUI.backgroundColor;
@@ -1108,6 +605,7 @@ namespace VInspector
                     var clicked = GUI.Button(buttonRect, button.name);
 
                     GUI.backgroundColor = prevBackgroundColor;
+
 
 
                     if (!clicked) return;
@@ -1120,29 +618,28 @@ namespace VInspector
 
                     foreach (var targetObject in rootProperty.serializedObject.targetObjects)
                         targetObject.Dirty();
-                }
 
+                }
                 void expandButton()
                 {
                     if (!button.parameterInfos.Any()) return;
 
                     var expandButtonRect = buttonRect.SetWidth(24).MoveX(1);
 
-                    var colorNormal = Greyscale(isDarkTheme ? buttonRect.IsHovered() ? .85f : .8f : .7f);
+                    var colorNormal = Greyscale(isDarkTheme ? (buttonRect.IsHovered() ? .85f : .8f) : .7f);
                     var colorHovered = Greyscale(isDarkTheme ? 10f : 0f, 10f);
                     var colorPressed = Greyscale(.85f);
 
                     var iconSize = 12;
 
 
-                    if (!IconButton(expandButtonRect, button.isExpanded ? "d_IN_foldout_act_on" : "d_IN_foldout_act", iconSize, colorNormal, colorHovered,
-                            colorPressed)) return;
+                    if (!IconButton(expandButtonRect, button.isExpanded ? "d_IN_foldout_act_on" : "d_IN_foldout_act", iconSize, colorNormal, colorHovered, colorPressed)) return;
 
                     button.isExpanded = !button.isExpanded;
 
                     GUIUtility.keyboardControl = 0;
-                }
 
+                }
                 void parameters()
                 {
                     if (!button.isExpanded) return;
@@ -1172,23 +669,27 @@ namespace VInspector
                         else if (type == typeof(BoundsInt)) newValue = EditorGUILayout.BoundsIntField(name, (BoundsInt)curValue);
                         else if (type == typeof(Vector2Int)) newValue = EditorGUILayout.Vector2IntField(name, (Vector2Int)curValue);
                         else if (type == typeof(Vector3Int)) newValue = EditorGUILayout.Vector3IntField(name, (Vector3Int)curValue);
-                        else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (Enum)curValue);
+                        else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (System.Enum)curValue);
                         else if (typeof(Object).IsAssignableFrom(type)) newValue = EditorGUILayout.ObjectField(name, (Object)curValue, type, true);
                         else EditorGUILayout.PrefixLabel(name);
 
 
                         button.SetParameterValue(i, newValue);
+
                     }
+
 
 
                     BeginIndent(7);
                     Space(1);
 
-                    for (var i = 0; i < button.parameterInfos.Count; i++)
+                    for (int i = 0; i < button.parameterInfos.Count; i++)
                         parameter(i);
 
                     Space(11);
                     EndIndent(5);
+
+
                 }
 
 
@@ -1209,12 +710,15 @@ namespace VInspector
                 parameters();
 
                 if (button.isExpanded)
-                    Space();
+                    Space(6);
+
+
 
 
                 GUI.enabled = prevGuiEnabled;
 
                 noButtonsShown = false;
+
             }
 
 
@@ -1224,17 +728,16 @@ namespace VInspector
                 if (VInspectorMenu.hideScriptFieldEnabled) return;
 
                 using (new EditorGUI.DisabledScope(true))
-                {
                     EditorGUILayout.PropertyField(scriptFieldProperty);
-                }
-            }
 
+            }
             void topMargin()
             {
                 if (scriptFieldProperty == null) return;
                 if (!VInspectorMenu.hideScriptFieldEnabled) return;
 
                 Space(2);
+
             }
 
             void members()
@@ -1245,18 +748,18 @@ namespace VInspector
                     drawMember(memberInfo);
 
                 EditorGUI.indentLevel = baseIndentLevel;
-            }
 
+
+            }
             void noVariablesToShow()
             {
                 if (!noVariablesShown) return;
 
                 using (new EditorGUI.DisabledScope(true))
-                {
                     GUILayout.Label("No variables to show");
-                }
-            }
 
+
+            }
             void endUnendedFoldouts()
             {
                 if (drawingFoldoutPath == "") return;
@@ -1275,6 +778,7 @@ namespace VInspector
                         Space(-10);
                     else
                         Space(5);
+
                 }
 
                 while (drawingFoldoutPath != "")
@@ -1287,9 +791,11 @@ namespace VInspector
                         drawButtons(foldout);
 
                     drawingFoldoutPath = drawingFoldoutPath.HasParentPath() ? drawingFoldoutPath.GetParentPath() : "";
+
                 }
 
                 EditorGUI.indentLevel = 0;
+
             }
 
             void buttons()
@@ -1304,7 +810,10 @@ namespace VInspector
 
                 if (noButtonsToShow)
                     Space(-17);
+
             }
+
+
 
 
             rootTab.ResetSubtabsDrawn();
@@ -1320,22 +829,576 @@ namespace VInspector
             buttons();
 
             Space(4);
+
         }
+
+        public int baseIndentLevel;
+
+        public SerializedProperty rootProperty => rootPropertyGetter.Invoke();
+        public IEnumerable<object> targets => targetsGetter.Invoke();
+        public object target => targets.FirstOrDefault();
+
+        public Type targetType => _targetType ??= target?.GetType();
+        public Type _targetType;
+
+        static Dictionary<int, Rect> fieldRects_byLastControlId = new();
+
+
+
+
+
+
+
+        public VInspectorEditor(System.Func<SerializedProperty> rootPropertyGetter, System.Func<IEnumerable<object>> targetsGetter)
+        {
+            this.rootPropertyGetter = rootPropertyGetter;
+            this.targetsGetter = targetsGetter;
+
+
+            void createTabs()
+            {
+                void setupTab(Tab tab, IEnumerable<string> allSubtabPaths)
+                {
+                    void refreshSubtabs()
+                    {
+                        var names = allSubtabPaths.Select(r => r.Split('/').First()).ToList();
+
+                        foreach (var name in names)
+                            if (!tab.subtabs.Any(r => r.name == name))
+                                tab.subtabs.Add(new Tab() { name = name });
+
+                        foreach (var subtab in tab.subtabs.ToList())
+                            if (!names.Any(r => r == subtab.name))
+                                tab.subtabs.Remove(subtab);
+
+                        tab.subtabs.SortBy(r => names.IndexOf(r.name));
+
+                    }
+                    void setupSubtabs()
+                    {
+                        foreach (var subtab in tab.subtabs)
+                            setupTab(subtab, allSubtabPaths.Where(r => r.StartsWith(subtab.name + "/")).Select(r => r.Remove(subtab.name + "/")).ToList());
+                    }
+
+                    refreshSubtabs();
+                    setupSubtabs();
+
+                }
+
+                void findAttributes()
+                {
+                    if (tabAttributes_byTargetType.ContainsKey(targetType)) return;
+
+                    var attributes = TypeCache.GetFieldsWithAttribute<TabAttribute>()
+                                              .Where(r => r.DeclaringType.IsAssignableFrom(targetType))
+                                              .OrderBy(r => r.MetadataToken)
+                                              .Select(r => r.GetCustomAttributeCached<TabAttribute>());
+
+                    tabAttributes_byTargetType[targetType] = attributes.ToList();
+
+                }
+                void createTabs()
+                {
+                    rootTab = new Tab() { isRootTab = true };
+
+                    var allTabPaths = tabAttributes_byTargetType[targetType].Select(r => r.name);
+
+                    setupTab(rootTab, allTabPaths);
+
+                }
+
+
+                findAttributes();
+                createTabs();
+
+            }
+            void createFoldouts()
+            {
+                void setupFoldout(Foldout foldout, IEnumerable<string> allSubfoldoutPaths)
+                {
+                    void refreshSubfoldouts()
+                    {
+                        var names = allSubfoldoutPaths.Select(r => r.Split('/').First()).ToList();
+
+                        foreach (var name in names)
+                            if (foldout.subfoldouts.Find(r => r.name == name) == null)
+                                foldout.subfoldouts.Add(new Foldout() { name = name });
+
+                        foreach (var subtab in foldout.subfoldouts.ToList())
+                            if (names.Find(r => r == subtab.name) == null)
+                                foldout.subfoldouts.Remove(subtab);
+
+                        foldout.subfoldouts.SortBy(r => names.IndexOf(r.name));
+
+                    }
+                    void setupSubfoldouts()
+                    {
+                        foreach (var subtab in foldout.subfoldouts)
+                            setupFoldout(subtab, allSubfoldoutPaths.Where(r => r.StartsWith(subtab.name + "/")).Select(r => r.Remove(subtab.name + "/")).ToList());
+                    }
+
+                    refreshSubfoldouts();
+                    setupSubfoldouts();
+
+                }
+
+                void findAttributes()
+                {
+                    if (foldoutAttributes_byTargetType.ContainsKey(targetType)) return;
+
+                    var attributes = TypeCache.GetFieldsWithAttribute<FoldoutAttribute>()
+                                              .Where(r => r.DeclaringType.IsAssignableFrom(targetType))
+                                              .OrderBy(r => r.MetadataToken)
+                                              .Select(r => r.GetCustomAttributeCached<FoldoutAttribute>());
+
+                    foldoutAttributes_byTargetType[targetType] = attributes.ToList();
+
+                }
+                void createFoldouts()
+                {
+                    rootFoldout = new Foldout() { isRootFoldout = true };
+
+                    var allFoldoutPaths = foldoutAttributes_byTargetType[targetType].Select(r => r.name);
+
+                    setupFoldout(rootFoldout, allFoldoutPaths);
+
+                }
+
+
+                findAttributes();
+                createFoldouts();
+
+            }
+            void createButtons()
+            {
+                void createButton(MemberInfo member, ButtonAttribute buttonAttribute)
+                {
+                    var button = new Button();
+
+                    button.size = buttonAttribute.size;
+                    button.space = buttonAttribute.space;
+                    button.color = buttonAttribute.color;
+
+
+                    if (member.GetCustomAttributeCached<TabAttribute>() is TabAttribute tabAttribute)
+                        button.tabAttribute = tabAttribute;
+
+                    if (member.GetCustomAttributeCached<FoldoutAttribute>() is FoldoutAttribute foldoutAttribute)
+                        button.foldoutAttribute = foldoutAttribute;
+
+                    if (member.GetCustomAttributeCached<IfAttribute>() is IfAttribute ifAttribute)
+                        button.ifAttribute = ifAttribute;
+
+
+                    if (member is FieldInfo field && field.FieldType == typeof(bool))
+                    {
+                        var fieldTarget = field.IsStatic ? null : target;
+
+                        button.action = (o) => field.SetValue(o, !(bool)field.GetValue(o));
+                        button.name = buttonAttribute.name != "" ? buttonAttribute.name : field.Name.FormatVariableName(false);
+                        button.isPressed = () => (bool)field.GetValue(fieldTarget);
+
+                    }
+
+                    if (member is MethodInfo method)
+                    {
+                        if (method.DeclaringType.IsGenericType)
+                            method = targetType.GetMethodInfo(method.Name, method.GetParameters().Select(r => r.ParameterType).ToArray()) ?? method; // fixes wrong method when targetType inherits from method.DeclaringType and method.DeclaringType is generic
+
+                        if (!method.GetParameters().Any())
+                        {
+                            var methodTarget = method.IsStatic ? null : target;
+
+                            button.action = (methodTarget) => method.Invoke(methodTarget, null);
+                            button.name = buttonAttribute.name != "" ? buttonAttribute.name : method.Name.FormatVariableName(false);
+                            button.isPressed = () => false;
+
+                        }
+                        else
+                        {
+                            var methodTarget = method.IsStatic ? null : target;
+
+                            button.action = (methodTarget) => method.Invoke(methodTarget, Enumerable.Range(0, button.parameterInfos.Count).Select(i => button.GetParameterValue(i)).ToArray());
+                            button.name = buttonAttribute.name != "" ? buttonAttribute.name : method.Name.FormatVariableName(false);
+                            button.isPressed = () => false;
+
+                            button.parameterInfos = method.GetParameters().ToList();
+
+                        }
+
+                    }
+
+
+
+                    if (button.action != null)
+                        if (button.foldoutAttribute != null && rootFoldout.GetSubfoldout(button.foldoutAttribute.name) is Foldout foldout)
+                            foldout.buttons.Add(button);
+                        else
+                            this.buttons.Add(button);
+
+                }
+
+                void findFields()
+                {
+                    if (fieldsWithButtonAttributes_byTargetType.ContainsKey(targetType)) return;
+
+                    var fields = TypeCache.GetFieldsWithAttribute<ButtonAttribute>()
+                                          .Where(r => r.DeclaringType.IsAssignableFrom(targetType))
+                                          .OrderBy(r => r.MetadataToken);
+
+                    fieldsWithButtonAttributes_byTargetType[targetType] = fields.ToList();
+
+                }
+                void findMethods()
+                {
+                    if (methodsWithButtonAttributes_byTargetType.ContainsKey(targetType)) return;
+
+                    var methods = TypeCache.GetMethodsWithAttribute<ButtonAttribute>()
+                                           .Where(r => r.DeclaringType.IsAssignableFrom(targetType) || (targetType.BaseType.IsGenericType && targetType.BaseType.GetGenericTypeDefinition() == r.DeclaringType))
+                                           .OrderBy(r => r.MetadataToken);
+
+                    methodsWithButtonAttributes_byTargetType[targetType] = methods.ToList();
+
+                }
+                void createButtons()
+                {
+                    this.buttons = new List<Button>();
+
+                    foreach (var method in methodsWithButtonAttributes_byTargetType[targetType])
+                        createButton(method, method.GetCustomAttributeCached<ButtonAttribute>());
+
+                    foreach (var field in fieldsWithButtonAttributes_byTargetType[targetType])
+                        createButton(field, field.GetCustomAttributeCached<ButtonAttribute>());
+
+                }
+
+
+                findFields();
+                findMethods();
+                createButtons();
+
+            }
+            void linkToState()
+            {
+                if (!rootTab.subtabs.Any() && !rootFoldout.subfoldouts.Any() && !this.buttons.Any(r => r.parameterInfos.Any())) return;
+
+
+                AttributesState attributesState;
+
+                void set_attributesState()
+                {
+                    var scriptName = rootProperty.serializedObject.targetObject.GetType().Name;
+
+                    if (!VInspectorState.instance.attributeStates_byScriptName.ContainsKey(scriptName))
+                        VInspectorState.instance.attributeStates_byScriptName[scriptName] = new();
+
+                    attributesState = VInspectorState.instance.attributeStates_byScriptName[scriptName];
+
+                }
+                void linkTab(Tab tab, string parentPath)
+                {
+                    tab.attributesState = attributesState;
+                    tab.path = parentPath + "/" + tab.name;
+
+                    attributesState.selectedSubtabIndexes_byTabPath.TryGetValue(tab.path, out tab._selectedSubtabIndex);
+
+                    foreach (var subtab in tab.subtabs)
+                        linkTab(subtab, tab.path);
+
+                }
+                void linkFoldout(Foldout foldout, string parentPath)
+                {
+                    foldout.attributesState = attributesState;
+                    foldout.path = parentPath + "/" + foldout.name;
+
+                    attributesState.isExpandeds_byFoldoutPath.TryGetValue(foldout.path, out foldout._isExpanded);
+
+                    foreach (var subfoldout in foldout.subfoldouts)
+                        linkFoldout(subfoldout, foldout.path);
+
+                }
+                void linkButton(Button button, string parentPath)
+                {
+                    button.attributesState = attributesState;
+                    button.path = parentPath + "/" + button.name;
+
+                    attributesState.isExpandeds_byButtonPath.TryGetValue(button.path, out button._isExpanded);
+
+                }
+
+
+                set_attributesState();
+                linkTab(rootTab, rootProperty.propertyPath);
+                linkFoldout(rootFoldout, rootProperty.propertyPath);
+
+                foreach (var r in this.buttons.Where(r => r.parameterInfos.Any()))
+                    linkButton(r, rootProperty.propertyPath);
+
+            }
+
+            void createValueChangedCallbacks()
+            {
+                if (valueChangedCallbacks_byFieldInfo != null) return;
+
+                valueChangedCallbacks_byFieldInfo = new();
+                valueChangedCallbacks_byGroupPath = new();
+
+                var methodInfos = TypeCache.GetMethodsWithAttribute<OnValueChangedAttribute>()
+                   .Where(r => r.GetParameters().Length == 0)
+                   .OrderBy(r => r.MetadataToken);
+
+
+                void Add<T1, T2>(Dictionary<T1, List<T2>> dictionary, T1 key, T2 value)
+                {
+                    if (dictionary.TryGetValue(key, out var alreadyCreatedList))
+                        alreadyCreatedList.Add(value);
+                    else
+                        dictionary[key] = new List<T2> { value };
+
+                }
+
+                foreach (var methodInfo in methodInfos)
+                    foreach (var attribute in methodInfo.GetCustomAttributes<OnValueChangedAttribute>())
+                        foreach (var name in attribute.variableOrGroupNames)
+
+                            if (methodInfo.DeclaringType.GetFieldInfo(name) is FieldInfo fieldInfo)
+                                Add(valueChangedCallbacks_byFieldInfo, fieldInfo, methodInfo);
+                            else
+                                Add(valueChangedCallbacks_byGroupPath, name, methodInfo);
+
+            }
+
+            void fillPropertiesDictionary()
+            {
+                serializedProperties_byMemberInfos = new();
+
+
+                var curProperty = rootProperty.Copy();
+
+                curProperty.NextVisible(true);
+
+                if (curProperty.name == "m_Script")
+                {
+                    scriptFieldProperty = curProperty.Copy();
+                    if (!curProperty.NextVisible(false)) return;
+                }
+
+
+                do
+                    if (targetType.GetFieldInfo(curProperty.name) is FieldInfo fieldInfo)
+                        if (curProperty.propertyPath.StartsWith(rootProperty.propertyPath) || rootProperty.propertyPath == "") // fixes bug where nested editors could contain members with the same name from parent editors
+                            serializedProperties_byMemberInfos[fieldInfo] = curProperty.Copy();
+
+                while (curProperty.NextVisible(false));
+
+            }
+            void fillDrawableMembers()
+            {
+                if (drawableMemberLists_byTargetType.ContainsKey(targetType)) return;
+
+
+
+                var membersHashset = new HashSet<MemberInfo>();
+
+                void serializedFields()
+                {
+                    var curProperty = rootProperty.Copy();
+
+                    curProperty.NextVisible(true);
+
+                    if (curProperty.name == "m_Script")
+                        if (!curProperty.NextVisible(false)) return;
+
+                    do if (targetType.GetFieldInfo(curProperty.name) is FieldInfo fieldInfo)
+                            membersHashset.Add(fieldInfo);
+                    while (curProperty.NextVisible(false));
+
+
+                }
+                void showInInspectorFields()
+                {
+                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<ShowInInspectorAttribute>()
+                                               .Where(r => r.DeclaringType.IsAssignableFrom(targetType))
+                                               .Select(r => r as MemberInfo));
+                }
+                void showInInspectorProperties()
+                {
+                    membersHashset.UnionWith(targetType.GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+                                                .Where(r => Attribute.IsDefined(r, typeof(ShowInInspectorAttribute)))
+                                                .Where(r => r.CanRead)
+                                                .Select(r => r as MemberInfo));
+                }
+                void groupingAttributesMembers()
+                {
+                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<TabAttribute>()
+                                               .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
+
+                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<EndTabAttribute>()
+                                               .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
+
+
+
+                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<FoldoutAttribute>()
+                                               .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
+
+                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<EndFoldoutAttribute>()
+                                               .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
+
+
+
+
+                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<IfAttribute>()
+                                               .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
+
+                    membersHashset.UnionWith(TypeCache.GetFieldsWithAttribute<EndIfAttribute>()
+                                               .Where(r => r.DeclaringType.IsAssignableFrom(targetType)));
+
+
+
+
+                    // these members aren't necessarily visible 
+                    // but need to be drawn anyway for grouping to work as users would expect
+
+                }
+
+
+
+                var membersList = new List<MemberInfo>();
+
+                void orderByDeclaration()
+                {
+                    membersList = membersHashset.OrderBy(r => r.DeclaringType == targetType)
+                                                 .ThenBy(r => r.MetadataToken)
+                                                 .ToList();
+                }
+                void insertTypeChangeMarkers()
+                {
+                    var prevDeclaringType = default(Type);
+
+                    for (int i = 0; i < membersList.Count; i++)
+                    {
+                        if (prevDeclaringType != membersList[i].DeclaringType && prevDeclaringType != null)
+                        {
+                            membersList.Insert(i, typeof(VInspectorEditor).GetFieldInfo(nameof(declaringTypeChangeMarker)));
+                            i++;
+
+                        }
+
+                        prevDeclaringType = membersList[i].DeclaringType;
+
+                    }
+
+                }
+                void mergeFoldouts()
+                {
+                    var endedFoldouts = new HashSet<string>();
+                    var lastMemberInFoldout_byFoldoutPath = new Dictionary<string, MemberInfo>();
+
+                    var curFoldoutPath = "";
+                    var prevFoldoutPath = "";
+
+                    for (int i = 0; i < membersList.Count; i++)
+                    {
+                        if (membersList[i].GetCustomAttributeCached<EndFoldoutAttribute>() is EndFoldoutAttribute)
+                            curFoldoutPath = "";
+
+                        if (membersList[i].GetCustomAttributeCached<FoldoutAttribute>() is FoldoutAttribute foldoutAttribute)
+                            curFoldoutPath = foldoutAttribute.name;
+
+
+
+
+                        if (prevFoldoutPath != curFoldoutPath && prevFoldoutPath != "")
+                        {
+                            endedFoldouts.Add(prevFoldoutPath);
+                            lastMemberInFoldout_byFoldoutPath[prevFoldoutPath] = membersList[i - 1];
+                        }
+
+                        if (endedFoldouts.Contains(curFoldoutPath))
+                        {
+                            var member = membersList[i];
+
+                            var foldoutEndsAt = membersList.IndexOf(lastMemberInFoldout_byFoldoutPath[curFoldoutPath]);
+
+                            membersList.RemoveAt(i);
+                            membersList.AddAt(member, foldoutEndsAt + 1);
+
+                        }
+
+
+
+                        prevFoldoutPath = curFoldoutPath;
+
+                    }
+
+                }
+
+
+
+
+                serializedFields();
+                showInInspectorFields();
+                showInInspectorProperties();
+                groupingAttributesMembers();
+
+                orderByDeclaration();
+                insertTypeChangeMarkers();
+                mergeFoldouts();
+
+                drawableMemberLists_byTargetType[targetType] = membersList;
+
+            }
+
+
+            createTabs();
+            createFoldouts();
+            createButtons();
+            linkToState();
+
+            createValueChangedCallbacks();
+
+            fillPropertiesDictionary();
+            fillDrawableMembers();
+
+        }
+
+        public System.Func<IEnumerable<object>> targetsGetter;
+        public System.Func<SerializedProperty> rootPropertyGetter;
+
+        public Tab rootTab;
+        public Foldout rootFoldout;
+        public List<Button> buttons = new();
+        public Dictionary<string, VInspectorEditor> nestedEditors_byPropertyPath = new();
+
+        public SerializedProperty scriptFieldProperty;
+        public Dictionary<MemberInfo, SerializedProperty> serializedProperties_byMemberInfos = new();
+
+
+        static Dictionary<Type, List<MemberInfo>> drawableMemberLists_byTargetType = new();
+
+        static Dictionary<Type, List<FieldInfo>> fieldsWithButtonAttributes_byTargetType = new();
+        static Dictionary<Type, List<MethodInfo>> methodsWithButtonAttributes_byTargetType = new();
+        static Dictionary<Type, List<TabAttribute>> tabAttributes_byTargetType = new();
+        static Dictionary<Type, List<FoldoutAttribute>> foldoutAttributes_byTargetType = new();
+        static Dictionary<Type, List<MemberInfo>> showInInspectorMembers_byTargetType = new();
+        static Dictionary<FieldInfo, List<MethodInfo>> valueChangedCallbacks_byFieldInfo;
+        static Dictionary<string, List<MethodInfo>> valueChangedCallbacks_byGroupPath;
+
+
+        [EndFoldout, EndTab, EndIf]
+        static object declaringTypeChangeMarker;
+
     }
 
-    internal class Tab
+    class Tab
     {
-        public int _selectedSubtabIndex;
-
-        public AttributesState attributesState;
-
-        public bool isRootTab;
         public string name;
-        public string path;
 
         public List<Tab> subtabs = new();
 
-        public bool subtabsDrawn;
+        public bool isRootTab;
+
+
 
 
         public Tab selectedSubtab => selectedSubtabIndex.IsInRange(0, subtabs.Count - 1) ? subtabs[selectedSubtabIndex] : null;
@@ -1349,8 +1412,16 @@ namespace VInspector
 
                 if (attributesState != null)
                     attributesState.selectedSubtabIndexes_byTabPath[path] = value;
+
             }
         }
+        public int _selectedSubtabIndex;
+
+        public AttributesState attributesState;
+        public string path;
+
+
+
 
 
         public string GetSelectedTabPath()
@@ -1361,6 +1432,7 @@ namespace VInspector
                 selectedSubtabIndex = 0;
 
             return (selectedSubtab.name + "/" + selectedSubtab.GetSelectedTabPath()).Trim('/');
+
         }
 
 
@@ -1370,22 +1442,23 @@ namespace VInspector
 
             foreach (var r in subtabs)
                 r.ResetSubtabsDrawn();
+
         }
+
+        public bool subtabsDrawn;
+
     }
-
-    internal class Foldout
+    class Foldout
     {
-        public bool _isExpanded;
+        public string name;
 
-        public AttributesState attributesState;
+        public List<Foldout> subfoldouts = new();
 
         public List<Button> buttons = new();
 
         public bool isRootFoldout;
-        public string name;
-        public string path;
 
-        public List<Foldout> subfoldouts = new();
+
 
 
         public bool isExpanded
@@ -1397,52 +1470,55 @@ namespace VInspector
 
                 if (attributesState != null)
                     attributesState.isExpandeds_byFoldoutPath[path] = value;
+
             }
         }
+        public bool _isExpanded;
+
+        public AttributesState attributesState;
+        public string path;
+
+
 
 
         public Foldout GetSubfoldout(string path)
         {
             if (path == "")
                 return this;
-            if (!path.Contains('/'))
+            else if (!path.Contains('/'))
                 return subfoldouts.Find(r => r.name == path);
-            return subfoldouts.Find(r => r.name == path.Split('/').First()).GetSubfoldout(path.Substring(path.IndexOf('/') + 1));
+            else
+                return subfoldouts.Find(r => r.name == path.Split('/').First()).GetSubfoldout(path.Substring(path.IndexOf('/') + 1));
+
         }
 
         public bool IsSubfoldoutContentVisible(string path)
         {
             if (path == "")
                 return isExpanded;
-            if (!path.Contains('/'))
+            else if (!path.Contains('/'))
                 return isExpanded && subfoldouts.Find(r => r.name == path).isExpanded;
-            return isExpanded && subfoldouts.Find(r => r.name == path.Split('/').First()).IsSubfoldoutContentVisible(path.Substring(path.IndexOf('/') + 1));
+            else
+                return isExpanded && subfoldouts.Find(r => r.name == path.Split('/').First()).IsSubfoldoutContentVisible(path.Substring(path.IndexOf('/') + 1));
+
         }
+
     }
-
-    internal class Button
+    class Button
     {
-        public bool _isExpanded;
-
-        public Action<object> action;
-
-        public AttributesState attributesState;
-        public string color;
-        public FoldoutAttribute foldoutAttribute;
-        public IfAttribute ifAttribute;
-        public Func<bool> isPressed;
         public string name;
-
-
-        public List<ParameterInfo> parameterInfos = new();
-
-        public Dictionary<int, object> parameterValues_byIndex = new();
-
-        public string path;
         public float size;
         public float space;
+        public string color;
 
         public TabAttribute tabAttribute;
+        public FoldoutAttribute foldoutAttribute;
+        public IfAttribute ifAttribute;
+
+        public System.Action<object> action;
+        public System.Func<bool> isPressed;
+
+
 
 
         public bool isExpanded
@@ -1454,8 +1530,18 @@ namespace VInspector
 
                 if (attributesState != null)
                     attributesState.isExpandeds_byButtonPath[path] = value;
+
             }
         }
+        public bool _isExpanded;
+
+        public string path;
+
+        public AttributesState attributesState;
+
+
+
+
 
 
         public object GetParameterValue(int i)
@@ -1464,57 +1550,38 @@ namespace VInspector
             {
                 var parameterInfo = parameterInfos[i];
 
-                var defaultValue = parameterInfo.HasDefaultValue ? parameterInfo.DefaultValue :
-                    parameterInfo.ParameterType.IsValueType ? Activator.CreateInstance(parameterInfo.ParameterType) : null;
+                var defaultValue = parameterInfo.HasDefaultValue ? parameterInfo.DefaultValue : parameterInfo.ParameterType.IsValueType ? System.Activator.CreateInstance(parameterInfo.ParameterType) : null;
 
                 parameterValues_byIndex[i] = defaultValue;
+
             }
 
 
             return parameterValues_byIndex[i];
-        }
 
+        }
         public void SetParameterValue(int i, object value)
         {
             parameterValues_byIndex[i] = value;
         }
+
+        public Dictionary<int, object> parameterValues_byIndex = new();
+
+
+        public List<ParameterInfo> parameterInfos = new();
+
     }
+
 
 
     #region custom editors
 
-    internal class AbstractEditor : Editor
+    class AbstractEditor : Editor
     {
-        public static Action toCallAfterModifyingSO;
-
-        private bool isScriptMissing;
-
-        private VInspectorEditor rootEditor;
-
-        private bool useUITK => HasUITKOnlyDrawers(serializedObject);
-
-
-        private void OnEnable()
-        {
-            if (target)
-                isScriptMissing = target.GetType() == typeof(MonoBehaviour) || target.GetType() == typeof(ScriptableObject);
-            else
-                isScriptMissing = target is MonoBehaviour || target is ScriptableObject;
-
-
-            if (isScriptMissing) return;
-
-            rootEditor = new VInspectorEditor(() => serializedObject.GetIterator(),
-                () => serializedObject.targetObjects);
-        }
 
         public override void OnInspectorGUI()
         {
-            if (isScriptMissing)
-            {
-                MissingScriptGUI();
-                return;
-            }
+            if (isScriptMissing) { MissingScriptGUI(); return; }
 
             serializedObject.UpdateIfRequiredOrScript();
 
@@ -1527,9 +1594,12 @@ namespace VInspector
 
 
             // GUILayout.Label("vInspector's IMGUI editor");
+
         }
 
-        private void MissingScriptGUI()
+        public static System.Action toCallAfterModifyingSO;
+
+        void MissingScriptGUI()
         {
             SetGUIEnabled(true);
 
@@ -1552,7 +1622,10 @@ namespace VInspector
             Space(4);
 
             ResetGUIEnabled();
+
         }
+
+
 
 
         public override VisualElement CreateInspectorGUI()
@@ -1572,47 +1645,71 @@ namespace VInspector
                 rootElement.Q("PropertyField:m_Script")?.RemoveFromHierarchy();
 
             if (HasVInspectorAttribtues(target.GetType()))
-                rootElement.Add(new HelpBox(
-                    "vInspector attributes are disabled in this script because it contains property drawers implemented with UI Toolkit, which doesn't allow using IMGUI editors such as vInspector's attribute system",
-                    HelpBoxMessageType.Info));
+                rootElement.Add(new HelpBox("vInspector attributes are disabled in this script because it contains property drawers implemented with UI Toolkit, which doesn't allow using IMGUI editors such as vInspector's attribute system", HelpBoxMessageType.Info));
 
 
             return rootElement;
+
         }
+
+        bool useUITK => HasUITKOnlyDrawers(serializedObject);
+
+
+
+
+        void OnEnable()
+        {
+            if (target)
+                isScriptMissing = target.GetType() == typeof(MonoBehaviour) || target.GetType() == typeof(ScriptableObject);
+            else
+                isScriptMissing = target is MonoBehaviour || target is ScriptableObject;
+
+
+            if (isScriptMissing) return;
+
+            rootEditor = new VInspectorEditor(rootPropertyGetter: () => serializedObject.GetIterator(),
+                                                   targetsGetter: () => serializedObject.targetObjects);
+
+        }
+
+        VInspectorEditor rootEditor;
+
+        bool isScriptMissing;
+
+
     }
+
 
 
 #if !VINSPECTOR_ATTRIBUTES_DISABLED
-    [CustomEditor(typeof(MonoBehaviour), true)]
-    [CanEditMultipleObjects]
+    [CustomEditor(typeof(MonoBehaviour), true), CanEditMultipleObjects]
 #endif
-    internal class ScriptEditor : AbstractEditor
-    {
-    }
+    class ScriptEditor : AbstractEditor { }
 
 
 #if !VINSPECTOR_ATTRIBUTES_DISABLED
-    [CustomEditor(typeof(ScriptableObject), true)]
-    [CanEditMultipleObjects]
+    [CustomEditor(typeof(ScriptableObject), true), CanEditMultipleObjects]
 #endif
-    internal class ScriptableObjectEditor : AbstractEditor
-    {
-    }
+    class ScriptableObjectEditor : AbstractEditor { }
+
+
+
+
 
     #endregion
 
     #region static inspector
 
-    internal class StaticInspector
-    {
-        private static readonly Dictionary<Type, List<Button>> buttons_byClassType = new();
-        private static readonly Dictionary<Type, List<FieldInfo>> fields_byClassType = new();
 
-        private static void HeaderGUI(Editor editor)
+    class StaticInspector
+    {
+
+        static void HeaderGUI(Editor editor)
         {
             if (editor.GetType().Name != "MonoScriptImporterInspector") return;
             if ((editor.target as MonoImporter)?.GetScript() is not MonoScript script) return;
             if (script.GetClass() is not Type classType) return;
+
 
 
             List<FieldInfo> fields;
@@ -1624,12 +1721,12 @@ namespace VInspector
 
 
                 fields = classType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)
-                    .Where(r => !r.IsLiteral && !r.IsInitOnly)
-                    .Where(r => Attribute.IsDefined(r, typeof(ShowInInspectorAttribute))).ToList();
+                                  .Where(r => !r.IsLiteral && !r.IsInitOnly)
+                                  .Where(r => Attribute.IsDefined(r, typeof(ShowInInspectorAttribute))).ToList();
 
                 fields_byClassType[classType] = fields;
-            }
 
+            }
             void createButtons()
             {
                 if (buttons_byClassType.TryGetValue(classType, out buttons)) return;
@@ -1661,42 +1758,49 @@ namespace VInspector
                         {
                             var methodTarget = method.IsStatic ? null : new object();
 
-                            button.action = methodTarget => method.Invoke(methodTarget, null);
+                            button.action = (methodTarget) => method.Invoke(methodTarget, null);
                             button.name = buttonAttribute.name != "" ? buttonAttribute.name : method.Name.FormatVariableName(false);
                             button.isPressed = () => false;
+
                         }
                         else
                         {
                             var methodTarget = method.IsStatic ? null : new object();
 
-                            button.action = methodTarget => method.Invoke(methodTarget,
-                                Enumerable.Range(0, button.parameterInfos.Count).Select(i => button.GetParameterValue(i)).ToArray());
+                            button.action = (methodTarget) => method.Invoke(methodTarget, Enumerable.Range(0, button.parameterInfos.Count).Select(i => button.GetParameterValue(i)).ToArray());
                             button.name = buttonAttribute.name != "" ? buttonAttribute.name : method.Name.FormatVariableName(false);
                             button.isPressed = () => false;
 
                             button.parameterInfos = method.GetParameters().ToList();
+
                         }
+
 
 
                     if (button.action != null)
                         buttons.Add(button);
+
                 }
 
 
                 var staticMethods = classType.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static)
-                    .Where(r => Attribute.IsDefined(r, typeof(ButtonAttribute)));
+                                             .Where(r => Attribute.IsDefined(r, typeof(ButtonAttribute)));
 
                 foreach (var method in staticMethods)
                     createButton(method, method.GetCustomAttributeCached<ButtonAttribute>());
 
 
                 buttons_byClassType[classType] = buttons;
+
+
             }
 
             findFields();
             createButtons();
 
             if (!fields.Any() && !buttons.Any()) return;
+
+
 
 
             void drawField(FieldInfo fieldInfo)
@@ -1723,18 +1827,18 @@ namespace VInspector
                 else if (type == typeof(BoundsInt)) newValue = EditorGUILayout.BoundsIntField(name, (BoundsInt)curValue);
                 else if (type == typeof(Vector2Int)) newValue = EditorGUILayout.Vector2IntField(name, (Vector2Int)curValue);
                 else if (type == typeof(Vector3Int)) newValue = EditorGUILayout.Vector3IntField(name, (Vector3Int)curValue);
-                else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (Enum)curValue);
+                else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (System.Enum)curValue);
                 else if (typeof(Object).IsAssignableFrom(type)) newValue = EditorGUILayout.ObjectField(name, (Object)curValue, type, true);
                 else EditorGUILayout.TextField(name, curValue?.ToString());
 
 
                 fieldInfo.SetValue(fieldInfo.IsStatic ? null : new object(), newValue);
-            }
 
+            }
             void drawButton(Button button, ref bool noButtonsShown)
             {
                 Rect buttonRect;
-                var color = Color.white;
+                Color color = Color.white;
 
                 void set_buttonRect()
                 {
@@ -1742,11 +1846,11 @@ namespace VInspector
 
                     GUILayout.Space(EditorGUI.indentLevel * 15);
 
-                    buttonRect = ExpandWidthLabelRect(button.size);
+                    buttonRect = ExpandWidthLabelRect(height: button.size);
 
                     GUILayout.EndHorizontal();
-                }
 
+                }
                 void set_color()
                 {
                     if (button.color.ToLower() == "grey" || button.color.ToLower() == "gray") return;
@@ -1756,42 +1860,21 @@ namespace VInspector
                     var saturation = .6f;
                     var lightness = isDarkTheme ? .57f : .64f;
 
-                    if (button.color.ToLower() == "red")
-                    {
-                        hue = 0;
-                    }
-                    else if (button.color.ToLower() == "orange")
-                    {
-                        hue = .08f;
-                    }
-                    else if (button.color.ToLower() == "yellow")
-                    {
-                        hue = .13f;
-                    }
-                    else if (button.color.ToLower() == "green")
-                    {
-                        hue = .32f;
-                        saturation = .49f;
-                        lightness = isDarkTheme ? .56f : .6f;
-                    }
-                    else if (button.color.ToLower() == "blue")
-                    {
-                        hue = .55f;
-                    }
-                    else if (button.color.ToLower() == "pink")
-                    {
-                        hue = .94f;
-                    }
-                    else
-                    {
-                        return;
-                    }
+                    if (button.color.ToLower() == "red") hue = 0;
+                    else if (button.color.ToLower() == "orange") hue = .08f;
+                    else if (button.color.ToLower() == "yellow") hue = .13f;
+                    else if (button.color.ToLower() == "green") { hue = .32f; saturation = .49f; lightness = isDarkTheme ? .56f : .6f; }
+                    else if (button.color.ToLower() == "blue") hue = .55f;
+                    else if (button.color.ToLower() == "pink") hue = .94f;
+                    else return;
+
 
 
                     color = ColorUtils.HSLToRGB(hue, saturation, lightness);
 
                     color *= 2f;
                     color.a = 1;
+
                 }
 
                 void argumentsBackground()
@@ -1809,8 +1892,8 @@ namespace VInspector
 
                     backgroundRect.DrawRounded(outlineColor, cornerRadius);
                     backgroundRect.Resize(1).DrawRounded(backgroundColor, cornerRadius - 1);
-                }
 
+                }
                 void buttonItself()
                 {
                     var prevBackgroundColor = GUI.backgroundColor;
@@ -1821,33 +1904,33 @@ namespace VInspector
                     GUI.backgroundColor = prevBackgroundColor;
 
 
+
                     if (!clicked) return;
 
                     button.action(null);
-                }
 
+                }
                 void expandButton()
                 {
                     if (!button.parameterInfos.Any()) return;
 
                     var expandButtonRect = buttonRect.SetWidth(24).MoveX(1);
 
-                    var colorNormal = Greyscale(isDarkTheme ? buttonRect.IsHovered() ? .85f : .8f : .7f);
+                    var colorNormal = Greyscale(isDarkTheme ? (buttonRect.IsHovered() ? .85f : .8f) : .7f);
                     var colorHovered = Greyscale(isDarkTheme ? 10f : 0f, 10f);
                     var colorPressed = Greyscale(.85f);
 
                     var iconSize = 12;
 
 
-                    if (!IconButton(expandButtonRect, button.isExpanded ? "d_IN_foldout_act_on" : "d_IN_foldout_act", iconSize, colorNormal, colorHovered,
-                            colorPressed)) return;
+                    if (!IconButton(expandButtonRect, button.isExpanded ? "d_IN_foldout_act_on" : "d_IN_foldout_act", iconSize, colorNormal, colorHovered, colorPressed)) return;
 
                     button.isExpanded = !button.isExpanded;
 
                     // GUI.DrawTexture(buttonRect.SetWidth(24).SetHeightFromMid(24).Resize(6).MoveX(2), EditorIcons.GetIcon("d_IN_foldout_on"));
                     // GUI.DrawTexture(buttonRect.SetWidth(24).SetHeightFromMid(24).Resize(6).MoveX(2), EditorIcons.GetIcon("d_IN_foldout_on"));
-                }
 
+                }
                 void parameters()
                 {
                     if (!button.isExpanded) return;
@@ -1877,12 +1960,13 @@ namespace VInspector
                         else if (type == typeof(BoundsInt)) newValue = EditorGUILayout.BoundsIntField(name, (BoundsInt)curValue);
                         else if (type == typeof(Vector2Int)) newValue = EditorGUILayout.Vector2IntField(name, (Vector2Int)curValue);
                         else if (type == typeof(Vector3Int)) newValue = EditorGUILayout.Vector3IntField(name, (Vector3Int)curValue);
-                        else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (Enum)curValue);
+                        else if (type.IsEnum) newValue = EditorGUILayout.EnumPopup(name, (System.Enum)curValue);
                         else if (typeof(Object).IsAssignableFrom(type)) newValue = EditorGUILayout.ObjectField(name, (Object)curValue, type, true);
                         else EditorGUILayout.PrefixLabel(name);
 
 
                         button.SetParameterValue(i, newValue);
+
 
 
                         // if (button.parameterInfos[i].ParameterType == typeof(int))
@@ -1902,17 +1986,21 @@ namespace VInspector
 
                         // else
                         //     GUILayout.Label("asd");
+
                     }
+
 
 
                     BeginIndent(7);
                     Space(1);
 
-                    for (var i = 0; i < button.parameterInfos.Count; i++)
+                    for (int i = 0; i < button.parameterInfos.Count; i++)
                         parameter(i);
 
                     Space(11);
                     EndIndent(5);
+
+
                 }
 
 
@@ -1933,10 +2021,11 @@ namespace VInspector
                 parameters();
 
                 if (button.isExpanded)
-                    Space();
+                    Space(6);
 
 
                 noButtonsShown = false;
+
             }
 
             void background()
@@ -1947,24 +2036,25 @@ namespace VInspector
 
                 Space(10);
 
-                var lineRect = ExpandWidthLabelRect(-1).AddWidthFromMid(123).SetHeight(1);
+                var lineRect = ExpandWidthLabelRect(height: -1).AddWidthFromMid(123).SetHeight(1);
 
                 lineRect.Draw(lineColor);
 
                 Space(-10);
 
 
+
                 var bgRect = lineRect.MoveY(1).SetHeight(123123);
 
                 bgRect.Draw(GUIColors.windowBackground);
-            }
 
+            }
             void drawFields()
             {
                 foreach (var field in fields_byClassType[classType])
                     drawField(field);
-            }
 
+            }
             void drawButtons()
             {
                 var noButtonsToShow = true;
@@ -1974,6 +2064,7 @@ namespace VInspector
 
                 if (noButtonsToShow)
                     Space(-16);
+
             }
 
 
@@ -1989,15 +2080,25 @@ namespace VInspector
 
             EditorGUI.indentLevel = 0;
             Space(buttons.Any() ? -18 : -20);
+
         }
+
+        static Dictionary<Type, List<Button>> buttons_byClassType = new();
+        static Dictionary<Type, List<FieldInfo>> fields_byClassType = new();
+
 
 
 #if !VINSPECTOR_ATTRIBUTES_DISABLED
         [InitializeOnLoadMethod]
 #endif
-        private static void Subscribe() => Editor.finishedDefaultHeaderGUI += HeaderGUI;
+        static void Subscribe() => Editor.finishedDefaultHeaderGUI += HeaderGUI;
+
     }
 
+
+
+
     #endregion
+
 }
 #endif

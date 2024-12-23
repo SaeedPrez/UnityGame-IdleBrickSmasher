@@ -1,95 +1,30 @@
 #if UNITY_EDITOR
-using System;
+using UnityEngine;
+using UnityEngine.UIElements;
+using UnityEditor.UIElements;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using UnityEditor;
+using UnityEditor.ShortcutManagement;
 using UnityEditor.SceneManagement;
-using UnityEditor.UIElements;
-using UnityEditorInternal;
-using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
+using System.Reflection;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Type = System.Type;
 using static VInspector.VInspectorState;
 using static VInspector.VInspectorData;
 using static VInspector.Libs.VUtils;
 using static VInspector.Libs.VGUI;
-using Object = UnityEngine.Object;
+// using static VTools.VDebug;
 
 
 namespace VInspector
 {
     public static class VInspector
     {
-        private const string version = "2.0.10";
 
-        private static readonly Dictionary<EditorWindow, VisualElement> navbars_byWindow = new();
-        private static readonly Dictionary<EditorWindow, VisualElement> navbarSpacers_byWindow = new();
-
-        private static readonly Dictionary<EditorWindow, VisualElement> pasteButtons_byWindow = new();
-
-        private static readonly List<EditorWindow> propertyEditorsInspectingGameObjects = new();
-        private static readonly Dictionary<EditorWindow, Editor> goEditors_byWindow = new();
-
-        public static VInspectorComponentHeader hoveredComponentHeader;
-
-        private static Action toCallNextUpdate;
-
-        private static float deltaTime;
-        private static double lastLayoutTime;
-
-        private static readonly Dictionary<Component, ExpandAnimation> activeExpandAnimations_byComponent = new();
-        private static readonly List<ExpandAnimation> queuedExpandAnimations = new();
-        private static ExpandAnimation lastActivatedQueuedAnimation;
-
-        private static readonly List<DeleteAnimation> activeDeleteAnimations = new();
-
-        private static readonly Dictionary<Component, VInspectorComponentHeader> componentHeaders_byComponent = new();
-
-        private static readonly Dictionary<Editor, int> componentOrderHashes_byEditor = new();
-
-        private static Delegate helpButton;
-        private static Delegate presetsButton;
-        private static Delegate copyPasteButton;
-        private static Delegate playmodeSaveButton;
-
-        private static readonly Dictionary<Bookmark, Object> stashedBookmarkObjects_byBookmark = new();
-
-        private static HashSet<Type> typesWithVInspectorAttributes;
-
-        private static readonly Dictionary<Type, bool> uitkUsage_byType = new();
-
-        public static Dictionary<int, Action> valueChangedCallbacks_byUndoPosition = new();
-
-        public static VInspectorData data;
-        private static IEnumerable<EditorWindow> _allInspectors;
-
-        private static readonly Type t_InspectorWindow = typeof(Editor).Assembly.GetType("UnityEditor.InspectorWindow");
-        private static readonly Type t_PropertyEditor = typeof(Editor).Assembly.GetType("UnityEditor.PropertyEditor");
-        private static readonly Type t_GameObjectInspector = typeof(Editor).Assembly.GetType("UnityEditor.GameObjectInspector");
-
-        private static readonly Type t_VHierarchy = Type.GetType("VHierarchy.VHierarchy") ??
-                                                    Type.GetType("VHierarchy.VHierarchy, VHierarchy, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null");
-
-        public static MethodInfo mi_VHierarchy_GetIconName = t_VHierarchy?.GetMethod("GetIconName_forVInspector", maxBindingFlags);
-        public static Component hoveredComponent => hoveredComponentHeader?.component;
-
-        private static float expandAnimation_lerpSpeed => 12;
-        private static float expandAnimation_speedLimit => 4000;
-        private static float expandAnimation_unqueueAtDistance => 90;
-
-        private static float deleteAnimation_lerpSpeed => 10;
-        private static float deleteAnimation_speedLimit => 3000;
-
-
-        private static IEnumerable<EditorWindow> allInspectors => _allInspectors ??=
-            t_InspectorWindow.GetFieldValue<IList>("m_AllInspectors").Cast<EditorWindow>().Where(r => r.GetType() == t_InspectorWindow);
-
-        private static void UpdateNavbars() // update
+        static void UpdateNavbars() // update
         {
             void updateNavbar(EditorWindow window)
             {
@@ -106,6 +41,7 @@ namespace VInspector
 
                 if (hasNavbar && !shouldHaveNavbar)
                     destroyNavbar(window);
+
             }
 
             void createNavbar(EditorWindow window)
@@ -125,6 +61,7 @@ namespace VInspector
                 window.rootVisualElement.Add(navbar);
 
 
+
                 var navbarSpacer = new VisualElement();
 
                 navbarSpacer.name = "vInspector-navbar-spacer";
@@ -135,10 +72,11 @@ namespace VInspector
                 window.rootVisualElement.Insert(0, navbarSpacer);
 
 
+
                 navbars_byWindow[window] = navbar;
                 navbarSpacers_byWindow[window] = navbarSpacer;
-            }
 
+            }
             void destroyNavbar(EditorWindow window)
             {
                 var navbar = window.rootVisualElement.Q("vInspector-navbar");
@@ -150,15 +88,22 @@ namespace VInspector
 
                 navbars_byWindow.Remove(window);
                 navbarSpacers_byWindow.Remove(window);
+
             }
 
 
             foreach (var inspector in allInspectors)
                 updateNavbar(inspector);
+
         }
 
+        static Dictionary<EditorWindow, VisualElement> navbars_byWindow = new();
+        static Dictionary<EditorWindow, VisualElement> navbarSpacers_byWindow = new();
 
-        private static void PasteButton_OnGUI(EditorWindow window, Rect rect)
+
+
+
+        static void PasteButton_OnGUI(EditorWindow window, Rect rect)
         {
             if (!goEditors_byWindow.TryGetValue(window, out var editor)) return;
 
@@ -173,13 +118,13 @@ namespace VInspector
                 if (!GUI.Button(rect, text)) return;
 
                 foreach (var target in editor.targets)
-                foreach (var data in copiedDatas)
-                    VInspectorClipboard.PasteComponentAsNew(data, target as GameObject);
+                    foreach (var data in copiedDatas)
+                        VInspectorClipboard.PasteComponentAsNew(data, target as GameObject);
 
                 if (!curEvent.holdingAlt)
                     VInspectorClipboard.ClearCopiedDatas();
-            }
 
+            }
             void pasteButton_inactive()
             {
                 if (isActive) return;
@@ -189,8 +134,8 @@ namespace VInspector
                 GUI.Button(rect, text);
 
                 ResetGUIEnabled();
-            }
 
+            }
             void cancelButton()
             {
                 if (!rect.IsHovered()) return;
@@ -205,8 +150,8 @@ namespace VInspector
                 if (!IconButton(buttonRect, "CrossIcon", iconSize, colorNormal, colorHovered, colorPressed)) return;
 
                 VInspectorClipboard.ClearCopiedDatas();
-            }
 
+            }
             void escHint()
             {
                 if (!rect.SetWidthFromRight(rect.height).MoveX(-1).IsHovered()) return;
@@ -223,6 +168,7 @@ namespace VInspector
 
                 ResetGUIColor();
                 ResetLabelStyle();
+
             }
 
 
@@ -237,7 +183,7 @@ namespace VInspector
                 cancelButton();
         }
 
-        private static void UpdatePasteButtons() // update and selectionChanged
+        static void UpdatePasteButtons() // update and selectionChanged
         {
             void updateButton(EditorWindow window)
             {
@@ -246,13 +192,8 @@ namespace VInspector
 
 
                 var hasCopiedComponents = VInspectorClipboard.instance.copiedComponetDatas.Any();
-                var inspectingGameObjects = window.GetType() == t_InspectorWindow
-                    ?
-                    window.InvokeMethod<Object[]>("GetInspectedObjects")?.All(r => r is GameObject) == true
-                    :
-                    window.GetType() == t_PropertyEditor
-                        ? propertyEditorsInspectingGameObjects.Contains(window)
-                        : true;
+                var inspectingGameObjects = window.GetType() == t_InspectorWindow ? window.InvokeMethod<Object[]>("GetInspectedObjects")?.All(r => r is GameObject) == true :
+                                            window.GetType() == t_PropertyEditor ? propertyEditorsInspectingGameObjects.Contains(window) : true;
 
                 var hasButton = pasteButtons_byWindow.ContainsKey(window);
                 var shouldHaveButton = hasCopiedComponents && inspectingGameObjects;
@@ -263,6 +204,7 @@ namespace VInspector
 
                 if (hasButton && !shouldHaveButton)
                     destroyButton(window);
+
             }
 
             void createButton(EditorWindow window)
@@ -293,15 +235,16 @@ namespace VInspector
                 button.onGUIHandler = () => PasteButton_OnGUI(window, button.contentRect);
 
 
+
                 addComponentButton.parent.Add(buttonHolder);
 
                 buttonHolder.Add(button);
 
 
-                pasteButtons_byWindow[window] = button;
-                ;
-            }
 
+                pasteButtons_byWindow[window] = button; ;
+
+            }
             void destroyButton(EditorWindow window)
             {
                 var buttonHolder = pasteButtons_byWindow[window].parent;
@@ -310,6 +253,7 @@ namespace VInspector
 
 
                 pasteButtons_byWindow.Remove(window);
+
             }
 
 
@@ -318,10 +262,15 @@ namespace VInspector
 
             foreach (var propertyEditor in propertyEditorsInspectingGameObjects)
                 updateButton(propertyEditor);
+
         }
 
+        static Dictionary<EditorWindow, VisualElement> pasteButtons_byWindow = new();
 
-        private static void FillCollections(Editor editor) // finishedDefaultHeaderGUI
+
+
+
+        static void FillCollections(Editor editor) // finishedDefaultHeaderGUI
         {
             if (editor.GetMemberValue("propertyViewer") is not EditorWindow window) return;
             if (editor.target is not GameObject) return;
@@ -333,10 +282,27 @@ namespace VInspector
             if (propertyEditorsInspectingGameObjects.Contains(window)) return;
 
             propertyEditorsInspectingGameObjects.Add(window);
+
         }
 
+        static List<EditorWindow> propertyEditorsInspectingGameObjects = new();
+        static Dictionary<EditorWindow, Editor> goEditors_byWindow = new();
 
-        private static void ComponentShortcuts() // globalEventHandler
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        static void ComponentShortcuts() // globalEventHandler
         {
             if (EditorWindow.mouseOverWindow is not EditorWindow hoveredWindow) return;
             if (!hoveredWindow) return;
@@ -354,12 +320,15 @@ namespace VInspector
                 if (hoveredComponentHeader == null) return;
 
 
+
                 ToggleComponentExpanded(hoveredComponent, hoveredWindow);
+
 
 
                 hoveredWindow.Repaint();
 
                 curEvent.Use();
+
 
 
                 if (!Application.unityVersion.Contains("2022")) return;
@@ -370,12 +339,11 @@ namespace VInspector
 
                 // E shortcut changes transform tool in 2022
                 // here we undo this
-            }
 
+            }
             void expandOrCollapseAll()
             {
-                if (curEvent.modifiers != (EventModifiers.Shift | EventModifiers.Command) &&
-                    curEvent.modifiers != (EventModifiers.Shift | EventModifiers.Control)) return;
+                if (curEvent.modifiers != (EventModifiers.Shift | EventModifiers.Command) && curEvent.modifiers != (EventModifiers.Shift | EventModifiers.Control)) return;
                 if (!curEvent.isKeyDown || curEvent.keyCode != KeyCode.E) return;
                 if (!VInspectorMenu.collapseEverythingEnabled) return;
 
@@ -386,8 +354,8 @@ namespace VInspector
                 hoveredWindow.Repaint();
 
                 curEvent.Use();
-            }
 
+            }
             void collapseEverythingElse()
             {
                 if (curEvent.modifiers != EventModifiers.Shift) return;
@@ -396,14 +364,16 @@ namespace VInspector
                 if (hoveredComponentHeader == null) return;
 
 
+
                 CollapseOtherComponents(hoveredComponent, hoveredWindow);
+
 
 
                 hoveredWindow.Repaint();
 
                 curEvent.Use();
-            }
 
+            }
             void toggleActive()
             {
                 if (curEvent.holdingAnyModifierKey) return;
@@ -427,11 +397,12 @@ namespace VInspector
                     EditorUtility.SetObjectEnabled(r, !anyComponentsEnabled);
 
 
+
                 hoveredWindow.Repaint();
 
                 curEvent.Use();
-            }
 
+            }
             void delete()
             {
                 if (curEvent.holdingAnyModifierKey) return;
@@ -440,31 +411,31 @@ namespace VInspector
                 if (hoveredComponentHeader == null) return;
 
 
+
                 Component requiredByComponent = null;
 
                 foreach (var otherComponent in hoveredComponent.gameObject.GetComponents<Component>())
-                    if (otherComponent.GetType().GetCustomAttributes<RequireComponent>()
-                        .Any(r => (r.m_Type0 ?? r.m_Type1 ?? r.m_Type2)?.IsAssignableFrom(hoveredComponent.GetType()) ?? false))
+                    if (otherComponent.GetType().GetCustomAttributes<RequireComponent>().Any(r => (r.m_Type0 ?? r.m_Type1 ?? r.m_Type2)?.IsAssignableFrom(hoveredComponent.GetType()) ?? false))
                         requiredByComponent = otherComponent;
 
                 if (requiredByComponent != null && hoveredComponent is not Transform)
-                    Debug.Log(
-                        $"Can't delete {hoveredComponent.GetType().Name.Decamelcase()} because it is required by {requiredByComponent.GetType().Name.Decamelcase()}");
+                    Debug.Log($"Can't delete {hoveredComponent.GetType().Name.Decamelcase()} because it is required by {requiredByComponent.GetType().Name.Decamelcase()}");
+
 
 
                 if (requiredByComponent == null && hoveredComponent is not Transform)
                     if (VInspectorMenu.componentAnimationsEnabled)
-                        DeleteComponent_withAnimation(hoveredWindow,
-                            hoveredComponentHeader.editingMultiselection ? hoveredComponentHeader.multiselectedComponents : new List<Component> { hoveredComponent });
+                        DeleteComponent_withAnimation(hoveredWindow, hoveredComponentHeader.editingMultiselection ? hoveredComponentHeader.multiselectedComponents : new List<Component> { hoveredComponent });
                     else
-                        DeleteComponent_withoutAnimation(hoveredComponentHeader.editingMultiselection
-                            ? hoveredComponentHeader.multiselectedComponents
-                            : new List<Component> { hoveredComponent });
+                        DeleteComponent_withoutAnimation(hoveredComponentHeader.editingMultiselection ? hoveredComponentHeader.multiselectedComponents : new List<Component> { hoveredComponent });
+
+
 
 
                 hoveredWindow.Repaint();
 
                 curEvent.Use();
+
 
 
                 if (!Application.unityVersion.Contains("2022")) return;
@@ -475,6 +446,7 @@ namespace VInspector
 
                 // X shortcut changes Tools.pivotRotation in 2022
                 // here we undo this
+
             }
 
             void clearCopiedDatas()
@@ -490,6 +462,7 @@ namespace VInspector
                 hoveredWindow.Repaint();
 
                 curEvent.Use();
+
             }
 
 
@@ -500,10 +473,15 @@ namespace VInspector
             delete();
 
             clearCopiedDatas();
+
         }
 
+        public static VInspectorComponentHeader hoveredComponentHeader;
+        public static Component hoveredComponent => hoveredComponentHeader?.component;
 
-        private static void UpdateComponentAnimations() // update
+
+
+        static void UpdateComponentAnimations() // update
         {
             void set_deltaTime()
             {
@@ -513,15 +491,11 @@ namespace VInspector
                 // deltaTime = .0166f;
 
                 lastLayoutTime = EditorApplication.timeSinceStartup;
-            }
 
+            }
             void updateExpandAnimationsQueue()
             {
-                if (!queuedExpandAnimations.Any())
-                {
-                    lastActivatedQueuedAnimation = null;
-                    return;
-                }
+                if (!queuedExpandAnimations.Any()) { lastActivatedQueuedAnimation = null; return; }
 
                 void unqueue(ExpandAnimation animation)
                 {
@@ -530,27 +504,28 @@ namespace VInspector
                     animation.Start();
 
                     lastActivatedQueuedAnimation = animation;
+
                 }
 
                 if (lastActivatedQueuedAnimation == null)
                     unqueue(queuedExpandAnimations.First());
 
                 else if (!lastActivatedQueuedAnimation.expandedInspectorHeightUnknown)
-                    if ((lastActivatedQueuedAnimation.currentInspectorHeight - lastActivatedQueuedAnimation.targetInspectorHeight).Abs() <
-                        expandAnimation_unqueueAtDistance)
+                    if ((lastActivatedQueuedAnimation.currentInspectorHeight - lastActivatedQueuedAnimation.targetInspectorHeight).Abs() < expandAnimation_unqueueAtDistance)
                         unqueue(queuedExpandAnimations.First());
-            }
 
+            }
             void updateExpandAnimations()
             {
                 foreach (var animation in activeExpandAnimations_byComponent.Values.ToList())
                     animation.Update();
-            }
 
+            }
             void updateDeleteAnimations()
             {
                 foreach (var animation in activeDeleteAnimations.ToList())
                     animation.Update();
+
             }
 
 
@@ -561,24 +536,316 @@ namespace VInspector
             updateExpandAnimationsQueue();
             updateExpandAnimations();
             updateDeleteAnimations();
+
         }
+
+        static float expandAnimation_lerpSpeed => 12;
+        static float expandAnimation_speedLimit => 4000;
+        static float expandAnimation_unqueueAtDistance => 90;
+
+        static float deleteAnimation_lerpSpeed => 10;
+        static float deleteAnimation_speedLimit => 3000;
+
+        static System.Action toCallNextUpdate;
+
+        static float deltaTime;
+        static double lastLayoutTime;
+
+        static Dictionary<Component, ExpandAnimation> activeExpandAnimations_byComponent = new();
+        static List<ExpandAnimation> queuedExpandAnimations = new();
+        static ExpandAnimation lastActivatedQueuedAnimation;
+
+        static List<DeleteAnimation> activeDeleteAnimations = new();
+
+
+        class ExpandAnimation
+        {
+            public void Start()
+            {
+                void expand()
+                {
+                    if (targetExpandedState != true) return;
+
+                    SetComponentExpanded_withoutAnimation(inspectorWindow, component, true);
+
+
+                }
+                void findInspectorElement()
+                {
+                    var editorsList = inspectorWindow.rootVisualElement.Q(className: "unity-inspector-editors-list");
+
+                    foreach (var someEditorElement in editorsList.Children())
+                        if (someEditorElement.Children().FirstOrDefault(r => r is InspectorElement) is InspectorElement someInspectorElement)
+                            if (someInspectorElement.GetFieldValue("m_Editor") is Editor editor)
+                                if (editor.target == component)
+                                {
+                                    inspectorElement = someInspectorElement;
+                                    break;
+
+                                }
+
+                }
+                void detachInspectorElement()
+                {
+                    if (inspectorElement == null) return;
+                    if (targetExpandedState != true) return;
+
+                    inspectorElement.style.position = Position.Absolute;
+                    inspectorElement.style.visibility = Visibility.Hidden;
+
+                    // needed to read inspectorElement height without it affecting layout
+                    // reattached in UpdateAnimation
+
+                }
+                void createMaskElement()
+                {
+                    if (inspectorElement == null) return;
+
+
+                    maskElement = new IMGUIContainer();
+
+                    maskElement.name = "vInspector-mask-for-expand-animation";
+
+                    (maskElement as IMGUIContainer).onGUIHandler = () => new Rect(0, 0, 1232, 1232).Draw(GUIColors.windowBackground);
+
+                    inspectorElement.parent.Add(maskElement);
+
+                }
+                void set_expandedInspectorHeight()
+                {
+                    if (targetExpandedState == true)
+                        expandedInspectorHeightUnknown = true;
+                    else
+                        expandedInspectorHeight = inspectorElement.layout.height;
+
+                }
+                void set_currentInspectorHeight()
+                {
+                    if (targetExpandedState == true)
+                        currentInspectorHeight = collapsedInspectorHeight;
+                    else
+                        currentInspectorHeight = expandedInspectorHeight;
+
+                }
+
+
+                expand();
+                findInspectorElement();
+                detachInspectorElement();
+                createMaskElement();
+                set_expandedInspectorHeight();
+                set_currentInspectorHeight();
+
+                activeExpandAnimations_byComponent[component] = this;
+
+
+            }
+            public void Finish()
+            {
+                void collapse()
+                {
+                    if (targetExpandedState != false) return;
+
+                    SetComponentExpanded_withoutAnimation(inspectorWindow, component, false);
+
+                }
+                void resetInspectorElementStyle()
+                {
+                    inspectorElement.style.maxHeight = StyleKeyword.Null;
+                    inspectorElement.style.marginBottom = 0;
+
+                }
+                void removeMaskElement()
+                {
+                    maskElement.RemoveFromHierarchy();
+                }
+
+
+                collapse();
+
+                toCallNextUpdate += resetInspectorElementStyle;
+                toCallNextUpdate += removeMaskElement;
+
+                activeExpandAnimations_byComponent.Remove(component);
+
+            }
+
+            public void Update()
+            {
+                void set_expandedInspectorHeight()
+                {
+                    if (!expandedInspectorHeightUnknown) return;
+                    if (inspectorElement.layout.height == 0) return;
+
+                    expandedInspectorHeight = inspectorElement.layout.height;
+                    expandedInspectorHeightUnknown = false;
+
+                    reattachInspectorElement();
+
+                }
+                void reattachInspectorElement()
+                {
+                    inspectorElement.style.position = Position.Relative;
+                    inspectorElement.style.visibility = Visibility.Visible;
+
+                }
+                void lerp()
+                {
+                    if (expandedInspectorHeightUnknown) return;
+
+
+                    MathUtil.SmoothDamp(ref currentInspectorHeight, targetInspectorHeight, expandAnimation_lerpSpeed, ref currentInspectorHeightDerivative, deltaTime, expandAnimation_speedLimit);
+
+                }
+                void modifyInspectorElementStyle()
+                {
+                    if (expandedInspectorHeightUnknown) return;
+
+                    inspectorElement.style.maxHeight = currentInspectorHeight.Max(0);
+                    inspectorElement.style.marginBottom = currentInspectorHeight.Min(0);
+
+                }
+                void finish()
+                {
+                    if ((currentInspectorHeight - targetInspectorHeight).Abs() > .5f) return;
+
+                    Finish();
+
+                }
+
+                set_expandedInspectorHeight();
+                lerp();
+                modifyInspectorElementStyle();
+                finish();
+
+            }
+
+
+
+            public EditorWindow inspectorWindow;
+
+            public Component component;
+
+            public VisualElement inspectorElement;
+            public VisualElement maskElement;
+
+            public float expandedInspectorHeight;
+            public bool expandedInspectorHeightUnknown;
+
+            public float collapsedInspectorHeight => -7;
+
+            public float currentInspectorHeight;
+            public float currentInspectorHeightDerivative;
+
+            public float targetInspectorHeight => targetExpandedState == true ? expandedInspectorHeight : collapsedInspectorHeight;
+
+            public bool targetExpandedState;
+
+        }
+
+        class DeleteAnimation
+        {
+            public void Start()
+            {
+                void findEditorElement()
+                {
+                    var editorsList = inspectorWindow.rootVisualElement.Q(className: "unity-inspector-editors-list");
+
+                    foreach (var someEditorElement in editorsList.Children())
+                        if (someEditorElement.Children().FirstOrDefault(r => r is InspectorElement) is InspectorElement someInspectorElement)
+                            if (someInspectorElement.GetFieldValue("m_Editor") is Editor editor)
+                                if (editor.target == component)
+                                {
+                                    editorElement = someEditorElement;
+                                    break;
+                                }
+
+                }
+                void createSpacerElement()
+                {
+                    spacerElement = new IMGUIContainer();
+
+                    spacerElement.name = "vInspector-spacer-for-delete-animation";
+
+                    (spacerElement as IMGUIContainer).onGUIHandler = () => new Rect(0, 0, 1232, 1).Draw(Greyscale(.1f));
+
+                    editorElement.parent.Insert(editorElement.parent.IndexOf(editorElement), spacerElement);
+
+                    spacerElement.style.height = editorElement.layout.height;
+
+                    currentSpacerHeight = editorElement.layout.height;
+
+
+                }
+
+                findEditorElement();
+                createSpacerElement();
+
+                activeDeleteAnimations.Add(this);
+
+            }
+            public void Finish()
+            {
+                spacerElement.RemoveFromHierarchy();
+
+                activeDeleteAnimations.Remove(this);
+
+            }
+
+            public void Update()
+            {
+                void lerp()
+                {
+                    MathUtil.SmoothDamp(ref currentSpacerHeight, 0, deleteAnimation_lerpSpeed, ref currentSpacerHeightDerivative, deltaTime, deleteAnimation_speedLimit);
+                }
+                void modifySpacerElement()
+                {
+                    spacerElement.style.height = currentSpacerHeight;
+                }
+                void finish()
+                {
+                    if (currentSpacerHeight > .5f) return;
+
+                    Finish();
+
+                }
+
+                lerp();
+                modifySpacerElement();
+                finish();
+
+            }
+
+
+
+            public EditorWindow inspectorWindow;
+
+            public Component component;
+
+            public VisualElement editorElement;
+            public VisualElement spacerElement;
+
+            public float currentSpacerHeight;
+            public float currentSpacerHeightDerivative;
+
+        }
+
 
 
         public static void ToggleComponentExpanded(Component component, EditorWindow inspectorWindow)
         {
             if (VInspectorMenu.componentAnimationsEnabled)
-                SetComponentExpanded_withAnimation(inspectorWindow, component, !GetCompnentExpanded(inspectorWindow, component), false);
+                SetComponentExpanded_withAnimation(inspectorWindow, component, newExpandedState: !GetCompnentExpanded(inspectorWindow, component), queueAnimation: false);
             else
-                SetComponentExpanded_withoutAnimation(inspectorWindow, component, !GetCompnentExpanded(inspectorWindow, component));
-        }
+                SetComponentExpanded_withoutAnimation(inspectorWindow, component, newExpandedState: !GetCompnentExpanded(inspectorWindow, component));
 
+        }
         public static void ToggleAllComponentsExpanded(EditorWindow inspectorWindow)
         {
             var firstEditor = inspectorWindow.GetMemberValue<ActiveEditorTracker>("m_Tracker").activeEditors.First();
 
-            var allComponents = inspectorWindow.GetMemberValue<ActiveEditorTracker>("m_Tracker").activeEditors.Where(r =>
-                    r.target is Component && r.targets.Length == firstEditor.targets.Length && r.target is not ParticleSystemRenderer)
-                .Select(r => r.target as Component);
+            var allComponents = inspectorWindow.GetMemberValue<ActiveEditorTracker>("m_Tracker").activeEditors.Where(r => r.target is Component && r.targets.Length == firstEditor.targets.Length && r.target is not ParticleSystemRenderer)
+                                                                                                            .Select(r => r.target as Component);
             var anyComponentsExpanded = allComponents.Any(r => GetCompnentExpanded(inspectorWindow, r));
 
 
@@ -587,32 +854,32 @@ namespace VInspector
 
             foreach (var component in !anyComponentsExpanded ? allComponents : allComponents.Reverse())
                 if (VInspectorMenu.componentAnimationsEnabled)
-                    SetComponentExpanded_withAnimation(inspectorWindow, component, !anyComponentsExpanded, true);
+                    SetComponentExpanded_withAnimation(inspectorWindow, component, newExpandedState: !anyComponentsExpanded, queueAnimation: true);
                 else
-                    SetComponentExpanded_withoutAnimation(inspectorWindow, component, !anyComponentsExpanded);
-        }
+                    SetComponentExpanded_withoutAnimation(inspectorWindow, component, newExpandedState: !anyComponentsExpanded);
 
+        }
         public static void CollapseOtherComponents(Component component, EditorWindow inspectorWindow)
         {
             var firstEditor = inspectorWindow.GetMemberValue<ActiveEditorTracker>("m_Tracker").activeEditors.First();
 
-            var allComponents = inspectorWindow.GetMemberValue<ActiveEditorTracker>("m_Tracker").activeEditors.Where(r =>
-                    r.target is Component && r.targets.Length == firstEditor.targets.Length && r.target is not ParticleSystemRenderer)
-                .Select(r => r.target as Component);
+            var allComponents = inspectorWindow.GetMemberValue<ActiveEditorTracker>("m_Tracker").activeEditors.Where(r => r.target is Component && r.targets.Length == firstEditor.targets.Length && r.target is not ParticleSystemRenderer)
+                                                                                                            .Select(r => r.target as Component);
             foreach (var someComponent in allComponents)
                 if (someComponent != component)
                     if (VInspectorMenu.componentAnimationsEnabled)
-                        SetComponentExpanded_withAnimation(inspectorWindow, someComponent, false, true);
+                        SetComponentExpanded_withAnimation(inspectorWindow, someComponent, newExpandedState: false, queueAnimation: true);
                     else
-                        SetComponentExpanded_withoutAnimation(inspectorWindow, someComponent, false);
+                        SetComponentExpanded_withoutAnimation(inspectorWindow, someComponent, newExpandedState: false);
 
             if (VInspectorMenu.componentAnimationsEnabled)
-                SetComponentExpanded_withAnimation(inspectorWindow, component, true, false);
+                SetComponentExpanded_withAnimation(inspectorWindow, component, newExpandedState: true, queueAnimation: false);
             else
-                SetComponentExpanded_withoutAnimation(inspectorWindow, component, true);
+                SetComponentExpanded_withoutAnimation(inspectorWindow, component, newExpandedState: true);
+
         }
 
-        private static bool GetCompnentExpanded(EditorWindow hoveredWindow, Component component)
+        static bool GetCompnentExpanded(EditorWindow hoveredWindow, Component component)
         {
             if (activeExpandAnimations_byComponent.TryGetValue(component, out var animation))
                 if (animation.targetExpandedState == false)
@@ -622,18 +889,15 @@ namespace VInspector
 
             var editorIndex = tracker.activeEditors.ToList().IndexOfFirst(r => r.target == component);
 
+            if (!editorIndex.IsInRangeOf(tracker.activeEditors)) return false;
+
             return tracker.GetVisible(editorIndex) == 1;
+
         }
 
         public static void SetComponentExpanded_withAnimation(EditorWindow inspectorWindow, Component component, bool newExpandedState, bool queueAnimation)
         {
-            if (activeExpandAnimations_byComponent.TryGetValue(component, out var activeAnimation))
-            {
-                activeAnimation.targetExpandedState = newExpandedState;
-                return;
-            }
-
-            ;
+            if (activeExpandAnimations_byComponent.TryGetValue(component, out var activeAnimation)) { activeAnimation.targetExpandedState = newExpandedState; return; };
 
 
             var tracker = inspectorWindow.GetMemberValue<ActiveEditorTracker>("m_Tracker");
@@ -643,6 +907,7 @@ namespace VInspector
             if (visibleExpandedState == newExpandedState) return;
 
 
+
             var animation = new ExpandAnimation();
 
             animation.inspectorWindow = inspectorWindow;
@@ -650,16 +915,17 @@ namespace VInspector
             animation.targetExpandedState = newExpandedState;
 
 
+
             if (queueAnimation)
                 queuedExpandAnimations.Add(animation);
             else
                 animation.Start();
-        }
 
+        }
         public static void SetComponentExpanded_withoutAnimation(EditorWindow inspectorWindow, Component component, bool newExpandedState)
         {
             // sets saved state which applies to all components of same type
-            InternalEditorUtility.SetIsInspectorExpanded(component, newExpandedState);
+            UnityEditorInternal.InternalEditorUtility.SetIsInspectorExpanded(component, newExpandedState);
 
 
             // sets visible state that lives as long as selection is unchanged
@@ -667,7 +933,10 @@ namespace VInspector
 
             var editorIndex = tracker.activeEditors.ToList().IndexOfFirst(r => r.target == component);
 
+            if (!editorIndex.IsInRangeOf(tracker.activeEditors)) return;
+
             tracker.SetVisible(editorIndex, newExpandedState ? 1 : 0);
+
         }
 
 
@@ -681,16 +950,30 @@ namespace VInspector
             animation.Start();
 
             DeleteComponent_withoutAnimation(multiselectedComponents);
-        }
 
+        }
         public static void DeleteComponent_withoutAnimation(List<Component> multiselectedComponents)
         {
             foreach (var r in multiselectedComponents)
                 Undo.DestroyObjectImmediate(r);
+
         }
 
 
-        private static void UpdateComponentHeaders(Editor editor) // finishedDefaultHeaderGUI
+
+
+
+
+
+
+
+
+
+
+
+
+
+        static void UpdateComponentHeaders(Editor editor) // finishedDefaultHeaderGUI
         {
             if (!curEvent.isLayout) return;
             if (editor.GetType() != t_GameObjectInspector) return;
@@ -712,14 +995,15 @@ namespace VInspector
                     componentHeaders_byComponent.Clear();
 
                 componentOrderHashes_byEditor[editor] = curOrderHash;
-            }
 
+            }
             void createHeader(Component component)
             {
                 if (!component) return;
                 if (componentHeaders_byComponent.ContainsKey(component)) return;
 
                 componentHeaders_byComponent[component] = new VInspectorComponentHeader(component, editor);
+
             }
 
 
@@ -730,22 +1014,34 @@ namespace VInspector
 
             foreach (var component in components)
                 componentHeaders_byComponent[component].Update();
+
         }
+
+        static Dictionary<Component, VInspectorComponentHeader> componentHeaders_byComponent = new();
+
+        static Dictionary<Editor, int> componentOrderHashes_byEditor = new();
+
+
+
 
 
         public static void UpdateHeaderButtons(Editor _)
         {
+
             var buttons = typeof(EditorGUIUtility).GetMemberValue<IList>("s_EditorHeaderItemsMethods");
 
             if (buttons == null) return; // will be checked again next gui frame
 
 
+
             var t_HeaderItemDelegate = typeof(EditorGUIUtility).GetNestedType("HeaderItemDelegate", maxBindingFlags);
 
-            helpButton ??= buttons.Cast<Delegate>().FirstOrDefault(r => r.Method.Name == "HelpIconButton");
-            presetsButton ??= buttons.Cast<Delegate>().FirstOrDefault(r => r.Method.Name == "DrawPresetButton");
+            helpButton ??= buttons.Cast<System.Delegate>().FirstOrDefault(r => r.Method.Name == "HelpIconButton");
+            presetsButton ??= buttons.Cast<System.Delegate>().FirstOrDefault(r => r.Method.Name == "DrawPresetButton");
             copyPasteButton ??= typeof(VInspector).GetMethod(nameof(CopyPasteButton), maxBindingFlags).CreateDelegate(t_HeaderItemDelegate);
             playmodeSaveButton ??= typeof(VInspector).GetMethod(nameof(PlaymodeSaveButton), maxBindingFlags).CreateDelegate(t_HeaderItemDelegate);
+
+
 
 
             buttons.Remove(helpButton);
@@ -767,11 +1063,19 @@ namespace VInspector
                 buttons.Insert(0, presetsButton);
 
 
+
+
             Editor.finishedDefaultHeaderGUI -= UpdateHeaderButtons;
+
         }
 
+        static System.Delegate helpButton;
+        static System.Delegate presetsButton;
+        static System.Delegate copyPasteButton;
+        static System.Delegate playmodeSaveButton;
 
-        private static bool CopyPasteButton(Rect buttonRect, Object[] targets)
+
+        static bool CopyPasteButton(Rect buttonRect, Object[] targets)
         {
             if (targets.First() is not Component component) return false;
 
@@ -785,6 +1089,7 @@ namespace VInspector
             GUI.Label(buttonRect, new GUIContent("", canValuesBePasted ? "Paste values" : isCopied ? "Copied" : "Copy component"));
 
 
+
             var iconName = canValuesBePasted ? "Paste values" : isCopied ? "Copied" : "Copy";
             var iconSize = 16;
             var color = Greyscale(isDarkTheme ? .78f : .49f);
@@ -793,13 +1098,12 @@ namespace VInspector
             var colorDisabled = Greyscale(.52f);
 
 
+
+
             var disabled = targets.Length > 1;
 
-            if (disabled)
-            {
-                IconButton(buttonRect, iconName, iconSize, colorDisabled, colorDisabled, colorDisabled);
-                return true;
-            }
+            if (disabled) { IconButton(buttonRect, iconName, iconSize, colorDisabled, colorDisabled, colorDisabled); return true; }
+
 
 
             if (!IconButton(buttonRect, iconName, iconSize, color, colorHovered, colorPressed)) return true;
@@ -810,23 +1114,25 @@ namespace VInspector
                 VInspectorClipboard.CopyComponent(component);
 
             return true;
+
         }
 
-        private static bool PlaymodeSaveButton(Rect buttonRect, Object[] targets)
+        static bool PlaymodeSaveButton(Rect buttonRect, Object[] targets)
         {
+
             void tryApplyingFailedToSaveDatas()
             {
                 if (Application.isPlaying) return;
                 if (!VInspectorClipboard.instance.failedToSaveComponentDatas.Any()) return;
 
                 foreach (var data in VInspectorClipboard.instance.failedToSaveComponentDatas.ToList())
-                foreach (var target in targets)
-                    if (target is Component component_)
-                        if (target.GetGlobalID().UnpackForPrefab() == data.globalId)
-                        {
-                            VInspectorClipboard.ApplyComponentData(data, component_);
-                            VInspectorClipboard.instance.failedToSaveComponentDatas.Remove(data);
-                        }
+                    foreach (var target in targets)
+                        if (target is Component component_)
+                            if (target.GetGlobalID().UnpackForPrefab() == data.globalId)
+                            {
+                                VInspectorClipboard.ApplyComponentData(data, component_);
+                                VInspectorClipboard.instance.failedToSaveComponentDatas.Remove(data);
+                            }
 
 
                 // applies saved component datas that couldn't be applied on playmode exit
@@ -836,9 +1142,11 @@ namespace VInspector
                 //
                 // this solution applies datas once respective components become visible in inspector
                 // a "proper" solution would involve looping through all objects in a scene once it's opened
+
             }
 
             tryApplyingFailedToSaveDatas();
+
 
 
             if (!Application.isPlaying) return false;
@@ -852,11 +1160,14 @@ namespace VInspector
             GUI.Label(buttonRect, new GUIContent("", isSaved ? "Saved" : "Save in play mode"));
 
 
+
             var iconName = isSaved ? "Saved" : "Save";
             var iconSize = 16;
             var color = Greyscale(isDarkTheme ? .8f : .46f);
             var colorHovered = Greyscale(isDarkTheme ? 1f : .2f);
             var colorPressed = Greyscale(isDarkTheme ? .8f : .6f);
+
+
 
 
             if (!IconButton(buttonRect, iconName, iconSize, color, colorHovered, colorPressed)) return true;
@@ -868,78 +1179,93 @@ namespace VInspector
                 VInspectorClipboard.SaveComponent(component);
 
 
+
             return true;
+
         }
 
 
-        private static void LoadBookmarkObjectsForScene(Scene scene) // on scene loaded
+
+
+
+
+
+
+
+
+
+
+
+
+
+        static void LoadSceneBookmarkObjects() // update
         {
             if (!data) return;
 
 
-            var bookmarksFromThisScene = data.bookmarks.Where(r => r.globalId.guid == scene.path.ToGuid()).ToList();
+            var scenesToLoadFor = unloadedSceneBookmarksGuids.Select(r => EditorSceneManager.GetSceneByPath(r.ToPath()))
+                                                             .Where(r => r.isLoaded);
+            if (!scenesToLoadFor.Any()) return;
 
-            var objectsForTheseBookmarks = bookmarksFromThisScene.Select(r => !Application.isPlaying
-                ? r.globalId
-                : r.globalId.UnpackForPrefab()).GetObjects();
 
-            for (var i = 0; i < bookmarksFromThisScene.Count; i++)
-                bookmarksFromThisScene[i]._obj = objectsForTheseBookmarks[i];
 
-            for (var i = 0; i < bookmarksFromThisScene.Count; i++)
-                bookmarksFromThisScene[i]._name = bookmarksFromThisScene[i]._obj?.name ?? "";
+            foreach (var scene in scenesToLoadFor)
+            {
+                var bookmarksFromThisScene = data.bookmarks.Where(r => r.globalId.guid == scene.path.ToGuid()).ToList();
+
+                var objectsForTheseBookmarks = bookmarksFromThisScene.Select(r => !Application.isPlaying ? r.globalId
+                                                                                                         : r.globalId.UnpackForPrefab()).GetObjects();
+
+                for (int i = 0; i < bookmarksFromThisScene.Count; i++)
+                    bookmarksFromThisScene[i]._obj = objectsForTheseBookmarks[i];
+
+                for (int i = 0; i < bookmarksFromThisScene.Count; i++)
+                    bookmarksFromThisScene[i]._name = bookmarksFromThisScene[i]._obj?.name ?? "";
+
+            }
+
+            unloadedSceneBookmarksGuids.Clear();
+
+
+            foreach (var inspector in allInspectors)
+                inspector.Repaint();
+
         }
 
-        private static void StashBookmarkObjects() // on playmode enter before awake
+        public static HashSet<string> unloadedSceneBookmarksGuids = new();
+
+
+
+
+        static void StashBookmarkObjects() // on playmode enter before awake
         {
             stashedBookmarkObjects_byBookmark.Clear();
 
             foreach (var bookmark in data.bookmarks)
                 stashedBookmarkObjects_byBookmark[bookmark] = bookmark._obj;
-        }
 
-        private static void UnstashBookmarkObjects() // on playmode exit
+        }
+        static void UnstashBookmarkObjects() // on playmode exit
         {
             foreach (var bookmark in data.bookmarks)
                 if (stashedBookmarkObjects_byBookmark.TryGetValue(bookmark, out var stashedObject))
                     if (stashedObject != null)
                         bookmark._obj = stashedObject;
+
         }
 
+        static Dictionary<Bookmark, Object> stashedBookmarkObjects_byBookmark = new();
 
-        private static void OnSceneOpened_inEditMode(Scene scene, OpenSceneMode _)
-        {
-            LoadBookmarkObjectsForScene(scene);
-        }
-
-        private static void OnSceneLoaded_inPlaymode(Scene scene, LoadSceneMode loadMode)
-        {
-            if ((int)loadMode == 4) return; // playmode enter
-
-            LoadBookmarkObjectsForScene(scene);
-        }
-
-        private static void OnProjectLoaded()
-        {
-            for (var i = 0; i < SceneManager.sceneCount; i++)
-                LoadBookmarkObjectsForScene(SceneManager.GetSceneAt(i));
-        }
-
-        private static void OnPluginReenabled()
-        {
-            for (var i = 0; i < SceneManager.sceneCount; i++)
-                LoadBookmarkObjectsForScene(SceneManager.GetSceneAt(i));
-        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void OnPlaymodeEnter_beforeAwake()
+        static void OnPlaymodeEnter_beforeAwake()
         {
             if (!data) return;
 
             StashBookmarkObjects();
-        }
 
-        private static void OnPlaymodeExit(PlayModeStateChange state)
+        }
+        static void OnPlaymodeExit(PlayModeStateChange state)
         {
             if (state != PlayModeStateChange.EnteredEditMode) return;
             if (!data) return;
@@ -952,6 +1278,8 @@ namespace VInspector
             // so we ensure that after playmode bookmarks reference the same objects as they did before playmode
 
 
+
+
             foreach (var bookmark in data.bookmarks)
                 if (bookmark.globalId.guid == "00000000000000000000000000000000")
                     if (bookmark._obj is GameObject gameObject)
@@ -962,7 +1290,21 @@ namespace VInspector
 
             // objects from DontDestroyOnLoad that were bookmarked in playmode have globalIds with blank scene guids
             // we fix this after playmode, when scene guids become available
+
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         public static bool HasVInspectorAttribtues(Type type)
@@ -970,7 +1312,7 @@ namespace VInspector
             if (typesWithVInspectorAttributes != null) return typesWithVInspectorAttributes.Contains(type);
 
 
-            typesWithVInspectorAttributes = new HashSet<Type>();
+            typesWithVInspectorAttributes = new();
 
             typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<FoldoutAttribute>().Select(r => r.DeclaringType));
             typesWithVInspectorAttributes.UnionWith(TypeCache.GetFieldsWithAttribute<TabAttribute>().Select(r => r.DeclaringType));
@@ -989,8 +1331,13 @@ namespace VInspector
                 typesWithVInspectorAttributes.UnionWith(TypeCache.GetTypesDerivedFrom(r));
 
 
+
             return typesWithVInspectorAttributes.Contains(type);
+
         }
+
+        static HashSet<Type> typesWithVInspectorAttributes = null;
+
 
 
         public static bool HasUITKOnlyDrawers(SerializedObject serializedObject)
@@ -1003,11 +1350,13 @@ namespace VInspector
             if (uitkUsage_byType.ContainsKey(targetType)) return uitkUsage_byType[targetType];
 
 
+
+
             var maxSearchDepth = 1;
 
             var curProperty = serializedObject.GetIterator();
 
-            while (curProperty.NextVisible(curProperty.depth < maxSearchDepth))
+            while (curProperty.NextVisible(enterChildren: curProperty.depth < maxSearchDepth))
             {
                 var handler = typeof(Editor).Assembly.GetType("UnityEditor.ScriptAttributeUtility").InvokeMethod("GetHandler", curProperty);
 
@@ -1017,35 +1366,57 @@ namespace VInspector
 
 
                 var hasUITKimplementation = propertyDrawer.CreatePropertyGUI(curProperty.Copy()) != null;
-                var hasIMGUIimplementation =
-                    propertyDrawer.GetType().GetMethod("OnGUI", new[] { typeof(Rect), typeof(SerializedProperty), typeof(GUIContent) }).DeclaringType ==
-                    propertyDrawer.GetType();
+                var hasIMGUIimplementation = propertyDrawer.GetType().GetMethod("OnGUI", new[] { typeof(Rect), typeof(SerializedProperty), typeof(GUIContent) }).DeclaringType == propertyDrawer.GetType();
 
                 if (hasUITKimplementation && !hasIMGUIimplementation)
                     return uitkUsage_byType[targetType] = true;
+
             }
 
 
+
+
             return uitkUsage_byType[targetType] = false;
+
         }
 
+        static Dictionary<Type, bool> uitkUsage_byType = new();
 
-        private static void OnUndoRedo()
+
+
+        static void OnUndoRedo()
         {
             if (!valueChangedCallbacks_byUndoPosition.Any()) return;
 
             if (valueChangedCallbacks_byUndoPosition.TryGetValue(EditorUtils.GetCurrendUndoGroupIndex(), out var callback))
                 callback.Invoke();
+
         }
+
+        public static Dictionary<int, System.Action> valueChangedCallbacks_byUndoPosition = new();
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         [InitializeOnLoadMethod]
-        private static void Init()
+        static void Init()
         {
             if (VInspectorMenu.pluginDisabled) return;
 
             void subscribe()
             {
+
                 Editor.finishedDefaultHeaderGUI -= UpdateComponentHeaders;
                 Editor.finishedDefaultHeaderGUI += UpdateComponentHeaders;
 
@@ -1075,30 +1446,27 @@ namespace VInspector
                 Undo.undoRedoPerformed += OnUndoRedo;
 
 
-                EditorSceneManager.sceneOpened -= OnSceneOpened_inEditMode;
-                EditorSceneManager.sceneOpened += OnSceneOpened_inEditMode;
+                EditorApplication.update -= LoadSceneBookmarkObjects;
+                EditorApplication.update += LoadSceneBookmarkObjects;
 
-                SceneManager.sceneLoaded -= OnSceneLoaded_inPlaymode;
-                SceneManager.sceneLoaded += OnSceneLoaded_inPlaymode;
 
-                var projectWasLoaded = typeof(EditorApplication).GetFieldValue<UnityAction>("projectWasLoaded");
-                typeof(EditorApplication).SetFieldValue("projectWasLoaded", projectWasLoaded - OnProjectLoaded + OnProjectLoaded);
 
 
                 var globalEventHandler = typeof(EditorApplication).GetFieldValue<EditorApplication.CallbackFunction>("globalEventHandler");
                 typeof(EditorApplication).SetFieldValue("globalEventHandler", ComponentShortcuts + (globalEventHandler - ComponentShortcuts));
 
 
-                EditorApplication.quitting -= Save;
-                EditorApplication.quitting += Save;
+                EditorApplication.quitting -= VInspectorState.Save;
+                EditorApplication.quitting += VInspectorState.Save;
 
                 EditorApplication.playModeStateChanged -= OnPlaymodeExit;
                 EditorApplication.playModeStateChanged += OnPlaymodeExit;
 
                 EditorApplication.playModeStateChanged -= VInspectorClipboard.OnPlaymodeStateChanged;
                 EditorApplication.playModeStateChanged += VInspectorClipboard.OnPlaymodeStateChanged;
-            }
 
+
+            }
             void loadData()
             {
                 data = AssetDatabase.LoadAssetAtPath<VInspectorData>(ProjectPrefs.GetString("vInspector-lastKnownDataPath"));
@@ -1112,8 +1480,8 @@ namespace VInspector
                 if (!data) return;
 
                 ProjectPrefs.SetString("vInspector-lastKnownDataPath", data.GetPath());
-            }
 
+            }
             void loadDataDelayed()
             {
                 if (data) return;
@@ -1124,17 +1492,24 @@ namespace VInspector
                 // and if current AssetDatabase state doesn't contain the data - it won't be loaded during Init()
                 // so here we schedule an additional, delayed attempt to load the data
                 // this addresses reports of data loss when trying to load it on a new machine
-            }
 
-            void callOnPluginReenabled()
+            }
+            void removeDeletedBookmarks()
             {
-                if (!EditorPrefs.HasKey("vInspector-pluginWasReenabled")) return;
+                if (!data) return;
 
-                OnPluginReenabled();
 
-                EditorPrefs.DeleteKey("vInspector-pluginWasReenabled");
+                var toRemove = data.bookmarks.Where(r => r.isDeleted);
+
+                if (!toRemove.Any()) return;
+
+
+                foreach (var r in toRemove.ToList())
+                    data.bookmarks.Remove(r);
+
+                data.Dirty();
+
             }
-
             void migrateHeaderButtonSettings()
             {
                 if (EditorPrefs.HasKey("vInspector-headerButtonSettingsMigrated")) return;
@@ -1147,8 +1522,8 @@ namespace VInspector
 
 
                 EditorPrefs.SetBool("vInspector-headerButtonSettingsMigrated", true);
-            }
 
+            }
             void migrateItemsToBookmarks()
             {
                 if (!data) return;
@@ -1157,285 +1532,53 @@ namespace VInspector
                 ProjectPrefs.SetBool("vInspector-itemsToBookmarksMigrated", true);
 
 
-                var lines = File.ReadAllLines(data.GetPath());
+                var lines = System.IO.File.ReadAllLines(data.GetPath());
 
                 if (lines.Length < 14 || !lines[14].Contains("items:")) return;
 
                 lines[14] = lines[14].Replace("items", "bookmarks");
 
 
-                File.WriteAllLines(data.GetPath(), lines);
+                System.IO.File.WriteAllLines(data.GetPath(), lines);
 
                 AssetDatabase.ImportAsset(data.GetPath());
+
             }
 
             subscribe();
             loadData();
             loadDataDelayed();
-            callOnPluginReenabled();
+            removeDeletedBookmarks();
             migrateHeaderButtonSettings();
             migrateItemsToBookmarks();
+
         }
 
+        public static VInspectorData data;
 
-        private class ExpandAnimation
-        {
-            public Component component;
 
-            public float currentInspectorHeight;
-            public float currentInspectorHeightDerivative;
 
-            public float expandedInspectorHeight;
-            public bool expandedInspectorHeightUnknown;
 
-            public VisualElement inspectorElement;
+        static IEnumerable<EditorWindow> allInspectors => _allInspectors ??= t_InspectorWindow.GetFieldValue<IList>("m_AllInspectors").Cast<EditorWindow>().Where(r => r.GetType() == t_InspectorWindow);
+        static IEnumerable<EditorWindow> _allInspectors;
 
+        static Type t_InspectorWindow = typeof(Editor).Assembly.GetType("UnityEditor.InspectorWindow");
+        static Type t_PropertyEditor = typeof(Editor).Assembly.GetType("UnityEditor.PropertyEditor");
+        static Type t_GameObjectInspector = typeof(Editor).Assembly.GetType("UnityEditor.GameObjectInspector");
 
-            public EditorWindow inspectorWindow;
-            public VisualElement maskElement;
+        static Type t_VHierarchy = Type.GetType("VHierarchy.VHierarchy") ?? Type.GetType("VHierarchy.VHierarchy, VHierarchy, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null");
 
-            public bool targetExpandedState;
+        public static MethodInfo mi_VHierarchy_GetIconName = t_VHierarchy?.GetMethod("GetIconName_forVInspector", maxBindingFlags);
 
-            public float collapsedInspectorHeight => -7;
 
-            public float targetInspectorHeight => targetExpandedState ? expandedInspectorHeight : collapsedInspectorHeight;
 
-            public void Start()
-            {
-                void expand()
-                {
-                    if (targetExpandedState != true) return;
 
-                    SetComponentExpanded_withoutAnimation(inspectorWindow, component, true);
-                }
 
-                void findInspectorElement()
-                {
-                    var editorsList = inspectorWindow.rootVisualElement.Q(className: "unity-inspector-editors-list");
 
-                    foreach (var someEditorElement in editorsList.Children())
-                        if (someEditorElement.Children().FirstOrDefault(r => r is InspectorElement) is InspectorElement someInspectorElement)
-                            if (someInspectorElement.GetFieldValue("m_Editor") is Editor editor)
-                                if (editor.target == component)
-                                {
-                                    inspectorElement = someInspectorElement;
-                                    break;
-                                }
-                }
 
-                void detachInspectorElement()
-                {
-                    if (inspectorElement == null) return;
-                    if (targetExpandedState != true) return;
+        const string version = "2.0.11";
 
-                    inspectorElement.style.position = Position.Absolute;
-                    inspectorElement.style.visibility = Visibility.Hidden;
 
-                    // needed to read inspectorElement height without it affecting layout
-                    // reattached in UpdateAnimation
-                }
-
-                void createMaskElement()
-                {
-                    if (inspectorElement == null) return;
-
-
-                    maskElement = new IMGUIContainer();
-
-                    maskElement.name = "vInspector-mask-for-expand-animation";
-
-                    (maskElement as IMGUIContainer).onGUIHandler = () => new Rect(0, 0, 1232, 1232).Draw(GUIColors.windowBackground);
-
-                    inspectorElement.parent.Add(maskElement);
-                }
-
-                void set_expandedInspectorHeight()
-                {
-                    if (targetExpandedState)
-                        expandedInspectorHeightUnknown = true;
-                    else
-                        expandedInspectorHeight = inspectorElement.layout.height;
-                }
-
-                void set_currentInspectorHeight()
-                {
-                    if (targetExpandedState)
-                        currentInspectorHeight = collapsedInspectorHeight;
-                    else
-                        currentInspectorHeight = expandedInspectorHeight;
-                }
-
-
-                expand();
-                findInspectorElement();
-                detachInspectorElement();
-                createMaskElement();
-                set_expandedInspectorHeight();
-                set_currentInspectorHeight();
-
-                activeExpandAnimations_byComponent[component] = this;
-            }
-
-            public void Finish()
-            {
-                void collapse()
-                {
-                    if (targetExpandedState) return;
-
-                    SetComponentExpanded_withoutAnimation(inspectorWindow, component, false);
-                }
-
-                void resetInspectorElementStyle()
-                {
-                    inspectorElement.style.maxHeight = StyleKeyword.Null;
-                    inspectorElement.style.marginBottom = 0;
-                }
-
-                void removeMaskElement()
-                {
-                    maskElement.RemoveFromHierarchy();
-                }
-
-
-                collapse();
-
-                toCallNextUpdate += resetInspectorElementStyle;
-                toCallNextUpdate += removeMaskElement;
-
-                activeExpandAnimations_byComponent.Remove(component);
-            }
-
-            public void Update()
-            {
-                void set_expandedInspectorHeight()
-                {
-                    if (!expandedInspectorHeightUnknown) return;
-                    if (inspectorElement.layout.height == 0) return;
-
-                    expandedInspectorHeight = inspectorElement.layout.height;
-                    expandedInspectorHeightUnknown = false;
-
-                    reattachInspectorElement();
-                }
-
-                void reattachInspectorElement()
-                {
-                    inspectorElement.style.position = Position.Relative;
-                    inspectorElement.style.visibility = Visibility.Visible;
-                }
-
-                void lerp()
-                {
-                    if (expandedInspectorHeightUnknown) return;
-
-
-                    MathUtil.SmoothDamp(ref currentInspectorHeight, targetInspectorHeight, expandAnimation_lerpSpeed, ref currentInspectorHeightDerivative, deltaTime,
-                        expandAnimation_speedLimit);
-                }
-
-                void modifyInspectorElementStyle()
-                {
-                    if (expandedInspectorHeightUnknown) return;
-
-                    inspectorElement.style.maxHeight = currentInspectorHeight.Max(0);
-                    inspectorElement.style.marginBottom = currentInspectorHeight.Min(0);
-                }
-
-                void finish()
-                {
-                    if ((currentInspectorHeight - targetInspectorHeight).Abs() > .5f) return;
-
-                    Finish();
-                }
-
-                set_expandedInspectorHeight();
-                lerp();
-                modifyInspectorElementStyle();
-                finish();
-            }
-        }
-
-        private class DeleteAnimation
-        {
-            public Component component;
-
-            public float currentSpacerHeight;
-            public float currentSpacerHeightDerivative;
-
-            public VisualElement editorElement;
-
-
-            public EditorWindow inspectorWindow;
-            public VisualElement spacerElement;
-
-            public void Start()
-            {
-                void findEditorElement()
-                {
-                    var editorsList = inspectorWindow.rootVisualElement.Q(className: "unity-inspector-editors-list");
-
-                    foreach (var someEditorElement in editorsList.Children())
-                        if (someEditorElement.Children().FirstOrDefault(r => r is InspectorElement) is InspectorElement someInspectorElement)
-                            if (someInspectorElement.GetFieldValue("m_Editor") is Editor editor)
-                                if (editor.target == component)
-                                {
-                                    editorElement = someEditorElement;
-                                    break;
-                                }
-                }
-
-                void createSpacerElement()
-                {
-                    spacerElement = new IMGUIContainer();
-
-                    spacerElement.name = "vInspector-spacer-for-delete-animation";
-
-                    (spacerElement as IMGUIContainer).onGUIHandler = () => new Rect(0, 0, 1232, 1).Draw(Greyscale(.1f));
-
-                    editorElement.parent.Insert(editorElement.parent.IndexOf(editorElement), spacerElement);
-
-                    spacerElement.style.height = editorElement.layout.height;
-
-                    currentSpacerHeight = editorElement.layout.height;
-                }
-
-                findEditorElement();
-                createSpacerElement();
-
-                activeDeleteAnimations.Add(this);
-            }
-
-            public void Finish()
-            {
-                spacerElement.RemoveFromHierarchy();
-
-                activeDeleteAnimations.Remove(this);
-            }
-
-            public void Update()
-            {
-                void lerp()
-                {
-                    MathUtil.SmoothDamp(ref currentSpacerHeight, 0, deleteAnimation_lerpSpeed, ref currentSpacerHeightDerivative, deltaTime, deleteAnimation_speedLimit);
-                }
-
-                void modifySpacerElement()
-                {
-                    spacerElement.style.height = currentSpacerHeight;
-                }
-
-                void finish()
-                {
-                    if (currentSpacerHeight > .5f) return;
-
-                    Finish();
-                }
-
-                lerp();
-                modifySpacerElement();
-                finish();
-            }
-        }
     }
 }
 #endif

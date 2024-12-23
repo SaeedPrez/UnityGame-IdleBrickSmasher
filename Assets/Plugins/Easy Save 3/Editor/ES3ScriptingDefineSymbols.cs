@@ -1,9 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using UnityEditor;
+﻿using UnityEditor;
+using UnityEngine;
 using UnityEditor.Build;
+using System.Collections.Generic;
+using UnityEditor.Compilation;
+using System.Reflection;
+using System.Linq;
+using System;
 
 [InitializeOnLoad]
 public class ES3ScriptingDefineSymbols
@@ -13,13 +15,19 @@ public class ES3ScriptingDefineSymbols
         SetDefineSymbols();
     }
 
-    private static void SetDefineSymbols()
+    static void SetDefineSymbols() 
     {
         if (Type.GetType("Unity.VisualScripting.IncludeInSettingsAttribute, Unity.VisualScripting.Core") != null)
             SetDefineSymbol("UNITY_VISUAL_SCRIPTING");
 
         if (Type.GetType("Ludiq.IncludeInSettingsAttribute, Ludiq.Core.Runtime") != null)
             SetDefineSymbol("BOLT_VISUAL_SCRIPTING");
+
+        if (Type.GetType("TMPro.TextMeshProUGUI, Unity.TextMeshPro") != null)
+            SetDefineSymbol("ES3_TMPRO");
+
+        if (Type.GetType("UnityEngine.EventSystems.EventSystem, UnityEngine.UI") != null)
+            SetDefineSymbol("ES3_UGUI");
     }
 
     internal static bool HasDefineSymbol(string symbol)
@@ -34,9 +42,7 @@ public class ES3ScriptingDefineSymbols
                 if (defines.Contains(symbol))
                     return true;
             }
-            catch
-            {
-            }
+            catch { }
         }
 #else
         string definesString = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
@@ -62,9 +68,7 @@ public class ES3ScriptingDefineSymbols
                     PlayerSettings.SetScriptingDefineSymbols(target, defines);
                 }
             }
-            catch
-            {
-            }
+            catch { }
         }
 #else
         string definesString = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
@@ -72,6 +76,7 @@ public class ES3ScriptingDefineSymbols
         if (!allDefines.Contains(symbol))
             PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, string.Join(";", allDefines.Concat(new string[] { symbol }).ToArray()));
 #endif
+            return;
     }
 
     internal static void RemoveDefineSymbol(string symbol)
@@ -86,9 +91,7 @@ public class ES3ScriptingDefineSymbols
                 ArrayUtility.Remove(ref defines, symbol);
                 PlayerSettings.SetScriptingDefineSymbols(target, defines);
             }
-            catch
-            {
-            }
+            catch { }
         }
 #else
         string definesString = PlayerSettings.GetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup);
@@ -96,10 +99,11 @@ public class ES3ScriptingDefineSymbols
         definesString.Replace(symbol, ""); // Without semicolon
         PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, definesString);
 #endif
+        return;
     }
 
 #if UNITY_2021_2_OR_NEWER
-    private static List<NamedBuildTarget> GetAllNamedBuildTargets()
+    static List<NamedBuildTarget> GetAllNamedBuildTargets()
     {
         var staticFields = typeof(NamedBuildTarget).GetFields(BindingFlags.Public | BindingFlags.Static);
         var buildTargets = new List<NamedBuildTarget>();

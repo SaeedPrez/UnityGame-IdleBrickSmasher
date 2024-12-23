@@ -1,1 +1,1 @@
-# UnityGame-IdleBrickBreaker
+# UnityGame-IdleBrickSmasher

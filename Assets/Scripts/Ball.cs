@@ -1,7 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Prez.Core;
 using Prez.Data;
 using Prez.Utilities;
@@ -20,7 +18,6 @@ namespace Prez
         private int _activePlayBoostHits;
         private Coroutine _ballDpsCoroutine;
         private Coroutine _ballVelocityCoroutine;
-        private Dictionary<float, double> _damageHistory = new();
         private float _lastHitAt;
 
         private Rigidbody2D _rigidbody;
@@ -38,14 +35,12 @@ namespace Prez
         private void OnEnable()
         {
             _ballVelocityCoroutine = StartCoroutine(RespawnBallIfStuck());
-            _ballDpsCoroutine = StartCoroutine(CalculateDps());
             _lastHitAt = Time.time;
         }
 
         private void OnDisable()
         {
             StopCoroutine(_ballVelocityCoroutine);
-            StopCoroutine(_ballDpsCoroutine);
         }
 
         private void OnCollisionEnter2D(Collision2D other)
@@ -109,7 +104,6 @@ namespace Prez
             brick.TakeDamage(data);
             ReduceActivePlayBoostHits();
             Data.TotalDamage += data.Damage;
-            AddDamageToHistory(data.Damage);
         }
 
         #endregion
@@ -212,43 +206,6 @@ namespace Prez
             IsPlayerBoostActive = false;
             _trail.emitting = false;
             _activePlayBoostHits = 0;
-        }
-
-        #endregion
-
-        #region Dps
-
-        /// <summary>
-        /// Adds the damage to damage history.
-        /// </summary>
-        /// <param name="damage"></param>
-        private void AddDamageToHistory(double damage)
-        {
-            var damageTime = Time.time;
-
-            if (_damageHistory.ContainsKey(damageTime))
-                damageTime += 0.001f;
-
-            _damageHistory.Add(damageTime, damage);
-        }
-
-        /// <summary>
-        ///     Calculates the DPS based on damage done in the last 30 seconds.
-        /// </summary>
-        /// <returns></returns>
-        private IEnumerator CalculateDps()
-        {
-            while (true)
-            {
-                yield return new WaitForSeconds(3.37f);
-
-                var duration = Mathf.Min(_dpsDuration, Time.time);
-
-                _damageHistory = _damageHistory.Where(x => x.Key >= Time.time - duration)
-                    .ToDictionary(x => x.Key, x => x.Value);
-
-                Dps = _damageHistory.Sum(x => x.Value) / duration;
-            }
         }
 
         #endregion

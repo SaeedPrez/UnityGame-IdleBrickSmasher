@@ -1,6 +1,8 @@
-﻿using ES3Editor;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace ES3Internal
 {
@@ -13,7 +15,7 @@ namespace ES3Internal
                 return;
 
             if (GUILayout.Button("Manage Auto Save Settings"))
-                ES3Window.InitAndShowAutoSave();
+                ES3Editor.ES3Window.InitAndShowAutoSave();
         }
     }
 }

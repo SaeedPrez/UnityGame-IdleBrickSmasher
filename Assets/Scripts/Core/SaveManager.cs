@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections;
-using System.IO;
+using System.Text;
+using DG.Tweening;
 using Prez.Data;
 using Prez.Enums;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Newtonsoft.Json;
 
 namespace Prez.Core
 {
@@ -14,8 +16,6 @@ namespace Prez.Core
         
         public static SaveManager I { get; private set; }
 
-        private string _filePath;
-
         private void Awake()
         {
             SetupSingleton();
@@ -24,9 +24,9 @@ namespace Prez.Core
         private void OnEnable()
         {
             EventManager.I.OnGameStateChanged += OnGameStateChanged;
-            StartCoroutine(Save());
 
-            _filePath = Application.persistentDataPath + "/" + "SaveFile.es3";
+            if (_saveInterval > 0)
+                StartCoroutine(Save());
         }
 
         private void OnDisable()
@@ -77,6 +77,18 @@ namespace Prez.Core
         {
             var data = ES3.Load<GameData>(Constants.SaveGameName);
             data.GameDataLoadedAt = DateTime.UtcNow;
+
+            // TODO: Improve
+            data.BrickNoiseOffsetY -= 21;
+
+            if (data.BrickNoiseOffsetY < 0)
+                data.BrickNoiseOffsetY = 0;
+
+            data.BrickRowLevel -= 21;
+
+            if (data.BrickRowLevel < 1)
+                data.BrickRowLevel = 1;
+            
             EventManager.I.TriggerGameDataLoaded(data);
         }
 
@@ -107,41 +119,54 @@ namespace Prez.Core
         /// <summary>
         ///     Saves game data.
         /// </summary>
-        private void SaveGameData()
+        private void SaveGameData(GameData data = null)
         {
-            GameManager.Data.GameDataSavedAt = DateTime.UtcNow;
-
-            // TODO: Improve
-            GameManager.Data.BrickNoiseOffsetY -= 21;
-
-            if (GameManager.Data.BrickNoiseOffsetY < 0)
-                GameManager.Data.BrickNoiseOffsetY = 0;
-
-            GameManager.Data.BrickRowLevel -= 21;
-
-            if (GameManager.Data.BrickRowLevel < 1)
-                GameManager.Data.BrickRowLevel = 1;
-
-            ES3.Save(Constants.SaveGameName, GameManager.Data);
-            EventManager.I.TriggerGameDataSaved(GameManager.Data);
+            data ??= GameManager.Data;
+            data.GameDataSavedAt = DateTime.UtcNow;
+            
+            ES3.Save(Constants.SaveGameName, data);
+            EventManager.I.TriggerGameDataSaved(data);
         }
 
         public string GetGameDataAsString()
         {
-            SaveGameData();
-            return Convert.ToBase64String(File.ReadAllBytes(_filePath));
+            try
+            {
+                var data = ES3.Load<GameData>(Constants.SaveGameName);
+                var dataJson = JsonConvert.SerializeObject(data);
+                var dataEncrypted = ES3.EncryptString(dataJson, Constants.SaveGameName);
+                var dataBytes = Encoding.UTF8.GetBytes(dataEncrypted);
+                return Convert.ToBase64String(dataBytes);
+            }
+            catch (Exception e)
+            {
+                MessageManager.Queue("Game data could not be loaded");
+                return "";
+            }
         }
 
-        public void SaveGameDataFromString(string data)
+        public void SaveGameDataFromString(string dataSaved)
         {
-            File.WriteAllBytes(_filePath, Convert.FromBase64String(data));
-            SceneManager.LoadScene(0);
+            try
+            {
+                var dataBytes = Convert.FromBase64String(dataSaved);
+                var dataEncrypted = Encoding.UTF8.GetString(dataBytes);
+                var dataJson = ES3.DecryptString(dataEncrypted, Constants.SaveGameName);
+                var data = JsonConvert.DeserializeObject<GameData>(dataJson, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace });
+
+                SaveGameData(data);
+                MessageManager.Queue("Game data has been saved");
+            }
+            catch (Exception e)
+            {
+                MessageManager.Queue("Game data could not be saved");
+            }
         }
 
         public void Reset()
         {
-            File.Delete(_filePath);
-            SceneManager.LoadScene(0);
+            SaveGameData(new GameData());
+            MessageManager.Queue("Game data has been reset.");
         }
     }
 }

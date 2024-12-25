@@ -4,6 +4,7 @@ using DG.Tweening;
 using Prez.Data;
 using Prez.Enums;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Prez.Core
 {
@@ -26,7 +27,10 @@ namespace Prez.Core
 
         private void Start()
         {
-            SetState(EGameState.Loading);
+            if (SceneManager.GetActiveScene().buildIndex == 0)
+                SetState(EGameState.Intro);
+            else
+                SetState(EGameState.Loading);
         }
 
         private void Update()

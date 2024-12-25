@@ -226,3 +226,5 @@ MonoBehaviour:
   _movementY: 0.33
   _ease: 4
   _startColor: {r: 0.6784314, g: 0.70980394, b: 0.7411765, a: 1}
+  _activeHitColor: {r: 0, g: 0.49019608, b: 0.8509804, a: 1}
+  _criticalHitScale: 1.75

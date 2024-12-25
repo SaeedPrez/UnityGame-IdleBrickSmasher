@@ -33,11 +33,14 @@ namespace Prez.Core
 
         private void Update()
         {
+#if UNITY_EDITOR
+            // TODO: Remove
             if (Input.GetKeyDown(KeyCode.Q))
             {
                 MoveBricksDown();
                 SpawnBrickRow();
             }
+#endif            
         }
 
         private void OnEnable()

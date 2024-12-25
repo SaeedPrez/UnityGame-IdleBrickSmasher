@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Text;
-using DG.Tweening;
 using Prez.Data;
 using Prez.Enums;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Newtonsoft.Json;
 
 namespace Prez.Core
@@ -119,7 +117,7 @@ namespace Prez.Core
         /// <summary>
         ///     Saves game data.
         /// </summary>
-        private void SaveGameData(GameData data = null)
+        public void SaveGameData(GameData data = null)
         {
             data ??= GameManager.Data;
             data.GameDataSavedAt = DateTime.UtcNow;
@@ -128,6 +126,10 @@ namespace Prez.Core
             EventManager.I.TriggerGameDataSaved(data);
         }
 
+        /// <summary>
+        /// Get game data as a string.
+        /// </summary>
+        /// <returns></returns>
         public string GetGameDataAsString()
         {
             try
@@ -145,6 +147,10 @@ namespace Prez.Core
             }
         }
 
+        /// <summary>
+        /// Save game data from a string.
+        /// </summary>
+        /// <param name="dataSaved"></param>
         public void SaveGameDataFromString(string dataSaved)
         {
             try
@@ -163,7 +169,10 @@ namespace Prez.Core
             }
         }
 
-        public void Reset()
+        /// <summary>
+        /// Reset game data.
+        /// </summary>
+        public void ResetGameData()
         {
             SaveGameData(new GameData());
             MessageManager.Queue("Game data has been reset.");

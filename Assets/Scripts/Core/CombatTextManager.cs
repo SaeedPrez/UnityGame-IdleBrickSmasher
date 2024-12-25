@@ -22,7 +22,7 @@ namespace Prez.Core
         {
             var combatText = _combatTextPool.GetPooledObject().GetComponent<CombatText>();
             combatText.transform.position = data.Point;
-            combatText.SetText(Helper.GetNumberAsString(data.Damage));
+            combatText.SetData(data);
             combatText.gameObject.SetActive(true);
         }
     }

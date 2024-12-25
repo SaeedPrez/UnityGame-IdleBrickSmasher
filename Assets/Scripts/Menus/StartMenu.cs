@@ -67,7 +67,8 @@ namespace Prez.Menus
         
         private void OnResetGameDataButton()
         {
-            SaveManager.I.Reset();
+            SaveManager.I.ResetGameData();
+            _gameDataInput.text = "";
         }
     }
 }

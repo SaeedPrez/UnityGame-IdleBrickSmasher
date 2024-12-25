@@ -1,6 +1,9 @@
 ﻿using DG.Tweening;
+using Prez.Data;
+using Prez.Utilities;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Prez
 {
@@ -11,25 +14,43 @@ namespace Prez
         [SerializeField] private float _movementY;
         [SerializeField] private Ease _ease;
         [SerializeField] private Color _startColor;
+        [SerializeField] private Color _activeHitColor;
+        [SerializeField] private float _criticalHitScale;
+        
 
         private void OnEnable()
         {
-            transform.DOMoveY(_movementY, 1f)
+            transform.DOMoveY(_movementY, _duration)
                 .SetEase(_ease)
                 .SetRelative();
 
-            _valueUi.DOFade(0f, 1f);
+            _valueUi.DOFade(0f, _duration);
         }
 
         private void OnDisable()
         {
             transform.DOKill();
-            _valueUi.color = _startColor;
         }
 
-        public void SetText(string text)
+        public void SetData(DamageData data)
         {
-            _valueUi.SetText(text);
+            var damage = Helper.GetNumberAsString(data.Damage);
+            _valueUi.SetText(damage);
+
+            _valueUi.color = data.ActiveHit
+                ? _activeHitColor
+                : _startColor;
+
+            transform.localScale = data.CriticalHit
+                ? Vector3.one * _criticalHitScale 
+                : Vector3.one;
+
+            if (data.CriticalHit)
+            {
+                transform.DOScale(Vector3.one, _duration / 3f)
+                    .SetEase(_ease)
+                    .SetDelay(_duration / 3f);
+            }
         }
     }
 }

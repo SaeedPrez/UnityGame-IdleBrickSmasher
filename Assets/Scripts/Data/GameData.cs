@@ -284,7 +284,7 @@ namespace Prez.Data
 
         public int PaddleBulletFireRateLevel = 1;
         private readonly float _paddleBulletFireRateBase = 0.2f;
-        private readonly float _paddleBulletFireRateGrowthPerLevel = 0.01822f;
+        private readonly float _paddleBulletFireRateGrowthPerLevel = 0.0909f;
         private readonly int _paddleBulletFireRateMaxLevel = 100;
         private readonly float _paddleBulletFireRateCostBase = 1.0f;
         private readonly float _paddleBulletFireRateCostGrowthPerLevel = 0.25f;
@@ -718,7 +718,7 @@ namespace Prez.Data
 
         #region Ball Active Damage
 
-        private readonly float _ballActiveDamageBase = 1.5f;
+        private readonly float _ballActiveDamageBase = 1f;
         private readonly float _ballActiveDamageGrowthPerLevel = 0.1f;
         private readonly int _ballActiveDamageMaxLevel = 100;
         private readonly float _ballActiveDamageCostBase = 1.0f;

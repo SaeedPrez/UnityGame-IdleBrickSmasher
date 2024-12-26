@@ -28408,24 +28408,24 @@ MonoBehaviour:
 
     The
     paddle actively smashes bricks by controlling and boosting balls and firing a
-    weapon when charged.
+    weapon when charged. If left idle, it will disable itself after a few seconds.
 
 
-    <size=24>Offline progress</size>
+    <size=24>Offline
+    progress</size>
 
 
-    Offline progress
-    is currently not available.
+    Offline progress is currently not available.
 
 
-    <size=24>Save / Load</size>
+    <size=24>Save
+    / Load</size>
 
 
-    The game
-    saves automatically every few seconds, but without cloud saving, there''s a risk
-    of losing your progress. Additionally, Itch.io''s versioning system uploads each
-    update to a different path, which can also lead to lost saves. To avoid this,
-    it''s recommended to back up your progress regularly.
+    The game saves automatically every few seconds, but without
+    cloud saving, there''s a risk of losing your progress. Additionally, Itch.io''s
+    versioning system uploads each update to a different path, which can also lead
+    to lost saves. To avoid this, it''s recommended to back up your progress regularly.
 
 '
   m_isRightToLeft: 0

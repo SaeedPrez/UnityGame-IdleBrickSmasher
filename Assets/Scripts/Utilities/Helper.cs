@@ -85,11 +85,11 @@ namespace Prez.Utilities
         /// <summary>
         /// Calculate if a hit is critical.
         /// </summary>
-        /// <param name="criticalChance"></param>
+        /// <param name="chance"></param>
         /// <returns></returns>
-        public static bool IsHitCritical(float criticalChance)
+        public static bool IsHitCritical(float chance)
         {
-            return Random.Range(0f, 100f) < criticalChance;
+            return Random.Range(0f, 100f) < chance;
         }
 
         /// <summary>
@@ -119,6 +119,16 @@ namespace Prez.Utilities
             data.Damage = damage;
             
             return data;
+        }
+
+        /// <summary>
+        /// Calculate if brick is special.
+        /// </summary>
+        /// <param name="chance"></param>
+        /// <returns></returns>
+        public static bool IsSpecialBrick(float chance)
+        {
+            return Random.Range(0f, 100f) < chance;
         }
     }
 }

@@ -211,8 +211,12 @@ namespace Prez.Core
             brick.SetPosition(gridPosition, GridToWorldPosition(gridPosition));
             brick.SetMaxHealth(GameManager.Data.GetBrickMaxHealth());
             brick.SetSpawnedRowNumber(GameManager.Data.BrickRowLevel);
+
             _bricks.Add(brick);
             brick.gameObject.SetActive(true);
+
+            if (Helper.IsSpecialBrick(GameManager.Data.GetSpecialBrickChance()))
+                brick.SetSpecial();
         }
 
         /// <summary>
@@ -282,7 +286,7 @@ namespace Prez.Core
             var effect = _brickHitEffectsPool.GetPooledObject().GetComponent<ParticleSystem>();
             effect.transform.position = point;
             var main = effect.main;
-            main.startColor = brick.FillColor;
+            main.startColor = brick.Color;
             effect.gameObject.SetActive(true);
         }
 
@@ -295,7 +299,7 @@ namespace Prez.Core
             var effect = _brickDestroyEffectsPool.GetPooledObject().GetComponent<ParticleSystem>();
             effect.transform.position = brick.transform.position;
             var main = effect.main;
-            main.startColor = brick.FillColor;
+            main.startColor = brick.Color;
             effect.gameObject.SetActive(true);
         }
 

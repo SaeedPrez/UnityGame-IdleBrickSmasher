@@ -401,7 +401,7 @@ namespace Prez.Data
 
         public int BrickNoiseSeed = 0;
         public double BrickNoiseOffsetY = 0;
-        public double BrickRowLevel = 1;
+        public long BrickRowLevel = 1;
 
         public float GetBrickNoiseSpawnThreshold()
         {
@@ -418,9 +418,9 @@ namespace Prez.Data
             return _brickRowSpawnCooldownBase;
         }
 
-        public double GetBrickMaxHealth(double level = -1d)
+        public double GetBrickMaxHealth(long level = -1)
         {
-            if (level == -1d)
+            if (level == -1)
                 level = BrickRowLevel;
 
             return _brickHealthBase + _brickHealthGrowthPerLevel * level;
@@ -790,7 +790,7 @@ namespace Prez.Data
         public double TalentPointsCurrent = 0d;
         private readonly double _talentPointsBase = 1d;
 
-        public double GetDiamondsForLeveledUp(double level = -1d)
+        public double GetTalentPointsForLeveledUp(int level = -1)
         {
             if (level == -1)
                 level = LevelCurrent - 1;
@@ -802,6 +802,18 @@ namespace Prez.Data
             };
         }
 
+        #endregion
+
+        #region Special Bricks
+
+        private float _specialBrickChanceBase = 1.5f;
+
+        public float GetSpecialBrickChance()
+        {
+           
+            return _specialBrickChanceBase;
+        }
+        
         #endregion
     }
 }

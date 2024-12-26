@@ -13,34 +13,36 @@ namespace Prez
     {
         [SerializeField] private TMP_Text _healthUi;
         [SerializeField] private Transform _fillContainer;
-        [SerializeField] private SpriteRenderer _fillImage;
         [SerializeField] private SpriteRenderer _borderImage;
+        [SerializeField] private Color _borderColor;
+        [SerializeField] private Color _specialColor;
         [SerializeField] private Color _damageColor;
-        private Color _borderColor;
-
-        private BoxCollider2D _collider;
-        private double _currentHealth;
 
         public double MaxHealth { get; private set; }
         public bool IsActive { get; private set; }
-        public Color FillColor { get; private set; }
+        public Color Color { get; private set; }
         public Vector2Int GridPosition { get; private set; }
         public double SpawnedRowNumber { get; private set; }
+        public bool IsSpecial { get; private set; }
 
+        private BoxCollider2D _collider;
+        private double _currentHealth;
+        
         private void Awake()
         {
             _collider = GetComponent<BoxCollider2D>();
+            Color = _borderColor;
         }
 
         private void OnEnable()
         {
-            FillColor = _fillImage.color;
-            _borderColor = _borderImage.color;
             IsActive = true;
             _collider.enabled = true;
+            IsSpecial = false;
+            _borderImage.color = _borderColor;
             UpdateHealthUi();
         }
-
+        
         /// <summary>
         ///     Sets max health.
         /// </summary>
@@ -75,10 +77,19 @@ namespace Prez
         ///     Sets the brick color.
         /// </summary>
         /// <param name="color"></param>
-        public void SetColor(Color color)
+        private void SetColor(Color color)
         {
-            FillColor = color;
-            _fillImage.color = FillColor;
+            Color = color;
+            _borderImage.color = Color;
+        }
+
+        /// <summary>
+        /// Sets the brick as special;
+        /// </summary>
+        public void SetSpecial()
+        {
+            IsSpecial = true;
+            SetColor(_specialColor);
         }
 
         /// <summary>
@@ -104,7 +115,7 @@ namespace Prez
                 ? _currentHealth
                 : data.Damage;
 
-            _currentHealth -= Math.Round(damage, 2);
+            _currentHealth -= System.Math.Round(damage, 2);
             UpdateHealthUi();
 
             if (_currentHealth <= 0.1d)
@@ -116,7 +127,7 @@ namespace Prez
             {
                 _borderImage.DOKill();
                 _borderImage.color = _damageColor;
-                _borderImage.DOColor(_borderColor, 0.1f)
+                _borderImage.DOColor(Color, 0.1f)
                     .SetEase(Ease.InOutCirc);
             }
 
@@ -151,8 +162,9 @@ namespace Prez
             IsActive = false;
             _collider.enabled = false;
             transform.DOKill(true);
-            _fillImage.transform.DOKill(true);
+            _fillContainer.transform.DOKill(true);
             _borderImage.DOKill(true);
+            Color = _borderColor;
         }
     }
 }

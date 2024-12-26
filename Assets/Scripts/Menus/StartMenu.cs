@@ -17,6 +17,7 @@ namespace Prez.Menus
         [SerializeField] private Button _loadGameDataButton;
         [SerializeField] private Button _saveGameDataButton;
         [SerializeField] private Button _resetGameDataButton;
+        [SerializeField] private TMP_Text _versionLabel;
 
         private void OnEnable()
         {
@@ -28,6 +29,7 @@ namespace Prez.Menus
             _resetGameDataButton.onClick.AddListener(OnResetGameDataButton);
             
             _gameDataUi.gameObject.SetActive(false);
+            _versionLabel.SetText(Application.version);
         }
 
         private void OnDisable()

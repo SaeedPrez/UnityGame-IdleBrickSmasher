@@ -31,7 +31,7 @@ namespace Prez.Core
 
         private void OnLeveledUp(int level)
         {
-            AddTalentPoints(GameManager.Data.GetDiamondsForLeveledUp());
+            // AddTalentPoints(GameManager.Data.GetTalentPointsForLeveledUp());
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
-﻿using Prez.Enums;
+﻿using Prez.Data;
+using Prez.Enums;
 using Prez.Utilities;
 using TMPro;
 using UnityEngine;
@@ -16,8 +17,9 @@ namespace Prez.Core
             EventManager.I.OnBallUpgraded += OnBallUpgraded;
             EventManager.I.OnPaddleUpgraded += OnPaddleUpgraded;
             EventManager.I.OnPaddleBulletUpgraded += OnPaddleUpgraded;
+            EventManager.I.OnBrickDamaged += OnBrickDamaged;
         }
-        
+
         private void OnDisable()
         {
             EventManager.I.OnGameStateChanged -= OnGameStateChanged;
@@ -25,6 +27,7 @@ namespace Prez.Core
             EventManager.I.OnBallUpgraded -= OnBallUpgraded;
             EventManager.I.OnPaddleUpgraded -= OnPaddleUpgraded;
             EventManager.I.OnPaddleBulletUpgraded -= OnPaddleUpgraded;
+            EventManager.I.OnBrickDamaged -= OnBrickDamaged;
         }
 
         private void OnGameStateChanged(EGameState state)
@@ -46,6 +49,17 @@ namespace Prez.Core
         private void OnPaddleUpgraded(EStat stat, float cost)
         {
             SubtractUpgradePoints(cost);
+        }
+
+        private void OnBrickDamaged(DamageData data)
+        {
+            if (!data.BrickDestroyed)
+                return;
+
+            if (!data.Brick.IsSpecial)
+                return;
+            
+            AddUpgradePoints(1f);
         }
 
         /// <summary>

@@ -245,7 +245,7 @@ MonoBehaviour:
   _idleIndicator: {fileID: 131600693228184039}
   _fireIndicator: {fileID: 4515512502930363007}
   _idleAlpha: 0.1
-  _borderHitColor: {r: 0, g: 0.49019608, b: 0.8509804, a: 1}
+  _borderHitColor: {r: 1, g: 1, b: 1, a: 1}
   _bulletPool: {fileID: 0}
   _weapon: {fileID: 57753429412491980}
   _weaponFirePoint: {fileID: 1011079897372482308}

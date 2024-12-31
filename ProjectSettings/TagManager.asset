@@ -7,7 +7,6 @@ TagManager:
   - Brick
   - Ball
   - Wall
-  - WallBottom
   - Projectile
   layers:
   - Default
@@ -23,7 +22,7 @@ TagManager:
   - Balls
   - Walls
   - Bricks
-  - Player
+  - Paddle
   - Projectile
   - 
   - 

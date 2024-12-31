@@ -35,7 +35,8 @@ MonoBehaviour:
     - DOTweenPro.Scripts
     - EasySave3
     - io.sentry.unity.runtime
-    - Prez
+    - Prez.V1
+    - Prez.V2
     - VInspector
     showAdvancedSettings: 0
   addMgrToSceneAutomatically: 0

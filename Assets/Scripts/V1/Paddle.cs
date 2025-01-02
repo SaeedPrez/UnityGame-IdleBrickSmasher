@@ -130,7 +130,6 @@ namespace Prez.V1
             _collider.enabled = true;
 
             _borderImage.sharedMaterial.SetFloat(Constants.Opacity, 1f);
-
         }
 
         /// <summary>

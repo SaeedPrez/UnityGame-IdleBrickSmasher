@@ -46,6 +46,15 @@ namespace Prez.V2.Managers
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Drag"",
+                    ""type"": ""Button"",
+                    ""id"": ""74db7271-5d10-4553-90a0-566b4c738337"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -211,6 +220,17 @@ namespace Prez.V2.Managers
                     ""processors"": """",
                     ""groups"": ""XR"",
                     ""action"": ""BallAction1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""0647865e-964b-4885-b7ef-482c989028e2"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": ""Hold"",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Drag"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -800,6 +820,7 @@ namespace Prez.V2.Managers
             m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
             m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
             m_Player_BallAction1 = m_Player.FindAction("BallAction1", throwIfNotFound: true);
+            m_Player_Drag = m_Player.FindAction("Drag", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -881,12 +902,14 @@ namespace Prez.V2.Managers
         private List<IPlayerActions> m_PlayerActionsCallbackInterfaces = new List<IPlayerActions>();
         private readonly InputAction m_Player_Move;
         private readonly InputAction m_Player_BallAction1;
+        private readonly InputAction m_Player_Drag;
         public struct PlayerActions
         {
             private @InputSystemActions m_Wrapper;
             public PlayerActions(@InputSystemActions wrapper) { m_Wrapper = wrapper; }
             public InputAction @Move => m_Wrapper.m_Player_Move;
             public InputAction @BallAction1 => m_Wrapper.m_Player_BallAction1;
+            public InputAction @Drag => m_Wrapper.m_Player_Drag;
             public InputActionMap Get() { return m_Wrapper.m_Player; }
             public void Enable() { Get().Enable(); }
             public void Disable() { Get().Disable(); }
@@ -902,6 +925,9 @@ namespace Prez.V2.Managers
                 @BallAction1.started += instance.OnBallAction1;
                 @BallAction1.performed += instance.OnBallAction1;
                 @BallAction1.canceled += instance.OnBallAction1;
+                @Drag.started += instance.OnDrag;
+                @Drag.performed += instance.OnDrag;
+                @Drag.canceled += instance.OnDrag;
             }
 
             private void UnregisterCallbacks(IPlayerActions instance)
@@ -912,6 +938,9 @@ namespace Prez.V2.Managers
                 @BallAction1.started -= instance.OnBallAction1;
                 @BallAction1.performed -= instance.OnBallAction1;
                 @BallAction1.canceled -= instance.OnBallAction1;
+                @Drag.started -= instance.OnDrag;
+                @Drag.performed -= instance.OnDrag;
+                @Drag.canceled -= instance.OnDrag;
             }
 
             public void RemoveCallbacks(IPlayerActions instance)
@@ -1096,6 +1125,7 @@ namespace Prez.V2.Managers
         {
             void OnMove(InputAction.CallbackContext context);
             void OnBallAction1(InputAction.CallbackContext context);
+            void OnDrag(InputAction.CallbackContext context);
         }
         public interface IUIActions
         {

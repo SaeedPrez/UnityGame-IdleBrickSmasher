@@ -1,4 +1,6 @@
-﻿using Prez.V2.Data.Save;
+﻿using System.Collections;
+using DG.Tweening;
+using Prez.V2.Data.Save;
 using Prez.V2.Managers;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,6 +22,7 @@ namespace Prez.V2.Ui
         [field:SerializeField] public TalentNodeData Data { get; private set; }
 
         private EventManager _event;
+        private Vector2 _lineParentPosition;
    
         #region Bootstrap
 
@@ -60,63 +63,100 @@ namespace Prez.V2.Ui
 
         private void OnButtonClicked()
         {
-            if (Data.Level >= MaxLevel)
-                return;
-
-            Data.Level++;
-            
-            _event.TriggerTalentPointLeveledUp(this);
+            LevelUp();
         }
 
         #endregion
 
         #region Lock
 
+        /// <summary>
+        /// Locks the talent node.
+        /// </summary>
         private void Lock()
         {
-            _button.gameObject.SetActive(false);
             _line.gameObject.SetActive(false);
+            _button.gameObject.SetActive(false);
         }
         
+        /// <summary>
+        /// Unlocks the talent node.
+        /// </summary>
         private void Unlock()
         {
             if (Data.Unlocked)
                 return;
 
-            Data.Unlocked = true;
             _button.gameObject.SetActive(true);
-            _line.gameObject.SetActive(true);
+            _button.transform.localScale = Vector3.zero;
+            _button.transform.DOScale(1, 0.5f)
+                .SetEase(Ease.OutBack);
 
-            if (ParentNodeUi != null)
-            {
-                _line.gameObject.SetActive(true);
-                SetupLine();
-            }
+            StartCoroutine(DrawLine());
         }
 
         #endregion
 
         #region Line
 
-        private void SetupLine()
+        /// <summary>
+        /// Calculates the line point positions.
+        /// </summary>
+        private void CalculateLinePoints()
         {
-            var point1 = Vector2.zero;
-            var point2 = ((RectTransform)ParentNodeUi.transform).anchoredPosition - ((RectTransform)transform).anchoredPosition;;
+            var point2 = ((RectTransform)ParentNodeUi.transform).anchoredPosition - ((RectTransform)transform).anchoredPosition;
 
-            if (point2.x < point1.x)
+            if (point2.x < 0)
                 point2.x += _size.x * 0.5f;
-            else if (point2.x > point1.x)
+            else if (point2.x > 0)
                 point2.x -= _size.x * 0.5f;
 
-            if (point2.y < point1.y)
+            if (point2.y < 0)
                 point2.y += _size.y * 0.5f;
-            else if (point2.y > point1.y)
+            else if (point2.y > 0)
                 point2.y -= _size.y * 0.5f;
 
-            _line.Points[0] = point1;
-            _line.Points[1] = point2;
+            _lineParentPosition = point2;
+        }
 
-            _line.SetAllDirty();
+        /// <summary>
+        /// Draws a line between node
+        /// and the parent node.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator DrawLine()
+        {
+            if (!ParentNodeUi)
+                yield break;
+            
+            CalculateLinePoints();
+
+            _line.Points[0] = _lineParentPosition;
+            _line.Points[1] = _lineParentPosition;
+            _line.gameObject.SetActive(true);
+
+            DOVirtual.Vector2(_lineParentPosition, Vector2.zero, 0.25f, position =>
+            {
+                _line.Points[1] = position;
+                _line.SetAllDirty();
+            }).SetEase(Ease.OutFlash).OnComplete(() => { Data.Unlocked = true; });
+        }
+
+        #endregion
+
+        #region Level
+
+        /// <summary>
+        /// Levels up node.
+        /// </summary>
+        private void LevelUp()
+        {
+            if (Data.Level >= MaxLevel)
+                return;
+
+            Data.Level++;
+            
+            _event.TriggerTalentPointLeveledUp(this);
         }
 
         #endregion

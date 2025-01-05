@@ -3,6 +3,7 @@ using Prez.V2.Balls;
 using Prez.V2.Data;
 using Prez.V2.Enums;
 using Prez.V2.Obstacles;
+using Prez.V2.Ui;
 using UnityEngine;
 
 namespace Prez.V2.Managers
@@ -50,6 +51,13 @@ namespace Prez.V2.Managers
 
         public event Action<int> OnLeveledUp = delegate { };
         public void TriggerLeveledUp(int level) => OnLeveledUp.Invoke(level);
+
+        #endregion
+
+        #region Talents
+
+        public event Action<TalentNodeUi> OnTalentNodeLeveledUp = delegate { };
+        public void TriggerTalentPointLeveledUp(TalentNodeUi nodeUi) => OnTalentNodeLeveledUp?.Invoke(nodeUi);
 
         #endregion
     }

@@ -37,6 +37,7 @@ MonoBehaviour:
     - io.sentry.unity.runtime
     - Prez.V1
     - Prez.V2
+    - UnityUIExtensions
     - VInspector
     showAdvancedSettings: 0
   addMgrToSceneAutomatically: 0

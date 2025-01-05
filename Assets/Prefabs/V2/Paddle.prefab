@@ -290,8 +290,8 @@ MonoBehaviour:
   _borderSprite: {fileID: 4303457412369041231}
   _hitColor: {r: 0.8509804, g: 0.7091504, b: 0, a: 1}
   _animationDuration: 0.1
-  _movementLimitFromX: -8
-  _movementLimitToX: 4.2
+  _movementLimitFromX: -8.1
+  _movementLimitToX: 4.25
 --- !u!1 &8831748901747507736
 GameObject:
   m_ObjectHideFlags: 0

@@ -28,12 +28,35 @@ namespace Prez.V2.Ui
 
         public void OnDrag(PointerEventData eventData)
         {
-            _rectTransform.anchoredPosition += eventData.delta / _canvas.scaleFactor;
+            if (Input.GetMouseButton(1))
+                Move(eventData.delta);
         }
 
         public void OnScroll(PointerEventData eventData)
         {
-            var scrollDelta = eventData.scrollDelta.y < 0f ? -1f : 1f;
+            Zoom(eventData.scrollDelta.y);
+        }
+
+        #endregion
+
+        #region Talents Window
+
+        /// <summary>
+        /// Moves the talents window.
+        /// </summary>
+        /// <param name="delta"></param>
+        private void Move(Vector2 delta)
+        {
+            _rectTransform.anchoredPosition += delta / _canvas.scaleFactor;
+        }
+
+        /// <summary>
+        /// Zooms the talents window.
+        /// </summary>
+        /// <param name="delta"></param>
+        private void Zoom(float delta)
+        {
+            var scrollDelta = delta < 0f ? -1f : 1f;
             var newZoom = Mathf.Clamp(_zoom + (scrollDelta * _zoomStep), _zoomFrom, _zoomTo);
 
             if (Mathf.Approximately(_zoom, newZoom))
@@ -43,6 +66,7 @@ namespace Prez.V2.Ui
             _rectTransform.DOKill();
             _rectTransform.DOScale(_zoom, 0.2f)
                 .SetEase(Ease.OutCirc);
+
         }
 
         #endregion
